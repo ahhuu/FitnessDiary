@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    
+    <!-- 日历背景 -->
+    <path
+        android:fillColor="#006A6A"
+        android:pathData="M12,14 L52,14 L52,56 L12,56 Z
+                         M12,14 L12,22 L52,22 L52,14 Z" />
+    
+    <!-- 日历顶部装饰条 -->
+    <path
+        android:fillColor="#004D4D"
+        android:pathData="M12,14 L52,14 L52,22 L12,22 Z" />
+    
+    <!-- 左侧挂钩 -->
+    <path
+        android:fillColor="#004D4D"
+        android:pathData="M22,10 L22,18 L24,18 L24,10 Z" />
+    
+    <!-- 右侧挂钩 -->
+    <path
+        android:fillColor="#004D4D"
+        android:pathData="M40,10 L40,18 L42,18 L42,10 Z" />
+    
+    <!-- 对勾符号 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M22,36 L28,42 L42,28" />
+    
+    <!-- 日历网格线（装饰性） -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M12,30 L52,30 M12,38 L52,38 M12,46 L52,46
+                         M28,22 L28,56 M36,22 L36,56 M44,22 L44,56" />
+</vector>

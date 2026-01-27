@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Gemini 风格配色 - FitnessDiary 主题 -->
+    
+    <!-- 页面底色（极浅的蓝灰色） -->
+    <color name="fitnessdiary_background">#F0F4F9</color>
+    
+    <!-- 卡片颜色（纯白） -->
+    <color name="fitnessdiary_surface">#FFFFFF</color>
+    <color name="fitnessdiary_surface_variant">#F5F5F5</color>
+    
+    <!-- 深青色（用于文字或图标） -->
+    <color name="fitnessdiary_primary">#006A6A</color>
+    
+    <!-- 薄荷绿（用于FAB按钮背景） -->
+    <color name="fitnessdiary_accent_container">#C4EED0</color>
+    
+    <!-- 深色（用于FAB上的加号颜色） -->
+    <color name="fitnessdiary_on_accent_container">#04210F</color>
+    
+    <!-- 文字颜色 -->
+    <color name="text_primary">#1F1F1F</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#9E9E9E</color>
+    
+    <!-- 基础颜色定义（Material Design 规范） -->
+    <color name="primary">#006A6A</color>
+    <color name="primary_variant">#004D4D</color>
+    <color name="secondary">#4FC3F7</color>
+    <color name="secondary_variant">#0288D1</color>
+    
+    <!-- 背景和表面颜色 -->
+    <color name="background">#F0F4F9</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="card_background">#FFFFFF</color>
+    
+    <!-- 通用颜色 -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    
+    <!-- 功能色 -->
+    <color name="color_success">#34A853</color>
+    <color name="color_warning">#FBBC04</color>
+    <color name="error">#EA4335</color>
+    
+    <!-- 分割线 -->
+    <color name="divider">#E0E0E0</color>
+</resources>

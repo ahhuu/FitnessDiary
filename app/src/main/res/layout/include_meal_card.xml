@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_meal_container"
+    android:layout_width="match_parent"
+    android:layout_height="160dp"
+    android:layout_margin="4dp"
+    app:cardBackgroundColor="@color/fitnessdiary_surface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="12dp">
+
+        <!-- 餐点名称 -->
+        <TextView
+            android:id="@+id/tv_meal_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="早餐"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- 添加按钮 (右上角) -->
+        <ImageButton
+            android:id="@+id/btn_add_food"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/date_circle_background"
+            android:src="@android:drawable/ic_input_add"
+            android:tint="@color/fitnessdiary_primary"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="添加食物"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+            
+        <!-- 由于没有专门的加号图标，这里暂时复用 ic_expand_more 并旋转45度变成叉号，或者查找系统加号 -->
+        <!-- 修正：直接使用系统加号 drawable 或者 text -->
+        
+        <!-- 食物摘要列表 (中间区域) -->
+        <TextView
+            android:id="@+id/tv_food_summary"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:text="暂无记录"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="top|start"
+            android:ellipsize="end"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_meal_name"
+            app:layout_constraintBottom_toTopOf="@id/tv_meal_calories" />
+
+        <!-- 热量总和 (左下角) -->
+        <TextView
+            android:id="@+id/tv_meal_calories"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 千卡"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/fitnessdiary_primary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- 外层火苗（主体） -->
+    <path
+        android:pathData="M12,22c4.97,0 9,-4.03 9,-9c0,-4.97 -9,-13 -9,-13c0,0 -9,8.03 -9,13c0,4.97 4.03,9 9,9z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="12"
+                android:startY="2"
+                android:endX="12"
+                android:endY="22"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF6B35"/>
+                <item android:offset="1" android:color="#F7931E"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    
+    <!-- 内层火苗（高光/断点） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.3"
+        android:pathData="M12,18c2.21,0 4,-1.79 4,-4c0,-2.21 -4,-6 -4,-6c0,0 -4,3.79 -4,6c0,2.21 1.79,4 4,4z" />
+    
+</vector>

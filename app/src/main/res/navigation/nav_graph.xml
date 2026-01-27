@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/checkInFragment">
+
+    <fragment
+        android:id="@+id/welcomeFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.WelcomeFragment"
+        android:label="欢迎" />
+
+    <fragment
+        android:id="@+id/checkInFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.CheckInFragment"
+        android:label="每日打卡" />
+
+    <fragment
+        android:id="@+id/planFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.PlanFragment"
+        android:label="训练计划" />
+
+    <fragment
+        android:id="@+id/dietFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.DietFragment"
+        android:label="饮食记录" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.ProfileFragment"
+        android:label="我的" />
+
+</navigation>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">健身日记</string>
+    
+    <!-- Welcome Screen -->
+    <string name="welcome_title">欢迎使用健身日记</string>
+    <string name="welcome_subtitle">记录每一次进步</string>
+    <string name="hint_nickname">请输入昵称</string>
+    <string name="hint_height">身高 (cm)</string>
+    <string name="hint_weight">体重 (kg)</string>
+    <string name="btn_start">开始使用</string>
+    
+    <!-- Bottom Navigation -->
+    <string name="nav_checkin">打卡</string>
+    <string name="nav_plan">计划</string>
+    <string name="nav_diet">饮食</string>
+    
+    <!-- Check-in Screen -->
+    <string name="checkin_title">今日训练</string>
+    <string name="checkin_no_plans">暂无训练计划，请先添加计划</string>
+    <string name="checkin_completed">已完成</string>
+    
+    <!-- Plan Screen -->
+    <string name="plan_title">我的计划</string>
+    <string name="plan_add">添加计划</string>
+    <string name="plan_name">计划名称</string>
+    <string name="plan_description">计划描述</string>
+    <string name="plan_delete">删除</string>
+    <string name="plan_no_plans">暂无训练计划</string>
+    
+    <!-- Diet Screen -->
+    <string name="diet_title">饮食记录</string>
+    <string name="diet_today_calories">今日总热量</string>
+    <string name="diet_add_food">添加食物</string>
+    <string name="diet_food_name">食物名称</string>
+    <string name="diet_calories">热量 (kcal)</string>
+    <string name="diet_no_records">暂无饮食记录</string>
+    
+    <!-- Common -->
+    <string name="btn_save">保存</string>
+    <string name="btn_cancel">取消</string>
+    <string name="btn_confirm">确认</string>
+    <string name="calories_unit">千卡</string>
+    
+    <!-- 2.0 新增字符串 -->
+    <string name="hint_age">年龄</string>
+    <string name="gender_female">女</string>
+    <string name="gender_male">男</string>
+    <string name="goal_lose_fat">减脂</string>
+    <string name="goal_gain_muscle">增肌</string>
+    <string name="goal_maintain">保持</string>
+    <string name="plan_sets">组数</string>
+    <string name="plan_reps">次数/时长</string>
+    <string name="plan_add_media">添加演示</string>
+    <string name="diet_weight_gram">摄入重量（克）</string>
+    <string name="checkin_consecutive">已连续坚持 %d 天</string>
+    <string name="plan_category">训练分类 (如: 胸肌, 有氧)</string>
+    <string name="plan_schedule">计划排期 (默认每天)</string>
+</resources>

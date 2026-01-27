@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    
+    <!-- 哑铃杆 -->
+    <path
+        android:fillColor="#00BCD4"
+        android:pathData="M18,28 L46,28 L46,36 L18,36 Z" />
+    
+    <!-- 左侧哑铃片（外层） -->
+    <path
+        android:fillColor="#00BCD4"
+        android:pathData="M10,20 L18,20 L18,44 L10,44 Z" />
+    
+    <!-- 左侧哑铃片（内层） -->
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M6,24 L10,24 L10,40 L6,40 Z" />
+    
+    <!-- 右侧哑铃片（外层） -->
+    <path
+        android:fillColor="#00BCD4"
+        android:pathData="M46,20 L54,20 L54,44 L46,44 Z" />
+    
+    <!-- 右侧哑铃片（内层） -->
+    <path
+        android:fillColor="#1976D2"
+        android:pathData="M54,24 L58,24 L58,40 L54,40 Z" />
+    
+    <!-- 手臂（简化表示） -->
+    <path
+        android:fillColor="#B0BEC5"
+        android:strokeWidth="2"
+        android:strokeColor="#78909C"
+        android:pathData="M32,36 Q28,42 24,48 L28,50 Q32,44 32,36 Z" />
+</vector>
