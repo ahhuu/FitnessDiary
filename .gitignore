@@ -34,3 +34,7 @@ build/
 
 # Log files
 *.log
+
+# Agent
+.agent/
+.ag
