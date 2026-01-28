@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background Circle -->
+    <item>
+        <shape
+            android:shape="ring"
+            android:thickness="4dp"
+            android:useLevel="false">
+            <solid android:color="#EEEEEE" />
+        </shape>
+    </item>
+    <!-- Progress Circle -->
+    <item>
+        <rotate
+            android:fromDegrees="270"
+            android:toDegrees="270">
+            <shape
+                android:shape="ring"
+                android:thickness="4dp"
+                android:useLevel="true">
+                <gradient
+                    android:endColor="@color/fitnessdiary_primary"
+                    android:startColor="@color/fitnessdiary_primary"
+                    android:type="sweep" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

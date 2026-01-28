@@ -23,7 +23,22 @@ import com.cz.fitnessdiary.databinding.FragmentDietBinding;
 import com.cz.fitnessdiary.ui.adapter.FoodAutoCompleteAdapter;
 import com.cz.fitnessdiary.viewmodel.DietViewModel;
 import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.utils.DateUtils;
+import com.google.android.material.datepicker.CalendarConstraints;
+import com.google.android.material.datepicker.CompositeDateValidator;
+import com.google.android.material.datepicker.DateValidatorPointBackward;
+import com.google.android.material.datepicker.DayViewDecorator;
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.color.MaterialColors;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import androidx.core.content.ContextCompat;
+import java.util.Set;
+import java.util.HashSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,18 +69,93 @@ public class DietFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        viewModel = new ViewModelProvider(this).get(DietViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(DietViewModel.class);
 
         setupViews();
         observeViewModel();
     }
 
     private void setupViews() {
+        // 设置日期导航监听 (Plan 13)
+        binding.btnPrevDay.setOnClickListener(v -> viewModel.toPreviousDay());
+        binding.btnNextDay.setOnClickListener(v -> viewModel.toNextDay());
+        binding.tvSelectedDate.setOnClickListener(v -> showDatePickerDialog());
+
         // 设置搜索卡片点击
         binding.cardFoodWiki.setOnClickListener(v -> showFoodWikiDialog());
 
         // 绑定卡片添加按钮监听
         setupCardListeners();
+    }
+
+    /**
+     * 打开日历选择器 (Plan 13: 增强版 - Material 3 + 高亮)
+     */
+    private void showDatePickerDialog() {
+        Long currentSelection = viewModel.getSelectedDate().getValue();
+        if (currentSelection == null)
+            currentSelection = System.currentTimeMillis();
+
+        // 获取有记录的日期集合
+        Set<Long> recordedDates = viewModel.getRecordedDates().getValue();
+        if (recordedDates == null)
+            recordedDates = new HashSet<>();
+
+        // 创建装饰器：为有记录的日期添加绿色下划点
+        final Set<Long> finalRecordedDates = recordedDates;
+        DayViewDecorator decorator = new DayViewDecorator() {
+            @Nullable
+            @Override
+            public Drawable getCompoundDrawableBottom(android.content.Context context, int year, int month, int day,
+                    boolean valid, boolean selected) {
+                // 将年月日转换为当地 0 点时间戳进行比对
+                java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+                cal.set(year, month, day, 0, 0, 0);
+                cal.set(java.util.Calendar.MILLISECOND, 0);
+                long utcTimestamp = cal.getTimeInMillis();
+
+                // 转换回本地 0 点进行比对 (兼容性处理)
+                java.util.Calendar localCal = java.util.Calendar.getInstance();
+                localCal.setTimeInMillis(utcTimestamp);
+                long localStart = DateUtils.getDayStartTimestamp(localCal.getTimeInMillis());
+
+                if (finalRecordedDates.contains(localStart)) {
+                    GradientDrawable dot = new GradientDrawable();
+                    dot.setShape(GradientDrawable.OVAL);
+                    dot.setSize(12, 12);
+                    dot.setColor(ContextCompat.getColor(requireContext(), R.color.color_success));
+                    // 使用 InsetDrawable 控制边距，让点显示在正下方
+                    return new InsetDrawable(dot, 0, 0, 0, 4);
+                }
+                return null;
+            }
+
+            @Override
+            public void writeToParcel(android.os.Parcel dest, int flags) {
+            }
+
+            @Override
+            public int describeContents() {
+                return 0;
+            }
+        };
+
+        MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("选择日期")
+                .setSelection(currentSelection)
+                .setDayViewDecorator(decorator)
+                .setCalendarConstraints(new CalendarConstraints.Builder()
+                        .setValidator(DateValidatorPointBackward.now()) // 不允许选择未来日期
+                        .build())
+                .build();
+
+        datePicker.addOnPositiveButtonClickListener(selection -> {
+            // MaterialDatePicker 返回的是 UTC 时间戳
+            // 我们需要将其调整为本地日期的 0 点
+            viewModel.setSelectedDate(selection);
+        });
+
+        datePicker.show(getParentFragmentManager(), "DATE_PICKER");
     }
 
     /**
@@ -92,7 +182,7 @@ public class DietFragment extends Fragment {
             // 点击食物 -> 弹出“添加到”选择框
             String[] mealOptions = { "早餐", "午餐", "晚餐", "加餐" };
 
-            new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                     .setTitle("将 " + food.getName() + " 添加到...")
                     .setItems(mealOptions, (dialogInterface, which) -> {
                         // which match the mealType int (0=Breakfast, 1=Lunch, 2=Dinner, 3=Snack)
@@ -148,12 +238,6 @@ public class DietFragment extends Fragment {
 
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_custom_food, null);
 
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(
-                requireContext());
-        builder.setView(dialogView);
-
-        androidx.appcompat.app.AlertDialog addDialog = builder.create();
-
         // 获取输入控件
         com.google.android.material.textfield.TextInputEditText etFoodName = dialogView.findViewById(R.id.et_food_name);
         com.google.android.material.textfield.TextInputEditText etCalories = dialogView.findViewById(R.id.et_calories);
@@ -165,100 +249,70 @@ public class DietFragment extends Fragment {
                 .findViewById(R.id.et_weight_per_unit);
         AutoCompleteTextView spinnerCategory = dialogView.findViewById(R.id.spinner_category);
 
-        // 设置分类下拉
+        // 设置分类下拉 (Plan 32: 增加图标和 M3 布局)
         String[] categories = {
-                "主食 (Staples)",
-                "家常菜 (Dishes)",
-                "优质蛋白质 (Protein)",
-                "蔬菜 & 水果 (Veg & Fruits)",
-                "零食饮品 (Snacks & Drinks)",
-                "其他"
+                "🍜 主食 (Staples)",
+                "🥗 家常菜 (Dishes)",
+                "🥩 优质蛋白质 (Protein)",
+                "🍎 蔬菜 & 水果 (Veg & Fruits)",
+                "🍫 零食饮品 (Snacks & Drinks)",
+                "🍽️ 其他"
         };
         android.widget.ArrayAdapter<String> categoryAdapter = new android.widget.ArrayAdapter<>(
-                requireContext(), android.R.layout.simple_dropdown_item_1line, categories);
+                requireContext(), R.layout.item_dropdown_category, categories);
         spinnerCategory.setAdapter(categoryAdapter);
         spinnerCategory.setText(categories[5], false); // 默认选择"其他"
 
-        // 取消按钮
-        dialogView.findViewById(R.id.btn_cancel).setOnClickListener(v -> addDialog.dismiss());
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("添加自定义食物")
+                .setView(dialogView)
+                .setNeutralButton("取消", null)
+                .setPositiveButton("保存", (dialogInterface, i) -> {
+                    String name = etFoodName.getText() != null ? etFoodName.getText().toString().trim() : "";
+                    String caloriesStr = etCalories.getText() != null ? etCalories.getText().toString().trim() : "";
+                    String proteinStr = etProtein.getText() != null ? etProtein.getText().toString().trim() : "";
+                    String carbsStr = etCarbs.getText() != null ? etCarbs.getText().toString().trim() : "";
+                    String servingUnit = etServingUnit.getText() != null ? etServingUnit.getText().toString().trim()
+                            : "";
+                    String weightStr = etWeightPerUnit.getText() != null ? etWeightPerUnit.getText().toString().trim()
+                            : "";
+                    String categoryRaw = spinnerCategory.getText().toString().trim();
 
-        // 保存按钮
-        dialogView.findViewById(R.id.btn_save).setOnClickListener(v -> {
-            String name = etFoodName.getText() != null ? etFoodName.getText().toString().trim() : "";
-            String caloriesStr = etCalories.getText() != null ? etCalories.getText().toString().trim() : "";
-            String proteinStr = etProtein.getText() != null ? etProtein.getText().toString().trim() : "";
-            String carbsStr = etCarbs.getText() != null ? etCarbs.getText().toString().trim() : "";
-            String servingUnit = etServingUnit.getText() != null ? etServingUnit.getText().toString().trim() : "";
-            String weightStr = etWeightPerUnit.getText() != null ? etWeightPerUnit.getText().toString().trim() : "";
-            String category = spinnerCategory.getText().toString().trim();
+                    // 验证必填字段
+                    if (name.isEmpty() || caloriesStr.isEmpty()) {
+                        Toast.makeText(requireContext(), "请填写名称和热量", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
 
-            // 验证必填字段
-            if (name.isEmpty()) {
-                Toast.makeText(requireContext(), "请输入食物名称", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (caloriesStr.isEmpty()) {
-                Toast.makeText(requireContext(), "请输入热量", Toast.LENGTH_SHORT).show();
-                return;
-            }
+                    // 解析数值 (保持原有解析逻辑)
+                    try {
+                        int calories = (int) Double.parseDouble(caloriesStr);
+                        double protein = proteinStr.isEmpty() ? 0 : Double.parseDouble(proteinStr);
+                        double carbs = carbsStr.isEmpty() ? 0 : Double.parseDouble(carbsStr);
+                        int weightPerUnit = weightStr.isEmpty() ? 100 : Integer.parseInt(weightStr);
+                        String unit = servingUnit.isEmpty() ? "份" : servingUnit;
 
-            // 解析数值
-            int calories;
-            try {
-                calories = (int) Double.parseDouble(caloriesStr);
-            } catch (NumberFormatException e) {
-                Toast.makeText(requireContext(), "热量格式错误", Toast.LENGTH_SHORT).show();
-                return;
-            }
+                        // 清理分类名称中的 Emoji (保持数据库存储一致性)
+                        String cat = categoryRaw.replaceAll("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", "").trim();
+                        if (cat.isEmpty())
+                            cat = "其他";
 
-            double protein = 0;
-            if (!proteinStr.isEmpty()) {
-                try {
-                    protein = Double.parseDouble(proteinStr);
-                } catch (NumberFormatException ignored) {
-                }
-            }
+                        // 创建食物对象并保存
+                        FoodLibrary newFood = new FoodLibrary(name, calories, protein, carbs, unit, weightPerUnit, cat);
+                        viewModel.insertFood(newFood);
 
-            double carbs = 0;
-            if (!carbsStr.isEmpty()) {
-                try {
-                    carbs = Double.parseDouble(carbsStr);
-                } catch (NumberFormatException ignored) {
-                }
-            }
+                        Toast.makeText(requireContext(), "✅ 已添加: " + name, Toast.LENGTH_SHORT).show();
 
-            int weightPerUnit = 100; // 默认100g
-            if (!weightStr.isEmpty()) {
-                try {
-                    weightPerUnit = Integer.parseInt(weightStr);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-
-            if (servingUnit.isEmpty()) {
-                servingUnit = "份";
-            }
-
-            if (category.isEmpty()) {
-                category = "其他";
-            }
-
-            // 创建食物对象并保存
-            FoodLibrary newFood = new FoodLibrary(name, calories, protein, carbs,
-                    servingUnit, weightPerUnit, category);
-            viewModel.insertFood(newFood);
-
-            Toast.makeText(requireContext(), "✅ 已添加: " + name, Toast.LENGTH_SHORT).show();
-            addDialog.dismiss();
-
-            // 刷新列表
-            executorService.execute(() -> {
-                List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
-                requireActivity().runOnUiThread(() -> adapter.setFoodList(allFoods));
-            });
-        });
-
-        addDialog.show();
+                        // 刷新列表
+                        executorService.execute(() -> {
+                            List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
+                            requireActivity().runOnUiThread(() -> adapter.setFoodList(allFoods));
+                        });
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(requireContext(), "输入格式不正确", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
     }
 
     private void setupCardListeners() {
@@ -276,17 +330,27 @@ public class DietFragment extends Fragment {
      * 观察 ViewModel 数据
      */
     private void observeViewModel() {
-        // 用于缓存目标热量（避免重复读取）
-        final int[] cachedTargetCalories = { 2000 }; // 默认值
-
-        // 观察用户数据（获取目标热量）
-        viewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
-            if (user != null && user.getTargetCalories() > 0) {
-                cachedTargetCalories[0] = user.getTargetCalories();
+        // 0. 观察选中日期并显示 (Plan 13)
+        viewModel.getSelectedDate().observe(getViewLifecycleOwner(), date -> {
+            boolean isToday = com.cz.fitnessdiary.utils.DateUtils.isToday(date);
+            if (isToday) {
+                binding.tvSelectedDate.setText("今日");
+            } else {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy年M月d日",
+                        java.util.Locale.getDefault());
+                binding.tvSelectedDate.setText(sdf.format(new java.util.Date(date)));
             }
         });
 
-        // Plan 12: 观察餐段数据并更新卡片 (不再使用 RecyclerView)
+        // 1. 观察用户信息 (核心：作为所有计算的目标基准)
+        viewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
+            if (user != null) {
+                // 用户信息加载后，立即刷新所有相关 UI
+                refreshAllSummaryUI(user);
+            }
+        });
+
+        // 2. 观察餐段数据并更新卡片
         viewModel.getMealSections().observe(getViewLifecycleOwner(), sections -> {
             if (sections != null) {
                 for (com.cz.fitnessdiary.model.MealSection section : sections) {
@@ -308,73 +372,62 @@ public class DietFragment extends Fragment {
             }
         });
 
-        // 观察今日总热量
-        viewModel.getTodayTotalCalories().observe(getViewLifecycleOwner(), totalCalories -> {
-            if (totalCalories != null) {
-                binding.tvTotalCalories.setText(String.valueOf(totalCalories));
+        // 3. 观察热量/营养素数据 (变化时触发局部刷新)
+        viewModel.getTodayTotalCalories().observe(getViewLifecycleOwner(),
+                total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
+        viewModel.getTodayTotalProtein().observe(getViewLifecycleOwner(),
+                total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
+        viewModel.getTodayTotalCarbs().observe(getViewLifecycleOwner(),
+                total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
+    }
 
-                // 使用动态获取的目标热量
-                int targetCalories = cachedTargetCalories[0];
-                int progress = (int) ((totalCalories * 100.0) / targetCalories);
-                binding.progressCalories.setProgress(Math.min(progress, 100));
+    /**
+     * 统一刷新顶部概览 UI
+     */
+    private void refreshAllSummaryUI(User user) {
+        if (user == null || binding == null)
+            return;
 
-                // 更新副标题（显示目标）
-                binding.tvCaloriesSubtitle.setText("千卡 · 目标 " + targetCalories);
+        // --- 1. 卡路里刷新 ---
+        int targetCalories = user.getTargetCalories();
+        if (targetCalories <= 0)
+            targetCalories = 2000; // 极简兜底
 
-                // 如果超过 100%，进度条变红
-                if (progress > 100) {
-                    binding.progressCalories.setIndicatorColor(
-                            getResources().getColor(com.cz.fitnessdiary.R.color.error, null));
-                } else {
-                    binding.progressCalories.setIndicatorColor(
-                            getResources().getColor(com.cz.fitnessdiary.R.color.color_success, null));
-                }
-            } else {
-                binding.tvTotalCalories.setText("0");
-                binding.progressCalories.setProgress(0);
-                binding.tvCaloriesSubtitle.setText("千卡 · 目标 " + cachedTargetCalories[0]);
-            }
-        });
+        Integer consumed = viewModel.getTodayTotalCalories().getValue();
+        int currentCalories = consumed != null ? consumed : 0;
 
-        // 观察蛋白质数据
-        viewModel.getTodayTotalProtein().observe(getViewLifecycleOwner(), totalProtein -> {
-            if (totalProtein != null) {
-                int currentProtein = totalProtein.intValue();
-                int targetProtein = 0;
-                User user = viewModel.getCurrentUser().getValue();
-                if (user != null) {
-                    targetProtein = user.getTargetProtein();
-                    if (targetProtein <= 0)
-                        targetProtein = (int) (user.getWeight() * 1.5); // 默认估算
-                }
-                if (targetProtein <= 0)
-                    targetProtein = 60; // 兜底默认值
+        binding.tvTotalCalories.setText(String.valueOf(currentCalories));
+        binding.tvCaloriesSubtitle.setText("千卡 · 目标 " + targetCalories);
 
-                int progress = (int) ((currentProtein * 100.0) / targetProtein);
-                binding.progressProtein.setProgress(Math.min(progress, 100));
-                binding.tvProteinStatus.setText("蛋白质: " + currentProtein + "/" + targetProtein + "g");
-            }
-        });
+        int calProgress = (int) ((currentCalories * 100.0) / targetCalories);
+        binding.progressCalories.setProgress(Math.min(calProgress, 100));
+        binding.progressCalories
+                .setIndicatorColor(currentCalories > targetCalories ? getResources().getColor(R.color.error, null)
+                        : getResources().getColor(R.color.color_success, null));
 
-        // 观察碳水数据
-        viewModel.getTodayTotalCarbs().observe(getViewLifecycleOwner(), totalCarbs -> {
-            if (totalCarbs != null) {
-                int currentCarbs = totalCarbs.intValue();
-                int targetCarbs = 0;
-                User user = viewModel.getCurrentUser().getValue();
-                if (user != null) {
-                    targetCarbs = user.getTargetCarbs();
-                    if (targetCarbs <= 0)
-                        targetCarbs = 250; // 默认估算
-                }
-                if (targetCarbs <= 0)
-                    targetCarbs = 250; // 兜底默认值
+        // --- 2. 蛋白质刷新 ---
+        int targetProtein = user.getTargetProtein();
+        if (targetProtein <= 0)
+            targetProtein = (int) (user.getWeight() * 1.5);
 
-                int progress = (int) ((currentCarbs * 100.0) / targetCarbs);
-                binding.progressCarbs.setProgress(Math.min(progress, 100));
-                binding.tvCarbsStatus.setText("碳水: " + currentCarbs + "/" + targetCarbs + "g");
-            }
-        });
+        Double pConsumed = viewModel.getTodayTotalProtein().getValue();
+        int currentProtein = pConsumed != null ? pConsumed.intValue() : 0;
+
+        int pProgress = (int) ((currentProtein * 100.0) / targetProtein);
+        binding.progressProtein.setProgress(Math.min(pProgress, 100));
+        binding.tvProteinStatus.setText("蛋白质: " + currentProtein + "/" + targetProtein + "g");
+
+        // --- 3. 碳水刷新 ---
+        int targetCarbs = user.getTargetCarbs();
+        if (targetCarbs <= 0)
+            targetCarbs = 250;
+
+        Double cConsumed = viewModel.getTodayTotalCarbs().getValue();
+        int currentCarbs = cConsumed != null ? cConsumed.intValue() : 0;
+
+        int cProgress = (int) ((currentCarbs * 100.0) / targetCarbs);
+        binding.progressCarbs.setProgress(Math.min(cProgress, 100));
+        binding.tvCarbsStatus.setText("碳水: " + currentCarbs + "/" + targetCarbs + "g");
     }
 
     /**
@@ -463,196 +516,24 @@ public class DietFragment extends Fragment {
      * 显示智能添加食物对话框（支持预选餐类型）
      */
     private void showSmartAddFoodDialog(int preSelectedMealType) {
-        showSmartAddFoodDialogInternal(preSelectedMealType, null);
+        AddFoodBottomSheetFragment.newInstance(preSelectedMealType)
+                .show(getChildFragmentManager(), "AddFoodBottomSheet");
     }
 
     /**
      * 显示智能添加食物对话框（支持预选餐类型和特定食物）
      */
     private void showSmartAddFoodDialog(int preSelectedMealType, FoodLibrary preSelectedFood) {
-        showSmartAddFoodDialogInternal(preSelectedMealType, preSelectedFood);
+        AddFoodBottomSheetFragment.newInstance(preSelectedMealType, preSelectedFood)
+                .show(getChildFragmentManager(), "AddFoodBottomSheet");
     }
 
     /**
      * 显示智能添加食物对话框（支持食物库联想）
      */
     private void showSmartAddFoodDialog() {
-        showSmartAddFoodDialogInternal(-1, null); // -1 表示无预选
-    }
-
-    /**
-     * 智能添加食物对话框实现
-     */
-    private void showSmartAddFoodDialogInternal(int preSelectedMealType, FoodLibrary preSelectedFood) {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_food, null);
-
-        // 1. 初始化控件 (使用 MaterialAutoCompleteTextView)
-        com.google.android.material.textfield.MaterialAutoCompleteTextView etFoodName = dialogView
-                .findViewById(R.id.et_food_name);
-        TextInputEditText etServings = dialogView.findViewById(R.id.et_servings);
-        TextView tvUnit = dialogView.findViewById(R.id.tv_unit);
-        TextView tvAutoCalories = dialogView.findViewById(R.id.tv_auto_calories);
-        RadioGroup rgMealType = dialogView.findViewById(R.id.rg_meal_type);
-
-        // 处理预选类型
-        if (preSelectedMealType != -1) {
-            switch (preSelectedMealType) {
-                case 0:
-                    rgMealType.check(R.id.rb_breakfast);
-                    break;
-                case 1:
-                    rgMealType.check(R.id.rb_lunch);
-                    break;
-                case 2:
-                    rgMealType.check(R.id.rb_dinner);
-                    break;
-                case 3:
-                    rgMealType.check(R.id.rb_snack);
-                    break;
-            }
-        } else {
-            rgMealType.check(R.id.rb_snack);
-        }
-
-        // 2. 异步加载食物库并配置适配器
-        final List<FoodLibrary> allFoodsCache = new ArrayList<>();
-
-        executorService.execute(() -> {
-            List<FoodLibrary> foods = viewModel.getAllFoodsSync();
-            final List<FoodLibrary> safeFoods = foods != null ? foods : new ArrayList<>();
-            if (foods != null) {
-                allFoodsCache.addAll(foods);
-            }
-
-            requireActivity().runOnUiThread(() -> {
-                // 使用自定义的 FoodAutoCompleteAdapter (支持"包含"搜索)
-                com.cz.fitnessdiary.ui.adapter.FoodAutoCompleteAdapter adapter = new com.cz.fitnessdiary.ui.adapter.FoodAutoCompleteAdapter(
-                        getContext(), safeFoods);
-                etFoodName.setAdapter(adapter);
-
-                // [核心修复] 如果有预选食物，直接填充并初始化
-                if (preSelectedFood != null) {
-                    etFoodName.setText(preSelectedFood.getName());
-                    etFoodName.dismissDropDown(); // 填充后不显示下拉列表
-
-                    // 手动设置数据
-                    tvUnit.setText(preSelectedFood.getServingUnit());
-                    updateAutoCaloriesSmart(preSelectedFood, etServings, tvAutoCalories);
-                    etFoodName.setTag(preSelectedFood);
-                }
-            });
-        });
-
-        // 3. 选中监听 (自动填充热量信息, 兼容 Adapter 返回对象或 String)
-        etFoodName.setOnItemClickListener((parent, view, position, id) -> {
-            Object item = parent.getItemAtPosition(position);
-            FoodLibrary selectedFood = null;
-
-            if (item instanceof FoodLibrary) {
-                selectedFood = (FoodLibrary) item;
-            } else if (item instanceof String) {
-                // Fallback catch
-                String name = (String) item;
-                for (FoodLibrary f : allFoodsCache) {
-                    if (f.getName().equals(name)) {
-                        selectedFood = f;
-                        break;
-                    }
-                }
-            }
-
-            if (selectedFood != null) {
-                // 更新单位
-                if (selectedFood.getServingUnit() != null) {
-                    tvUnit.setText(selectedFood.getServingUnit());
-                }
-                updateAutoCaloriesSmart(selectedFood, etServings, tvAutoCalories);
-                etFoodName.setTag(selectedFood);
-            }
-        });
-
-        // 4. 份数变化监听
-        etServings.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // 取出刚才保存的 tag
-                Object tag = etFoodName.getTag();
-                if (tag instanceof FoodLibrary) {
-                    updateAutoCaloriesSmart((FoodLibrary) tag, etServings, tvAutoCalories);
-                }
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-            }
-        });
-
-        new AlertDialog.Builder(requireContext())
-                .setTitle("添加食物")
-                .setView(dialogView)
-                .setPositiveButton("添加", (dialog, which) -> {
-                    String foodName = etFoodName.getText().toString().trim();
-                    String servingsStr = etServings.getText().toString().trim();
-
-                    if (foodName.isEmpty() || servingsStr.isEmpty()) {
-                        Toast.makeText(getContext(), "请填写完整信息", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    try {
-                        float servings = Float.parseFloat(servingsStr);
-
-                        // 获取餐点类型
-                        int checkedId = rgMealType.getCheckedRadioButtonId();
-                        int mealType = 3;
-                        if (checkedId == R.id.rb_breakfast)
-                            mealType = 0;
-                        else if (checkedId == R.id.rb_lunch)
-                            mealType = 1;
-                        else if (checkedId == R.id.rb_dinner)
-                            mealType = 2;
-
-                        viewModel.addFoodRecordSmart(foodName, servings, mealType);
-                        Toast.makeText(getContext(), "添加成功", Toast.LENGTH_SHORT).show();
-                    } catch (NumberFormatException e) {
-                        Toast.makeText(getContext(), "请输入有效的份数", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-
-    /**
-     * 更新自动计算的热量显示 (Smart Version)
-     */
-    private void updateAutoCaloriesSmart(FoodLibrary food, TextInputEditText etServings, TextView tvCalories) {
-        if (food == null) {
-            tvCalories.setVisibility(View.GONE);
-            return;
-        }
-
-        String servingsStr = etServings.getText().toString().trim();
-        if (servingsStr.isEmpty()) {
-            tvCalories.setVisibility(View.GONE);
-            return;
-        }
-
-        try {
-            float servings = Float.parseFloat(servingsStr);
-            int weightPerUnit = food.getWeightPerUnit();
-
-            // 计算热量: 份数 * 单份重量 * (每100g热量 / 100)
-            int calories = (int) (servings * weightPerUnit * (food.getCaloriesPer100g() / 100.0));
-
-            tvCalories.setText("热量: " + calories + " 千卡 (" + (int) (servings * weightPerUnit) + "g)");
-            tvCalories.setVisibility(View.VISIBLE);
-        } catch (NumberFormatException e) {
-            tvCalories.setVisibility(View.GONE);
-        }
+        AddFoodBottomSheetFragment.newInstance(-1)
+                .show(getChildFragmentManager(), "AddFoodBottomSheet");
     }
 
     @Override

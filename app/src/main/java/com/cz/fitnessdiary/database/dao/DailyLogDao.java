@@ -75,8 +75,13 @@ public interface DailyLogDao {
     LiveData<List<DailyLog>> getLogsByDateRange(long startDate, long endDate);
 
     /**
-     * 获取总训练天数（不重复的日期数）- Plan 10
-     * 用于动态等级系统
+     * 获取所有有打卡记录的时间戳列表 (用于日历高亮)
+     */
+    @Query("SELECT date FROM daily_log")
+    LiveData<List<Long>> getAllRecordTimestamps();
+
+    /**
+     * 获取总训练天数
      */
     @Query("SELECT COUNT(DISTINCT date) FROM daily_log")
     int getTotalTrainingDays();

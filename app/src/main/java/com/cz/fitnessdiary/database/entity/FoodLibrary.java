@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey;
  * 预置常见食物的热量数据，用于饮食记录的智能联想
  */
 @Entity(tableName = "food_library")
-public class FoodLibrary {
+public class FoodLibrary implements java.io.Serializable {
 
     @PrimaryKey
     @NonNull

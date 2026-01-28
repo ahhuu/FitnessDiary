@@ -51,6 +51,12 @@ public interface FoodRecordDao {
     LiveData<List<FoodRecord>> getAllFoodRecords();
 
     /**
+     * 获取所有有记录的时间戳列表 (用于日历高亮)
+     */
+    @Query("SELECT record_date FROM food_record")
+    LiveData<List<Long>> getAllRecordTimestamps();
+
+    /**
      * 计算指定日期范围的总热量（同步方法）- Plan 10
      * 用于成就判定
      */

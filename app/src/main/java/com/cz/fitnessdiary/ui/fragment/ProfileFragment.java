@@ -119,14 +119,18 @@ public class ProfileFragment extends Fragment {
         viewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
                 // 显示用户名（如果为空则显示默认值）
-                String nickname = (user.getNickname() == null || user.getNickname().isEmpty())
-                        ? "健身达人"
-                        : user.getNickname();
+                String nickname = (user.getNickname() == null || user.getNickname().isEmpty()
+                        || "新用户".equals(user.getNickname()))
+                                ? "新用户" // 保持与跳过逻辑一致
+                                : user.getNickname();
                 binding.tvUsername.setText(nickname);
 
-                binding.tvWeight.setText(String.valueOf(user.getWeight()));
-                binding.tvHeight.setText(String.valueOf((int) user.getHeight()));
-                binding.tvGoal.setText(user.getGoal() != null ? user.getGoal() : "减脂");
+                // 优化 0 值显示
+                binding.tvWeight.setText(user.getWeight() > 0 ? String.valueOf(user.getWeight()) : "--");
+                binding.tvHeight.setText(user.getHeight() > 0 ? String.valueOf((int) user.getHeight()) : "--");
+                binding.tvAge.setText(user.getAge() > 0 ? user.getAge() + " 岁" : "--");
+
+                binding.tvGoal.setText(user.getGoal() != null ? user.getGoal() : "点此设置");
 
                 // 加载头像
                 if (user.getAvatarUri() != null && !user.getAvatarUri().isEmpty()) {
@@ -138,9 +142,6 @@ public class ProfileFragment extends Fragment {
                         binding.ivAvatar.setImageResource(android.R.drawable.ic_menu_myplaces);
                     }
                 }
-
-                // Plan 34: 显示年龄
-                binding.tvAge.setText(user.getAge() + " 岁");
 
                 // Plan 34: 显示性别 (带动态emoji)
                 boolean isMale = user.getGender() == 1; // 1=男, 0=女
@@ -239,21 +240,24 @@ public class ProfileFragment extends Fragment {
      * 显示修改用户名对话框
      */
     private void showEditNicknameDialog() {
-        EditText input = new EditText(requireContext());
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_input_simple, null);
+        com.google.android.material.textfield.TextInputEditText input = dialogView.findViewById(R.id.edit_text);
+        com.google.android.material.textfield.TextInputLayout layout = dialogView.findViewById(R.id.text_input_layout);
+
+        layout.setHint("用户名");
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        input.setHint("请输入用户名");
 
         // 预填充当前用户名
         viewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
-            if (user != null && user.getNickname() != null) {
+            if (user != null && user.getNickname() != null && input.getText().toString().isEmpty()) {
                 input.setText(user.getNickname());
-                input.setSelection(input.getText().length()); // 光标移到末尾
+                input.setSelection(input.getText().length());
             }
         });
 
-        new AlertDialog.Builder(requireContext())
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("修改用户名")
-                .setView(input)
+                .setView(dialogView)
                 .setPositiveButton("确定", (dialog, which) -> {
                     String nickname = input.getText().toString().trim();
                     if (!nickname.isEmpty()) {
@@ -271,13 +275,16 @@ public class ProfileFragment extends Fragment {
      * 显示修改体重对话框
      */
     private void showEditWeightDialog() {
-        EditText input = new EditText(requireContext());
-        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        input.setHint("请输入体重 (kg)");
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_input_simple, null);
+        com.google.android.material.textfield.TextInputEditText input = dialogView.findViewById(R.id.edit_text);
+        com.google.android.material.textfield.TextInputLayout layout = dialogView.findViewById(R.id.text_input_layout);
 
-        new AlertDialog.Builder(requireContext())
+        layout.setHint("体重 (kg)");
+        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("修改体重")
-                .setView(input)
+                .setView(dialogView)
                 .setPositiveButton("确定", (dialog, which) -> {
                     String weightStr = input.getText().toString().trim();
                     if (!weightStr.isEmpty()) {
@@ -302,13 +309,16 @@ public class ProfileFragment extends Fragment {
      * 显示修改身高对话框
      */
     private void showEditHeightDialog() {
-        EditText input = new EditText(requireContext());
-        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        input.setHint("请输入身高 (cm)");
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_input_simple, null);
+        com.google.android.material.textfield.TextInputEditText input = dialogView.findViewById(R.id.edit_text);
+        com.google.android.material.textfield.TextInputLayout layout = dialogView.findViewById(R.id.text_input_layout);
 
-        new AlertDialog.Builder(requireContext())
+        layout.setHint("身高 (cm)");
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("修改身高")
-                .setView(input)
+                .setView(dialogView)
                 .setPositiveButton("确定", (dialog, which) -> {
                     String heightStr = input.getText().toString().trim();
                     if (!heightStr.isEmpty()) {
@@ -335,7 +345,7 @@ public class ProfileFragment extends Fragment {
     private void showGoalSelectionDialog() {
         String[] goals = { "减脂", "增肌", "保持" };
 
-        new AlertDialog.Builder(requireContext())
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("选择目标")
                 .setItems(goals, (dialog, which) -> {
                     String selectedGoal = goals[which];
@@ -350,7 +360,7 @@ public class ProfileFragment extends Fragment {
      * 显示清除数据确认对话框
      */
     private void showClearDataDialog() {
-        new AlertDialog.Builder(requireContext())
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("清除所有数据")
                 .setMessage("确定要清除所有数据吗？此操作不可恢复！")
                 .setPositiveButton("确定清除", (dialog, which) -> {
@@ -471,26 +481,27 @@ public class ProfileFragment extends Fragment {
         double weight = user.getWeight();
         int height = (int) user.getHeight();
         int age = user.getAge();
-        boolean isMale = user.getGender() == 1; // 1=男, 0=女
+        int gender = user.getGender();
+        float activityLevel = user.getActivityLevel();
+        if (activityLevel <= 0)
+            activityLevel = 1.2f;
 
-        // 计算BMR (Mifflin-St Jeor公式)
-        double bmr;
-        if (isMale) {
-            bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-        } else {
-            bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-        }
+        // [核心修复] 使用统一工具类计算 BMR 和 TDEE
+        int bmrValue = com.cz.fitnessdiary.utils.CalorieCalculatorUtils.calculateBMR(gender, (float) weight,
+                (float) height, age);
+        int tdeeValue = com.cz.fitnessdiary.utils.CalorieCalculatorUtils.calculateTDEE(bmrValue, activityLevel);
 
         // 设置BMR值
         android.widget.TextView tvBmrValue = view.findViewById(R.id.tv_bmr_value);
-        tvBmrValue.setText(String.valueOf((int) bmr));
+        tvBmrValue.setText(String.valueOf(bmrValue));
 
-        // 计算每日热量建议 (TDEE = BMR * 活动系数)
-        // 假设轻度活动系数 1.375
-        double tdee = bmr * 1.375;
-        int deficitCalories = (int) (tdee * 0.8); // 减脂: 赤字20%
-        int maintainCalories = (int) tdee; // 维持
-        int surplusCalories = (int) (tdee * 1.15); // 增肌: 盈余15%
+        // [核心修复] 使用统一工具类计算建议值，确保与饮食页目标一致
+        int deficitCalories = com.cz.fitnessdiary.utils.CalorieCalculatorUtils.calculateTargetCalories(tdeeValue,
+                com.cz.fitnessdiary.utils.CalorieCalculatorUtils.GOAL_LOSE_FAT);
+        int maintainCalories = com.cz.fitnessdiary.utils.CalorieCalculatorUtils.calculateTargetCalories(tdeeValue,
+                com.cz.fitnessdiary.utils.CalorieCalculatorUtils.GOAL_MAINTAIN);
+        int surplusCalories = com.cz.fitnessdiary.utils.CalorieCalculatorUtils.calculateTargetCalories(tdeeValue,
+                com.cz.fitnessdiary.utils.CalorieCalculatorUtils.GOAL_GAIN_MUSCLE);
 
         android.widget.TextView tvDeficit = view.findViewById(R.id.tv_deficit_calories);
         android.widget.TextView tvMaintain = view.findViewById(R.id.tv_maintain_calories);
@@ -506,7 +517,7 @@ public class ProfileFragment extends Fragment {
         android.widget.TextView tvHeight = view.findViewById(R.id.tv_height);
         android.widget.TextView tvWeight = view.findViewById(R.id.tv_weight);
 
-        tvGender.setText(isMale ? "男" : "女");
+        tvGender.setText(gender == com.cz.fitnessdiary.utils.CalorieCalculatorUtils.GENDER_MALE ? "男" : "女");
         tvAge.setText(age + " 岁");
         tvHeight.setText(height + " cm");
         tvWeight.setText(String.format(java.util.Locale.getDefault(), "%.1f kg", weight));
@@ -535,26 +546,34 @@ public class ProfileFragment extends Fragment {
      * Plan 34: 显示修改年龄对话框
      */
     private void showEditAgeDialog() {
-        EditText editText = new EditText(requireContext());
-        editText.setInputType(InputType.TYPE_CLASS_NUMBER);
-        editText.setHint("请输入年龄");
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_input_simple, null);
+        com.google.android.material.textfield.TextInputEditText input = dialogView.findViewById(R.id.edit_text);
+        com.google.android.material.textfield.TextInputLayout layout = dialogView.findViewById(R.id.text_input_layout);
 
-        com.cz.fitnessdiary.database.entity.User currentUser = viewModel.getCurrentUser().getValue();
-        if (currentUser != null) {
-            editText.setText(String.valueOf(currentUser.getAge()));
-        }
+        layout.setHint("年龄");
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
 
-        new AlertDialog.Builder(requireContext())
+        viewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
+            if (user != null && input.getText().toString().isEmpty()) {
+                input.setText(String.valueOf(user.getAge()));
+            }
+        });
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("🎂 修改年龄")
-                .setView(editText)
+                .setView(dialogView)
                 .setPositiveButton("保存", (dialog, which) -> {
-                    String ageStr = editText.getText().toString().trim();
+                    String ageStr = input.getText().toString().trim();
                     if (!ageStr.isEmpty()) {
-                        int age = Integer.parseInt(ageStr);
-                        if (age > 0 && age < 150) {
-                            viewModel.updateAge(age);
-                        } else {
-                            Toast.makeText(requireContext(), "请输入有效的年龄", Toast.LENGTH_SHORT).show();
+                        try {
+                            int age = Integer.parseInt(ageStr);
+                            if (age > 0 && age < 150) {
+                                viewModel.updateAge(age);
+                            } else {
+                                Toast.makeText(requireContext(), "请输入有效的年龄", Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(requireContext(), "输入格式错误", Toast.LENGTH_SHORT).show();
                         }
                     }
                 })
@@ -571,8 +590,8 @@ public class ProfileFragment extends Fragment {
         com.cz.fitnessdiary.database.entity.User currentUser = viewModel.getCurrentUser().getValue();
         int currentGender = (currentUser != null) ? currentUser.getGender() : 0; // 0=女, 1=男
 
-        new AlertDialog.Builder(requireContext())
-                .setTitle("修改性别")
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("选择性别")
                 .setSingleChoiceItems(genderOptions, currentGender, (dialog, which) -> {
                     viewModel.updateGender(which);
                     dialog.dismiss();
@@ -605,7 +624,7 @@ public class ProfileFragment extends Fragment {
             }
         }
 
-        new AlertDialog.Builder(requireContext())
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("🏋️ 选择活动水平")
                 .setSingleChoiceItems(activityOptions, selectedIndex, (dialog, which) -> {
                     viewModel.updateActivityLevel(activityValues[which]);

@@ -1,112 +1,168 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fitnessdiary_background"
-    android:orientation="vertical">
+    android:background="@color/fitnessdiary_background">
 
-    <!-- 本周打卡卡片（整合连续打卡天数） -->
-    <com.google.android.material.card.MaterialCardView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/fitnessdiary_surface"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="0dp"
-        app:strokeWidth="0dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp">
+            android:orientation="vertical"
+            android:padding="12dp">
 
-            <!-- 左上角：日历图标 -->
-            <ImageView
-                android:id="@+id/iv_calendar_icon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_hero_calendar"
-                android:contentDescription="日历图标"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintLeft_toLeftOf="parent" />
-
-            <!-- 左上角：标题"本周打卡" -->
-            <TextView
-                android:id="@+id/tv_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="本周打卡"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary"
-                android:fontFamily="sans-serif-medium"
-                android:layout_marginStart="8dp"
-                app:layout_constraintTop_toTopOf="@id/iv_calendar_icon"
-                app:layout_constraintBottom_toBottomOf="@id/iv_calendar_icon"
-                app:layout_constraintLeft_toRightOf="@id/iv_calendar_icon" />
-
-            <!-- 右上角：连续打卡天数 -->
-            <TextView
-                android:id="@+id/tv_consecutive_days"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔥 已连续 0 天"
-                android:textSize="14sp"
-                android:textColor="#FF9800"
-                android:fontFamily="sans-serif-medium"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintRight_toRightOf="parent" />
-
-            <!-- 下方：一周日历视图 -->
+            <!-- 日期选择器 (Plan 13: UI 对齐饮食页) -->
             <LinearLayout
-                android:id="@+id/week_calendar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <ImageButton
+                    android:id="@+id/btn_prev_day"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_media_previous"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@color/fitnessdiary_primary"
+                    android:contentDescription="前一天" />
+
+                <TextView
+                    android:id="@+id/tv_selected_date"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="今日"
+                    android:textSize="18sp"
+                    android:textColor="@color/text_primary"
+                    android:fontFamily="sans-serif-medium"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="8dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_next_day"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_media_next"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@color/fitnessdiary_primary"
+                    android:contentDescription="后一天" />
+            </LinearLayout>
+
+            <!-- 本周打卡卡片 (经典对齐版) -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                android:layout_marginBottom="16dp">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <!-- 左上角：日历图标 -->
+                    <ImageView
+                        android:id="@+id/iv_calendar_icon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_hero_calendar"
+                        android:contentDescription="日历图标"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent" />
+
+                    <!-- 左上角：标题"本周打卡" -->
+                    <TextView
+                        android:id="@+id/tv_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="本周打卡"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:fontFamily="sans-serif-medium"
+                        android:layout_marginStart="8dp"
+                        app:layout_constraintTop_toTopOf="@id/iv_calendar_icon"
+                        app:layout_constraintBottom_toBottomOf="@id/iv_calendar_icon"
+                        app:layout_constraintLeft_toRightOf="@id/iv_calendar_icon" />
+
+                    <!-- 右上角：连续打卡天数 -->
+                    <TextView
+                        android:id="@+id/tv_consecutive_days"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔥 已连续 0 天"
+                        android:textSize="14sp"
+                        android:textColor="#FF9800"
+                        android:fontFamily="sans-serif-medium"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintRight_toRightOf="parent" />
+
+                    <!-- 下方：一周日历视图 -->
+                    <LinearLayout
+                        android:id="@+id/week_calendar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginTop="16dp"
+                        app:layout_constraintTop_toBottomOf="@id/tv_title"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 今日训练标题 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="今日训练"
+                android:textSize="18sp"
+                android:textColor="@color/text_primary"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="8dp" />
+
+            <!-- 今日训练卡片列表逻辑在此之后由 Fragment 动态处理，
+                 但由于 NestedScrollView 嵌套，通常我们会用布局占位或自定义适配器。 
+                 这里保持层级结构以对齐視覺起始位。 -->
+
+            <!-- 训练计划列表 (这里需要注意 NestedScrollView 的嵌套问题，
+                 但在对齐阶段我们先同步布局容器) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_today_logs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:clipToPadding="false"
+                android:scrollbars="none"
+                android:nestedScrollingEnabled="false"
+                android:visibility="gone" />
+
+            <!-- 无训练提示 -->
+            <TextView
+                android:id="@+id/tv_no_logs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="今天还没有训练记录"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:layout_gravity="center"
                 android:gravity="center"
-                android:layout_marginTop="16dp"
-                app:layout_constraintTop_toBottomOf="@id/tv_title"
-                app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent" />
+                android:layout_marginTop="32dp" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-    <!-- 今日训练标题 -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="今日训练"
-        android:textSize="18sp"
-        android:textColor="@color/text_primary"
-        android:fontFamily="sans-serif-medium"
-        android:layout_marginBottom="8dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp" />
-
-    <!-- 训练计划列表 -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_today_logs"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@android:color/transparent"
-        android:clipToPadding="false"
-        android:visibility="gone" />
-
-    <!-- 无训练提示 -->
-    <TextView
-        android:id="@+id/tv_no_logs"
-        android:layout_width="wrap_content"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:text="今天还没有训练记录"
-        android:textSize="16sp"
-        android:textColor="@color/text_secondary"
-        android:layout_gravity="center"
-        android:gravity="center" />
-
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

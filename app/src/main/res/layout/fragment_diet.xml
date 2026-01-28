@@ -17,6 +17,46 @@
             android:orientation="vertical"
             android:padding="12dp">
 
+        <!-- 日期导航控制条 (归一化视觉对齐) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <ImageButton
+                android:id="@+id/btn_prev_day"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_media_previous"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@color/fitnessdiary_primary"
+                android:contentDescription="前一天" />
+
+            <TextView
+                android:id="@+id/tv_selected_date"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="今日"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/text_primary"
+                android:gravity="center"
+                android:padding="8dp"
+                android:background="?attr/selectableItemBackground" />
+
+            <ImageButton
+                android:id="@+id/btn_next_day"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_media_next"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@color/fitnessdiary_primary"
+                android:contentDescription="后一天" />
+        </LinearLayout>
+
         <!-- 顶部英雄数据看板 (Hero Dashboard) - 紧凑版 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

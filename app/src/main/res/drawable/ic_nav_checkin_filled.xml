@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 极简日历 - Filled -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M5,6h14c1.1,0 2,0.9 2,2v10c0,1.1 -0.9,2 -2,2H5c-1.1,0 -2,-0.9 -2,-2V8C3,6.9 3.9,6 5,6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,4h2v4h-2z M14,4h2v4h-2z" />
+</vector>

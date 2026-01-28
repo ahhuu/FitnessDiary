@@ -166,15 +166,6 @@ public class TrainingPlanAdapter extends RecyclerView.Adapter<TrainingPlanAdapte
             }
             binding.ivMediaThumbnail.setVisibility(View.VISIBLE); // 始终显示，不再隐藏
 
-            // 显示分类标签 (2.1 新功能)
-            String category = plan.getCategory();
-            if (!TextUtils.isEmpty(category) && !"无分类".equals(category)) {
-                binding.tvCategory.setText(category);
-                binding.tvCategory.setVisibility(View.VISIBLE);
-            } else {
-                binding.tvCategory.setVisibility(View.GONE);
-            }
-
             // 删除按钮点击
             binding.btnDelete.setOnClickListener(v -> {
                 if (listener != null) {

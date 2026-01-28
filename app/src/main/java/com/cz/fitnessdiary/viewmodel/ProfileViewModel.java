@@ -15,6 +15,7 @@ import com.cz.fitnessdiary.database.dao.UserDao;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.model.Achievement;
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -78,29 +79,25 @@ public class ProfileViewModel extends AndroidViewModel {
         double bmiValue = user.getWeight() / (heightInMeters * heightInMeters);
         bmi.postValue(Math.round(bmiValue * 10) / 10.0);
 
-        // BMR (基础代谢率) - 使用 Mifflin-St Jeor 公式
-        // 男性: BMR = 10 * 体重(kg) + 6.25 * 身高(cm) - 5 * 年龄 + 5
-        // 女性: BMR = 10 * 体重(kg) + 6.25 * 身高(cm) - 5 * 年龄 - 161
-        int age = user.getAge();
-        boolean isMale = user.getGender() == 0;
-        int bmrValue;
-        if (isMale) {
-            bmrValue = (int) (10 * user.getWeight() + 6.25 * user.getHeight() - 5 * age + 5);
-        } else {
-            bmrValue = (int) (10 * user.getWeight() + 6.25 * user.getHeight() - 5 * age - 161);
-        }
+        // [核心修复] 统一使用工具类计算，确保四舍五入逻辑全局一致
+        int bmrValue = CalorieCalculatorUtils.calculateBMR(user.getGender(), user.getWeight(), user.getHeight(),
+                user.getAge());
         bmr.postValue(bmrValue);
 
         // TDEE (每日总消耗) = BMR * 活动系数
-        // 1.2 = 久坐, 1.375 = 轻度活动, 1.55 = 中度活动, 1.725 = 高度活动
-        int tdeeValue = (int) (bmrValue * 1.375); // 默认轻度活动
+        float activityFactor = user.getActivityLevel();
+        if (activityFactor <= 0)
+            activityFactor = 1.2f;
+        int tdeeValue = CalorieCalculatorUtils.calculateTDEE(bmrValue, activityFactor);
 
         // 根据目标调整推荐热量
+        int goalType = 2; // 默认保持
         if ("减脂".equals(user.getGoal())) {
-            tdeeValue -= 500; // 减脂：TDEE - 500
+            goalType = CalorieCalculatorUtils.GOAL_LOSE_FAT;
         } else if ("增肌".equals(user.getGoal())) {
-            tdeeValue += 300; // 增肌：TDEE + 300
+            goalType = CalorieCalculatorUtils.GOAL_GAIN_MUSCLE;
         }
+        tdeeValue = CalorieCalculatorUtils.calculateTargetCalories(tdeeValue, goalType);
 
         // 确保 TDEE 不低于基础代谢 (安全性兜底)
         if (tdeeValue < 1200)

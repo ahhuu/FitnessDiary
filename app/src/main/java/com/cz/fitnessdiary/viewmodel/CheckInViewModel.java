@@ -26,6 +26,8 @@ public class CheckInViewModel extends AndroidViewModel {
     private com.cz.fitnessdiary.repository.TrainingPlanRepository trainingPlanRepository;
     private LiveData<List<DailyLog>> allLogs;
     private MutableLiveData<Integer> consecutiveDays = new MutableLiveData<>(0);
+    private MutableLiveData<Long> selectedDate = new MutableLiveData<>(DateUtils.getTodayStartTimestamp());
+    private LiveData<java.util.Set<Long>> recordedDates;
     private ExecutorService executorService;
 
     public CheckInViewModel(@NonNull Application application) {
@@ -35,68 +37,102 @@ public class CheckInViewModel extends AndroidViewModel {
         allLogs = dailyLogRepository.getAllLogs();
         executorService = Executors.newSingleThreadExecutor();
 
+        // 初始化记录日期集合 (用于日历高亮)
+        recordedDates = androidx.lifecycle.Transformations.map(
+                dailyLogRepository.getAllRecordTimestamps(),
+                timestamps -> {
+                    java.util.Set<Long> dates = new java.util.HashSet<>();
+                    if (timestamps != null) {
+                        for (Long ts : timestamps) {
+                            dates.add(DateUtils.getDayStartTimestamp(ts));
+                        }
+                    }
+                    return dates;
+                });
+
         // 计算连续打卡天数
         calculateConsecutiveDays();
-    }
-
-    public LiveData<List<DailyLog>> getAllLogs() {
-        return allLogs;
     }
 
     public MutableLiveData<Integer> getConsecutiveDays() {
         return consecutiveDays;
     }
 
-    /**
-     * 获取今日需完成的训练计划 (按排期过滤)
-     */
-    public LiveData<List<com.cz.fitnessdiary.database.entity.TrainingPlan>> getTodayPlans() {
-        return androidx.lifecycle.Transformations.map(trainingPlanRepository.getAllPlans(), allPlans -> {
-            List<com.cz.fitnessdiary.database.entity.TrainingPlan> todayPlans = new ArrayList<>();
-            if (allPlans == null)
-                return todayPlans;
+    public LiveData<Long> getSelectedDate() {
+        return selectedDate;
+    }
 
-            // 获取今天是周几 (1=周一, 7=周日)
-            java.util.Calendar calendar = java.util.Calendar.getInstance();
-            int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
-            // 转换逻辑: Calendar.MONDAY(2)->1, ... Calendar.SUNDAY(1)->7
-            int todayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
+    public void setSelectedDate(long timestamp) {
+        selectedDate.setValue(DateUtils.getDayStartTimestamp(timestamp));
+    }
 
-            for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
-                // 检查排期
-                String scheduledDays = plan.getScheduledDays();
-                // 默认每天都包含 (null 或 "0" 或 空)
-                boolean isScheduled = false;
-                if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
-                    isScheduled = true;
-                } else {
-                    // 检查 "1,3,5" 是否包含 String.valueOf(todayIndex)
-                    String[] days = scheduledDays.split(",");
-                    for (String day : days) {
-                        if (day.trim().equals(String.valueOf(todayIndex))) {
-                            isScheduled = true;
-                            break;
-                        }
-                    }
-                }
+    public void toPreviousDay() {
+        Long current = selectedDate.getValue();
+        if (current != null) {
+            selectedDate.setValue(current - 24 * 60 * 60 * 1000L);
+        }
+    }
 
-                if (isScheduled) {
-                    todayPlans.add(plan);
-                }
+    public void toNextDay() {
+        Long current = selectedDate.getValue();
+        if (current != null) {
+            long next = current + 24 * 60 * 60 * 1000L;
+            if (next <= DateUtils.getTodayStartTimestamp()) {
+                selectedDate.setValue(next);
             }
-            return todayPlans;
-        });
+        }
+    }
+
+    public LiveData<java.util.Set<Long>> getRecordedDates() {
+        return recordedDates;
     }
 
     /**
-     * 添加今日打卡
+     * 获取选定日期需完成的训练计划 (Plan 26 + Plan 13 回溯)
      */
-    public void checkInToday(int planId) {
-        long todayStart = DateUtils.getTodayStartTimestamp();
-        DailyLog log = new DailyLog(planId, todayStart, false);
-        dailyLogRepository.insert(log);
+    public LiveData<List<com.cz.fitnessdiary.database.entity.TrainingPlan>> getSelectedDatePlans() {
+        return androidx.lifecycle.Transformations.switchMap(selectedDate,
+                date -> androidx.lifecycle.Transformations.map(trainingPlanRepository.getAllPlans(), allPlans -> {
+                    List<com.cz.fitnessdiary.database.entity.TrainingPlan> targetPlans = new ArrayList<>();
+                    if (allPlans == null)
+                        return targetPlans;
 
-        // 重新计算连续天数
+                    // 获取选定日期是周几 (1=周一, 7=周日)
+                    java.util.Calendar calendar = java.util.Calendar.getInstance();
+                    calendar.setTimeInMillis(date);
+                    int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
+                    int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
+
+                    for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
+                        String scheduledDays = plan.getScheduledDays();
+                        boolean isScheduled = false;
+                        if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+                            isScheduled = true;
+                        } else {
+                            String[] days = scheduledDays.split(",");
+                            for (String day : days) {
+                                if (day.trim().equals(String.valueOf(dayIndex))) {
+                                    isScheduled = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (isScheduled)
+                            targetPlans.add(plan);
+                    }
+                    return targetPlans;
+                }));
+    }
+
+    /**
+     * 在选定日期执行打卡 (Plan 13: 补签支持)
+     */
+    public void checkInSelectedDate(int planId) {
+        Long date = selectedDate.getValue();
+        if (date == null)
+            date = DateUtils.getTodayStartTimestamp();
+        DailyLog log = new DailyLog(planId, date, false);
+        dailyLogRepository.insert(log);
         calculateConsecutiveDays();
     }
 
@@ -225,12 +261,14 @@ public class CheckInViewModel extends AndroidViewModel {
     }
 
     /**
-     * 获取今日的打卡记录
+     * 获取选定日期的打卡记录 (Plan 13: 回溯支持)
      */
-    public LiveData<List<DailyLog>> getTodayLogs() {
-        long todayStart = DateUtils.getTodayStartTimestamp();
-        long tomorrowStart = DateUtils.getTomorrowStartTimestamp();
-        return dailyLogRepository.getLogsByDateRange(todayStart, tomorrowStart);
+    public LiveData<List<DailyLog>> getSelectedDateLogs() {
+        return androidx.lifecycle.Transformations.switchMap(selectedDate, date -> {
+            long dayStart = DateUtils.getDayStartTimestamp(date);
+            long tomorrowStart = dayStart + 24 * 60 * 60 * 1000L;
+            return dailyLogRepository.getLogsByDateRange(dayStart, tomorrowStart);
+        });
     }
 
     /**

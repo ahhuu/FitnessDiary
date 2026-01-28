@@ -10,7 +10,7 @@ import androidx.room.PrimaryKey;
  * 存储用户创建的训练计划信息
  */
 @Entity(tableName = "training_plan")
-public class TrainingPlan {
+public class TrainingPlan implements java.io.Serializable {
 
     @PrimaryKey(autoGenerate = true)
     private int planId;

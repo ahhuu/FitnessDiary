@@ -33,6 +33,7 @@ public class DietViewModel extends AndroidViewModel {
     private ExecutorService executorService;
 
     // LiveData
+    private MutableLiveData<Long> selectedDate = new MutableLiveData<>();
     private LiveData<Integer> todayTotalCalories;
     private LiveData<List<FoodRecord>> todayFoodRecords;
     private LiveData<Double> todayTotalProtein; // 今日总蛋白质 (g)
@@ -40,6 +41,7 @@ public class DietViewModel extends AndroidViewModel {
     private LiveData<User> currentUser;
     private MutableLiveData<String> smartFeedback = new MutableLiveData<>("");
     private MutableLiveData<Integer> progressColor = new MutableLiveData<>();
+    private LiveData<java.util.Set<Long>> recordedDates; // 有记录的日期集合 (0点时间戳)
 
     // Plan 10 新增字段
     private LiveData<List<MealSection>> mealSections; // 固定4个餐段
@@ -51,25 +53,31 @@ public class DietViewModel extends AndroidViewModel {
         userRepository = new UserRepository(application);
         executorService = Executors.newSingleThreadExecutor();
 
-        long todayStart = DateUtils.getTodayStartTimestamp();
-        long tomorrowStart = DateUtils.getTomorrowStartTimestamp();
+        // 初始化为今天
+        selectedDate.setValue(DateUtils.getTodayStartTimestamp());
 
-        todayTotalCalories = foodRecordRepository.getTotalCaloriesByDateRange(todayStart, tomorrowStart);
-        // 计算今日总蛋白质和碳水 (通过 Transformations.map 从记录列表中计算)
-        // 同时也对列表进行排序: 按餐点类型(0-3)升序，同餐点按时间倒序
-        todayFoodRecords = androidx.lifecycle.Transformations.map(
-                foodRecordRepository.getRecordsByDateRange(todayStart, tomorrowStart),
-                records -> {
-                    if (records != null) {
-                        java.util.Collections.sort(records, (r1, r2) -> {
-                            if (r1.getMealType() != r2.getMealType()) {
-                                return Integer.compare(r1.getMealType(), r2.getMealType());
-                            }
-                            return Long.compare(r2.getRecordDate(), r1.getRecordDate());
-                        });
-                    }
-                    return records;
-                });
+        // 核心：基于 selectedDate 动态切换数据源
+        todayTotalCalories = androidx.lifecycle.Transformations.switchMap(selectedDate, date -> {
+            long dayEnd = date + 24 * 60 * 60 * 1000L;
+            return foodRecordRepository.getTotalCaloriesByDateRange(date, dayEnd);
+        });
+
+        todayFoodRecords = androidx.lifecycle.Transformations.switchMap(selectedDate, date -> {
+            long dayEnd = date + 24 * 60 * 60 * 1000L;
+            return androidx.lifecycle.Transformations.map(
+                    foodRecordRepository.getRecordsByDateRange(date, dayEnd),
+                    records -> {
+                        if (records != null) {
+                            java.util.Collections.sort(records, (r1, r2) -> {
+                                if (r1.getMealType() != r2.getMealType()) {
+                                    return Integer.compare(r1.getMealType(), r2.getMealType());
+                                }
+                                return Long.compare(r2.getRecordDate(), r1.getRecordDate());
+                            });
+                        }
+                        return records;
+                    });
+        });
 
         todayTotalProtein = androidx.lifecycle.Transformations.map(todayFoodRecords, records -> {
             double total = 0;
@@ -91,20 +99,15 @@ public class DietViewModel extends AndroidViewModel {
             return total;
         });
 
-        // 获取用户信息（包含目标热量）
+        // 获取用户信息
         currentUser = userRepository.getUser();
 
-        // Plan 10: 生成固定4个餐段数据
+        // 餐段数据响应 (Plan 10)
         mealSections = androidx.lifecycle.Transformations.map(todayFoodRecords, records -> {
             List<MealSection> sections = new java.util.ArrayList<>();
-
-            // 创建4个固定餐段
             for (int i = 0; i < 4; i++) {
-                MealSection section = new MealSection(i);
-                sections.add(section);
+                sections.add(new MealSection(i));
             }
-
-            // 将食物记录分配到对应餐段
             if (records != null) {
                 for (FoodRecord record : records) {
                     int mealType = record.getMealType();
@@ -113,16 +116,65 @@ public class DietViewModel extends AndroidViewModel {
                     }
                 }
             }
-
             return sections;
         });
-
-        // Plan 30: 初始化逻辑已统一由 AppDatabase.onCreate 处理
-        // 不再需要在 ViewModel 层面每次手动触发检查
+        // 初始化记录日期集合 (Plan 13: 高亮日历)
+        recordedDates = androidx.lifecycle.Transformations.map(
+                foodRecordRepository.getAllRecordTimestamps(),
+                timestamps -> {
+                    java.util.Set<Long> dates = new java.util.HashSet<>();
+                    if (timestamps != null) {
+                        for (Long ts : timestamps) {
+                            dates.add(DateUtils.getDayStartTimestamp(ts));
+                        }
+                    }
+                    return dates;
+                });
     }
 
     /**
-     * 获取今日总热量
+     * 获取所有有记录日期的时间戳集合 (0点)
+     */
+    public LiveData<java.util.Set<Long>> getRecordedDates() {
+        return recordedDates;
+    }
+
+    /**
+     * 获取当前选中的日期 (0点时间戳)
+     */
+    public LiveData<Long> getSelectedDate() {
+        return selectedDate;
+    }
+
+    /**
+     * 设置选中日期
+     */
+    public void setSelectedDate(long timestamp) {
+        selectedDate.setValue(DateUtils.getDayStartTimestamp(timestamp));
+    }
+
+    /**
+     * 切换到前一天
+     */
+    public void toPreviousDay() {
+        Long current = selectedDate.getValue();
+        if (current != null) {
+            selectedDate.setValue(current - 24 * 60 * 60 * 1000L);
+        }
+    }
+
+    /**
+     * 切换到后一天
+     */
+    public void toNextDay() {
+        Long current = selectedDate.getValue();
+        if (current != null) {
+            selectedDate.setValue(current + 24 * 60 * 60 * 1000L);
+        }
+    }
+
+    /**
+     * 获取选定日期的总热量
      */
     public LiveData<Integer> getTodayTotalCalories() {
         return todayTotalCalories;
@@ -203,7 +255,16 @@ public class DietViewModel extends AndroidViewModel {
             }
 
             // 3. 创建并保存记录
-            FoodRecord record = new FoodRecord(foodName, calories, System.currentTimeMillis());
+            long baseDate = selectedDate.getValue() != null ? selectedDate.getValue()
+                    : DateUtils.getTodayStartTimestamp();
+            long finalRecordDate;
+            if (DateUtils.isToday(baseDate)) {
+                finalRecordDate = System.currentTimeMillis();
+            } else {
+                finalRecordDate = baseDate; // 历史日期默认存于 0 点
+            }
+
+            FoodRecord record = new FoodRecord(foodName, calories, finalRecordDate);
             record.setProtein(protein);
             record.setCarbs(carbs);
             record.setMealType(mealType);

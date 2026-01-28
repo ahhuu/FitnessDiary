@@ -5,16 +5,16 @@ package com.cz.fitnessdiary.utils;
  * 实现智能卡路里计算系统，包括 BMR、TDEE 和目标卡路里计算
  */
 public class CalorieCalculatorUtils {
-    
+
     // 目标类型常量
-    public static final int GOAL_LOSE_FAT = 0;    // 减脂
+    public static final int GOAL_LOSE_FAT = 0; // 减脂
     public static final int GOAL_GAIN_MUSCLE = 1; // 增肌
-    public static final int GOAL_MAINTAIN = 2;    // 保持
-    
+    public static final int GOAL_MAINTAIN = 2; // 保持
+
     // 性别常量
     public static final int GENDER_FEMALE = 0;
     public static final int GENDER_MALE = 1;
-    
+
     /**
      * 计算基础代谢率 (BMR - Basal Metabolic Rate)
      * 使用 Mifflin-St Jeor 公式
@@ -26,10 +26,15 @@ public class CalorieCalculatorUtils {
      * @param gender 性别 (0=女, 1=男)
      * @param weight 体重 (kg)
      * @param height 身高 (cm)
-     * @param age 年龄
+     * @param age    年龄
      * @return BMR 基础代谢率 (kcal/day)
      */
     public static int calculateBMR(int gender, float weight, float height, int age) {
+        // 零值校验：如果基本数据不全，返回 0
+        if (weight <= 0 || height <= 0 || age <= 0) {
+            return 0;
+        }
+
         double bmr;
         if (gender == GENDER_MALE) {
             bmr = 10 * weight + 6.25 * height - 5 * age + 5;
@@ -38,7 +43,7 @@ public class CalorieCalculatorUtils {
         }
         return (int) Math.round(bmr);
     }
-    
+
     /**
      * 计算每日总能量消耗 (TDEE - Total Daily Energy Expenditure)
      * TDEE = BMR × 活动系数
@@ -50,14 +55,14 @@ public class CalorieCalculatorUtils {
      * 1.725 - 高度活动（每周运动6-7天）
      * 1.9 - 极高活动（体力劳动或每天2次训练）
      * 
-     * @param bmr 基础代谢率
+     * @param bmr           基础代谢率
      * @param activityLevel 活动系数
      * @return TDEE 每日总能量消耗 (kcal/day)
      */
     public static int calculateTDEE(int bmr, float activityLevel) {
         return (int) Math.round(bmr * activityLevel);
     }
-    
+
     /**
      * 根据健身目标计算每日目标卡路里
      * 
@@ -65,7 +70,7 @@ public class CalorieCalculatorUtils {
      * 增肌：TDEE + 300 (创造热量盈余)
      * 保持：TDEE (维持现状)
      * 
-     * @param tdee 每日总能量消耗
+     * @param tdee     每日总能量消耗
      * @param goalType 目标类型 (0=减脂, 1=增肌, 2=保持)
      * @return 每日目标卡路里 (kcal/day)
      */
@@ -80,30 +85,31 @@ public class CalorieCalculatorUtils {
                 return tdee;
         }
     }
-    
+
     /**
      * 计算卡路里进度百分比
      * 
      * @param consumed 已摄入卡路里
-     * @param target 目标卡路里
+     * @param target   目标卡路里
      * @return 进度百分比 (0-100+)
      */
     public static float calculateProgress(int consumed, int target) {
-        if (target <= 0) return 0;
+        if (target <= 0)
+            return 0;
         return (consumed * 100f) / target;
     }
-    
+
     /**
      * 生成智能反馈消息
      * 
      * @param consumed 已摄入卡路里
-     * @param target 目标卡路里
+     * @param target   目标卡路里
      * @param goalType 目标类型
      * @return 反馈消息
      */
     public static String getCalorieDifferenceMessage(int consumed, int target, int goalType) {
         int difference = target - consumed;
-        
+
         if (goalType == GOAL_LOSE_FAT) {
             // 减脂模式
             if (difference > 0) {
@@ -133,18 +139,22 @@ public class CalorieCalculatorUtils {
             }
         }
     }
-    
+
     /**
      * 获取活动系数对应的描述
      */
     public static String getActivityLevelName(float activityLevel) {
-        if (activityLevel <= 1.2f) return "久坐";
-        if (activityLevel <= 1.375f) return "轻度活动";
-        if (activityLevel <= 1.55f) return "中度活动";
-        if (activityLevel <= 1.725f) return "高度活动";
+        if (activityLevel <= 1.2f)
+            return "久坐";
+        if (activityLevel <= 1.375f)
+            return "轻度活动";
+        if (activityLevel <= 1.55f)
+            return "中度活动";
+        if (activityLevel <= 1.725f)
+            return "高度活动";
         return "极高活动";
     }
-    
+
     /**
      * 获取目标类型对应的描述
      */

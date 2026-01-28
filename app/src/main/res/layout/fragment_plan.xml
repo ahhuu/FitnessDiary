@@ -6,21 +6,26 @@
     android:layout_height="match_parent"
     android:background="@color/fitnessdiary_background">
 
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="16dp">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- 顶部英雄数据看板 (Hero Dashboard) -->
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/fitnessdiary_surface"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp"
-            android:layout_marginBottom="16dp">
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- 顶部英雄数据看板 (Hero Dashboard - 已回归经典布局) -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -29,7 +34,7 @@
                 android:padding="16dp"
                 android:gravity="center_vertical">
 
-                <!-- 左侧：数据展示 -->
+                <!-- 左侧：数据展示 (经典版) -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -45,7 +50,7 @@
                         android:textSize="56sp"
                         android:textColor="@color/fitnessdiary_primary"
                         android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
+                        android:includeFontPadding="false" />
 
                     <!-- 单位和描述 -->
                     <TextView
@@ -54,11 +59,11 @@
                         android:text="个 · 活跃计划"
                         android:textSize="14sp"
                         android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="4dp" />
+                        android:layout_marginTop="4dp" />
                     
                 </LinearLayout>
 
-                <!-- 右侧：图标与覆盖部位 -->
+                <!-- 右侧：图标与动态部位标签 (绿底白字版) -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -72,16 +77,22 @@
                         android:layout_marginBottom="8dp"
                         android:contentDescription="训练图标" />
 
-                    <!-- Plan 10: 覆盖部位显示 -->
+                    <!-- 动态标签容器 -->
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/cg_categories"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:chipSpacingHorizontal="2dp"
+                        app:chipSpacingVertical="0dp" />
+                    
                     <TextView
                         android:id="@+id/tv_covered_categories"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="暂无"
+                        android:text="暂无目标"
                         android:textSize="12sp"
                         android:textColor="@color/text_secondary"
-                        android:ellipsize="end"
-                        android:maxLines="1" />
+                        android:visibility="gone" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -96,18 +107,42 @@
             android:clipToPadding="false"
             android:visibility="gone" />
 
-        <!-- 无计划提示 -->
-        <TextView
-            android:id="@+id/tv_no_plans"
-            android:layout_width="wrap_content"
+        <!-- 无计划提示 (升级版) -->
+        <LinearLayout
+            android:id="@+id/layout_empty_state"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_gravity="center"
-            android:text="@string/plan_no_plans"
-            android:textSize="16sp"
-            android:textColor="@color/text_secondary"
-            android:gravity="center" />
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+            
+            <ImageView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:src="@drawable/ic_hero_dumbbell"
+                app:tint="@color/fitnessdiary_surface_variant"
+                android:layout_marginBottom="16dp"
+                android:alpha="0.5" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="暂无训练计划"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/text_primary" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="点击右下角按钮开启你的健身之旅"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
     </LinearLayout>
+</androidx.core.widget.NestedScrollView>
 
     <!-- FAB 添加按钮 (Gemini 风格) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

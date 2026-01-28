@@ -22,8 +22,22 @@ import com.cz.fitnessdiary.ui.adapter.DailyLogAdapter;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.cz.fitnessdiary.viewmodel.PlanViewModel;
 
+import com.cz.fitnessdiary.utils.DateUtils;
+import com.google.android.material.datepicker.CalendarConstraints;
+import com.google.android.material.datepicker.DateValidatorPointBackward;
+import com.google.android.material.datepicker.DayViewDecorator;
+import com.google.android.material.datepicker.MaterialDatePicker;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.GradientDrawable;
+import androidx.core.content.ContextCompat;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+import java.util.Date;
 
 /**
  * 每日打卡页面 - 2.0 升级版
@@ -57,7 +71,80 @@ public class CheckInFragment extends Fragment {
 
         setupRecyclerView();
         setupWeekCalendar();
+        setupDateNavigation(); // 新增 (Plan 13)
         observeViewModel();
+    }
+
+    /**
+     * 设置日期导航 (Plan 13: 对齐饮食页)
+     */
+    private void setupDateNavigation() {
+        binding.btnPrevDay.setOnClickListener(v -> checkInViewModel.toPreviousDay());
+        binding.btnNextDay.setOnClickListener(v -> checkInViewModel.toNextDay());
+        binding.tvSelectedDate.setOnClickListener(v -> showDatePickerDialog());
+    }
+
+    /**
+     * 打开日历选择器 (Plan 13: M3 + 打卡足迹高亮)
+     */
+    private void showDatePickerDialog() {
+        Long currentSelection = checkInViewModel.getSelectedDate().getValue();
+        if (currentSelection == null)
+            currentSelection = System.currentTimeMillis();
+
+        Set<Long> recordedDates = checkInViewModel.getRecordedDates().getValue();
+        if (recordedDates == null)
+            recordedDates = new HashSet<>();
+
+        final Set<Long> finalRecordedDates = recordedDates;
+        DayViewDecorator decorator = new DayViewDecorator() {
+            @Nullable
+            @Override
+            public Drawable getCompoundDrawableBottom(android.content.Context context, int year, int month, int day,
+                    boolean valid, boolean selected) {
+                java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+                cal.set(year, month, day, 0, 0, 0);
+                cal.set(java.util.Calendar.MILLISECOND, 0);
+                long utcTimestamp = cal.getTimeInMillis();
+
+                java.util.Calendar localCal = java.util.Calendar.getInstance();
+                localCal.setTimeInMillis(utcTimestamp);
+                long localStart = DateUtils.getDayStartTimestamp(localCal.getTimeInMillis());
+
+                if (finalRecordedDates.contains(localStart)) {
+                    GradientDrawable dot = new GradientDrawable();
+                    dot.setShape(GradientDrawable.OVAL);
+                    dot.setSize(12, 12);
+                    dot.setColor(ContextCompat.getColor(requireContext(), R.color.color_success));
+                    return new InsetDrawable(dot, 0, 0, 0, 4);
+                }
+                return null;
+            }
+
+            @Override
+            public void writeToParcel(android.os.Parcel dest, int flags) {
+            }
+
+            @Override
+            public int describeContents() {
+                return 0;
+            }
+        };
+
+        MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText("选择日期")
+                .setSelection(currentSelection)
+                .setDayViewDecorator(decorator)
+                .setCalendarConstraints(new CalendarConstraints.Builder()
+                        .setValidator(DateValidatorPointBackward.now())
+                        .build())
+                .build();
+
+        datePicker.addOnPositiveButtonClickListener(selection -> {
+            checkInViewModel.setSelectedDate(selection);
+        });
+
+        datePicker.show(getParentFragmentManager(), "CHECKIN_DATE_PICKER");
     }
 
     /**
@@ -79,8 +166,8 @@ public class CheckInFragment extends Fragment {
                 // 已有打卡记录，更新状态
                 checkInViewModel.updateCompletionStatus(existingLog.getLogId(), isCompleted);
             } else {
-                // 无打卡记录，创建新记录
-                checkInViewModel.checkInToday(planId);
+                // 无打卡记录，在选定日期创建
+                checkInViewModel.checkInSelectedDate(planId);
             }
         });
 
@@ -144,16 +231,26 @@ public class CheckInFragment extends Fragment {
      * 观察 ViewModel 数据（双重监听）
      */
     private void observeViewModel() {
-        // 监听今日训练计划 (Plan 26: 只显示今日排期)
-        checkInViewModel.getTodayPlans().observe(getViewLifecycleOwner(), plans -> {
+        // 观察选定日期标题 (Plan 13)
+        checkInViewModel.getSelectedDate().observe(getViewLifecycleOwner(), date -> {
+            if (DateUtils.isToday(date)) {
+                binding.tvSelectedDate.setText("今日");
+            } else {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy年M月d日", Locale.getDefault());
+                binding.tvSelectedDate.setText(sdf.format(new Date(date)));
+            }
+        });
+
+        // 监听选定日期训练计划 (Plan 26 + Plan 13)
+        checkInViewModel.getSelectedDatePlans().observe(getViewLifecycleOwner(), plans -> {
             if (plans != null) {
                 mPlans = plans;
                 updateAdapter();
             }
         });
 
-        // 监听今日打卡记录
-        checkInViewModel.getTodayLogs().observe(getViewLifecycleOwner(), logs -> {
+        // 监听选定日期打卡记录
+        checkInViewModel.getSelectedDateLogs().observe(getViewLifecycleOwner(), logs -> {
             if (logs != null) {
                 mLogs = logs;
                 updateAdapter();

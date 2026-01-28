@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 放大版极简哑铃 - Outline -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:rotation="-45">
+        <path
+            android:strokeColor="#000000"
+            android:strokeWidth="1.8"
+            android:strokeLineCap="round"
+            android:pathData="M2,12h20 M7,7v10 M17,7v10" />
+    </group>
+</vector>

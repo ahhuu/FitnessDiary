@@ -17,44 +17,44 @@ import java.util.concurrent.Executors;
  * 管理打卡记录的增删改查操作
  */
 public class DailyLogRepository {
-    
+
     private DailyLogDao dailyLogDao;
     private ExecutorService executorService;
-    
+
     public DailyLogRepository(Application application) {
         AppDatabase database = AppDatabase.getInstance(application);
         dailyLogDao = database.dailyLogDao();
         executorService = Executors.newSingleThreadExecutor();
     }
-    
+
     /**
      * 获取指定日期的打卡记录
      */
     public LiveData<List<DailyLog>> getLogsByDate(long date) {
         return dailyLogDao.getLogsByDate(date);
     }
-    
+
     /**
      * 插入新的打卡记录
      */
     public void insert(DailyLog log) {
         executorService.execute(() -> dailyLogDao.insert(log));
     }
-    
+
     /**
      * 更新打卡记录
      */
     public void update(DailyLog log) {
         executorService.execute(() -> dailyLogDao.update(log));
     }
-    
+
     /**
      * 更新打卡完成状态
      */
     public void updateCompletionStatus(int logId, boolean isCompleted) {
         executorService.execute(() -> dailyLogDao.updateCompletionStatus(logId, isCompleted));
     }
-    
+
     /**
      * 根据计划ID和日期查询打卡记录
      */
@@ -66,25 +66,32 @@ public class DailyLogRepository {
             return null;
         }
     }
-    
+
     /**
      * 获取所有打卡记录（LiveData）
      */
     public LiveData<List<DailyLog>> getAllLogs() {
         return dailyLogDao.getAllLogs();
     }
-    
+
     /**
      * 获取所有打卡记录（同步，用于后台线程）
      */
     public List<DailyLog> getAllLogsSync() {
         return dailyLogDao.getAllLogsSync();
     }
-    
+
     /**
      * 获取指定日期范围的打卡记录
      */
     public LiveData<List<DailyLog>> getLogsByDateRange(long startDate, long endDate) {
         return dailyLogDao.getLogsByDateRange(startDate, endDate);
+    }
+
+    /**
+     * 获取所有有打卡记录的时间戳列表
+     */
+    public LiveData<List<Long>> getAllRecordTimestamps() {
+        return dailyLogDao.getAllRecordTimestamps();
     }
 }
