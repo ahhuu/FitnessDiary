@@ -128,11 +128,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                 @Override
                                 public void onOpen(@NonNull SupportSQLiteDatabase db) {
                                     super.onOpen(db);
-                                    // Plan 30: 每次打开数据库都尝试同步一次食物库分类（防止老用户数据缺失）
-                                    // 因为使用的策略是 OnConflictStrategy.REPLACE，所以不会重复插入
-                                    Executors.newSingleThreadExecutor().execute(() -> {
-                                        prepopulateFoodLibrary(context);
-                                    });
+                                    // Plan 30: 移除这里的 prepopulate 调用，因为太频繁且影响性能
+                                    // 初始化逻辑应仅由 onCreate 或 Repository 检查触发
                                 }
                             })
                             .build();
@@ -149,6 +146,11 @@ public abstract class AppDatabase extends RoomDatabase {
     private static void prepopulateFoodLibrary(Context context) {
         AppDatabase db = getInstance(context);
         FoodLibraryDao foodLibraryDao = db.foodLibraryDao();
+
+        // [性能优化] 只有当数据库空时才初始化
+        if (foodLibraryDao.getFoodCount() > 0) {
+            return;
+        }
 
         List<FoodLibrary> foods = new ArrayList<>();
 

@@ -117,8 +117,8 @@ public class DietViewModel extends AndroidViewModel {
             return sections;
         });
 
-        // 检查并初始化食物库（如果为空）
-        foodLibraryRepository.checkAndInitFoodLibrary();
+        // Plan 30: 初始化逻辑已统一由 AppDatabase.onCreate 处理
+        // 不再需要在 ViewModel 层面每次手动触发检查
     }
 
     /**
