@@ -143,7 +143,7 @@ public class ProfileFragment extends Fragment {
                 binding.tvAge.setText(user.getAge() + " 岁");
 
                 // Plan 34: 显示性别 (带动态emoji)
-                boolean isMale = user.getGender() == 0;
+                boolean isMale = user.getGender() == 1; // 1=男, 0=女
                 binding.tvGender.setText(isMale ? "男" : "女");
                 binding.tvGenderIcon.setText(isMale ? "👦 性别: " : "👧 性别: ");
 
@@ -471,7 +471,7 @@ public class ProfileFragment extends Fragment {
         double weight = user.getWeight();
         int height = (int) user.getHeight();
         int age = user.getAge();
-        boolean isMale = user.getGender() == 0; // 假设 0=男, 1=女
+        boolean isMale = user.getGender() == 1; // 1=男, 0=女
 
         // 计算BMR (Mifflin-St Jeor公式)
         double bmr;
@@ -566,10 +566,10 @@ public class ProfileFragment extends Fragment {
      * Plan 34: 显示修改性别对话框
      */
     private void showEditGenderDialog() {
-        String[] genderOptions = { "👦 男", "👧 女" };
+        String[] genderOptions = { "👧 女", "👦 男" };
 
         com.cz.fitnessdiary.database.entity.User currentUser = viewModel.getCurrentUser().getValue();
-        int currentGender = (currentUser != null) ? currentUser.getGender() : 0;
+        int currentGender = (currentUser != null) ? currentUser.getGender() : 0; // 0=女, 1=男
 
         new AlertDialog.Builder(requireContext())
                 .setTitle("修改性别")
