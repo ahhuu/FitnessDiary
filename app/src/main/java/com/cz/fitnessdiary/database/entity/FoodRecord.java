@@ -77,6 +77,9 @@ public class FoodRecord {
     @ColumnInfo(name = "servings")
     private float servings; // 摄入份数
 
+    @ColumnInfo(name = "serving_unit")
+    private String servingUnit; // 份数单位 (如 "碗", "个")
+
     public double getProtein() {
         return protein;
     }
@@ -107,5 +110,13 @@ public class FoodRecord {
 
     public void setServings(float servings) {
         this.servings = servings;
+    }
+
+    public String getServingUnit() {
+        return servingUnit;
+    }
+
+    public void setServingUnit(String servingUnit) {
+        this.servingUnit = servingUnit;
     }
 }

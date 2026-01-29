@@ -26,11 +26,15 @@ public class DailyLog {
     @ColumnInfo(name = "is_completed")
     private boolean isCompleted; // 是否完成
 
+    @ColumnInfo(name = "duration", defaultValue = "0")
+    private int duration; // 实际完成时长 (单位：秒)
+
     // 构造函数
     public DailyLog(int planId, long date, boolean isCompleted) {
         this.planId = planId;
         this.date = date;
         this.isCompleted = isCompleted;
+        this.duration = 0;
     }
 
     // Getter 和 Setter 方法
@@ -64,5 +68,13 @@ public class DailyLog {
 
     public void setCompleted(boolean completed) {
         isCompleted = completed;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
     }
 }

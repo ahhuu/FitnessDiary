@@ -125,7 +125,7 @@ public class DietViewModel extends AndroidViewModel {
                     java.util.Set<Long> dates = new java.util.HashSet<>();
                     if (timestamps != null) {
                         for (Long ts : timestamps) {
-                            dates.add(DateUtils.getDayStartTimestamp(ts));
+                            dates.add(DateUtils.getUtcDayStartTimestamp(ts));
                         }
                     }
                     return dates;
@@ -269,6 +269,11 @@ public class DietViewModel extends AndroidViewModel {
             record.setCarbs(carbs);
             record.setMealType(mealType);
             record.setServings(servings);
+            if (food != null) {
+                record.setServingUnit(food.getServingUnit());
+            } else {
+                record.setServingUnit("g"); // 默认单位
+            }
 
             foodRecordRepository.insert(record);
 

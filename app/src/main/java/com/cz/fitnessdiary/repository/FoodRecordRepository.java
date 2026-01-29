@@ -75,4 +75,11 @@ public class FoodRecordRepository {
     public LiveData<List<FoodRecord>> getAllFoodRecords() {
         return foodRecordDao.getAllFoodRecords();
     }
+
+    /**
+     * 获取所有食物记录 (同步方法)
+     */
+    public List<FoodRecord> getAllRecordsSync() {
+        return foodRecordDao.getAllFoodRecordsSync();
+    }
 }

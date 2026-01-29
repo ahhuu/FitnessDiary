@@ -22,11 +22,17 @@
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottom_nav"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/white"
-            app:itemIconTint="@color/primary"
-            app:itemTextColor="@color/text_primary"
+            android:layout_height="56dp"
+            android:background="@color/fitnessdiary_background"
+            app:itemIconSize="26dp"
+            app:itemIconTint="@color/selector_nav_color"
+            app:itemTextColor="@color/selector_nav_color"
+            app:itemPaddingTop="6dp"
+            app:itemPaddingBottom="4dp"
             app:labelVisibilityMode="labeled"
+            app:itemTextAppearanceActive="@style/TextAppearance.Nav.Small"
+            app:itemTextAppearanceInactive="@style/TextAppearance.Nav.Small"
+            app:itemActiveIndicatorStyle="@style/App.Custom.Indicator"
             app:menu="@menu/menu_bottom_nav" />
     </FrameLayout>
 

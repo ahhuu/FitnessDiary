@@ -105,6 +105,32 @@ public class PlanFragment extends Fragment {
 
         // FAB 点击添加计划
         binding.fabAddPlan.setOnClickListener(v -> showAddPlanDialog());
+
+        // [v1.2] 顶部活跃计划区域点击弹出模式选择
+        binding.layoutPlanStats.setOnClickListener(v -> showModeSelectionDialog());
+
+        // 初始化时尝试注入进阶计划 (如果不存在)
+        viewModel.seedAdvancedPlans();
+    }
+
+    /**
+     * [v1.2] 显示训练模式选择弹窗
+     */
+    private void showModeSelectionDialog() {
+        String[] modes = { "基础训练计划", "进阶训练计划" };
+        String currentMode = viewModel.getFilterMode().getValue();
+        int checkedItem = "进阶".equals(currentMode) ? 1 : 0;
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("选择训练种类")
+                .setSingleChoiceItems(modes, checkedItem, (dialog, which) -> {
+                    String selectedModeStr = (which == 1) ? "进阶" : "基础";
+                    viewModel.setFilterMode(selectedModeStr);
+                    Toast.makeText(requireContext(), "已切换至 " + modes[which], Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     /**

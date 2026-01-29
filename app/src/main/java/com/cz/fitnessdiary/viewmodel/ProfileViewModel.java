@@ -321,22 +321,38 @@ public class ProfileViewModel extends AndroidViewModel {
         boolean firstDay = totalDays >= 1;
         list.add(new Achievement("first_day", "初出茅庐", "完成第一次训练", R.drawable.ic_hero_fire, firstDay));
 
-        // 成就 2: 持之以恒 (需要查询连续天数)
-        // 这里简化: 如果总天数 >= 3 就解锁 (实际应该查 consecutiveDays)
-        boolean streak3 = totalDays >= 3;
-        list.add(new Achievement("streak_3", "持之以恒", "连续打卡 3 天", R.drawable.ic_hero_fire, streak3));
+        // 成就 2: 渐入佳境 (累计 10 天)
+        boolean streak10 = totalDays >= 10;
+        list.add(new Achievement("streak_10", "渐入佳境", "累计训练 10 天", R.drawable.ic_hero_calendar, streak10));
 
-        // 成就 3: 计划大师 (需要查询计划数)
+        // 成就 3: 健身达人 (累计 30 天)
+        boolean streak30 = totalDays >= 30;
+        list.add(new Achievement("streak_30", "健身达人", "累计训练 30 天", R.drawable.ic_hero_dumbbell, streak30));
+
+        // 成就 4: 计划大师 (3+ 计划)
         int planCount = trainingPlanDao.getAllPlansList().size();
         boolean planMaster = planCount >= 3;
-        list.add(new Achievement("plan_master", "计划大师", "创建 3+ 个计划", R.drawable.ic_hero_fire, planMaster));
+        list.add(new Achievement("plan_master", "计划大师", "创建 3+ 个计划", R.drawable.ic_hero_dumbbell, planMaster));
 
-        // 成就 4: 自律饮食 (查询今日摄入热量)
+        // 成就 5: 饮食先锋
         long todayStart = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
         long tomorrowStart = com.cz.fitnessdiary.utils.DateUtils.getTomorrowStartTimestamp();
         Integer todayCalories = foodRecordDao.getTotalCaloriesByDateRangeSync(todayStart, tomorrowStart);
         boolean dietLogged = todayCalories != null && todayCalories > 0;
-        list.add(new Achievement("diet_logged", "自律饮食", "今日有饮食记录", R.drawable.ic_hero_fire, dietLogged));
+        list.add(new Achievement("diet_logged", "饮食先锋", "今日有饮食记录", R.drawable.ic_hero_fire, dietLogged));
+
+        // 成就 6: 卡路里克星 (累计 30+ 条饮食记录)
+        int foodCount = foodRecordDao.getTotalRecordCountSync();
+        boolean calorieBuster = foodCount >= 30;
+        list.add(new Achievement("calorie_buster", "卡路里克星", "累计 30+ 条记录", R.drawable.ic_hero_fire, calorieBuster));
+
+        // 成就 7: 健身专家 (60 天)
+        boolean expert = totalDays >= 60;
+        list.add(new Achievement("expert", "健身专家", "累计训练 60 天", R.drawable.ic_hero_calendar, expert));
+
+        // 成就 8: 钢铁之躯 (100 天)
+        boolean ironBody = totalDays >= 100;
+        list.add(new Achievement("iron_body", "钢铁之躯", "累计训练 100 天", R.drawable.ic_hero_dumbbell, ironBody));
 
         return list;
     }

@@ -8,7 +8,7 @@ import java.util.List;
  * 处理日期相关的计算和格式化
  */
 public class DateUtils {
-    
+
     /**
      * 获取今天0点的时间戳
      * 
@@ -22,7 +22,7 @@ public class DateUtils {
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTimeInMillis();
     }
-    
+
     /**
      * 获取指定日期的0点时间戳
      * 
@@ -38,7 +38,40 @@ public class DateUtils {
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTimeInMillis();
     }
-    
+
+    /**
+     * 获取指定日期的 UTC 0点时间戳
+     * 
+     * @param timestamp 任意时间戳
+     * @return 该日期 UTC 0点的时间戳
+     */
+    public static long getUtcDayStartTimestamp(long timestamp) {
+        Calendar calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+        calendar.setTimeInMillis(timestamp);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTimeInMillis();
+    }
+
+    /**
+     * 将本地 0 点时间戳转换为对应的 UTC 0 点时间戳
+     * 用于 MaterialDatePicker 的正确初始化
+     * 
+     * @param localTimestamp 本地 0 点时间戳
+     * @return 对应的 UTC 0 点时间戳
+     */
+    public static long localToUtcDayStart(long localTimestamp) {
+        Calendar local = Calendar.getInstance();
+        local.setTimeInMillis(localTimestamp);
+
+        Calendar utc = Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+        utc.set(local.get(Calendar.YEAR), local.get(Calendar.MONTH), local.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
+        utc.set(Calendar.MILLISECOND, 0);
+        return utc.getTimeInMillis();
+    }
+
     /**
      * 获取明天0点的时间戳
      * 
@@ -53,7 +86,7 @@ public class DateUtils {
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTimeInMillis();
     }
-    
+
     /**
      * 计算连续打卡天数
      * 从最近的一天往前推，遇到未打卡的日期就停止
@@ -65,13 +98,13 @@ public class DateUtils {
         if (checkedDateTimestamps == null || checkedDateTimestamps.isEmpty()) {
             return 0;
         }
-        
+
         long todayStart = getTodayStartTimestamp();
         long oneDayMillis = 24 * 60 * 60 * 1000L;
-        
+
         int consecutiveDays = 0;
         long expectedDate = todayStart;
-        
+
         for (Long checkedDate : checkedDateTimestamps) {
             // 允许一天的误差（考虑时区等因素）
             long diff = Math.abs(expectedDate - checkedDate);
@@ -83,10 +116,10 @@ public class DateUtils {
                 break;
             }
         }
-        
+
         return consecutiveDays;
     }
-    
+
     /**
      * 判断指定日期是否是今天
      * 
@@ -98,19 +131,19 @@ public class DateUtils {
         long todayEnd = getTomorrowStartTimestamp();
         return timestamp >= todayStart && timestamp < todayEnd;
     }
-    
+
     /**
      * 获取两个日期之间相差的天数
      * 
      * @param startTimestamp 开始时间戳
-     * @param endTimestamp 结束时间戳
+     * @param endTimestamp   结束时间戳
      * @return 相差天数
      */
     public static int getDaysBetween(long startTimestamp, long endTimestamp) {
         long diff = Math.abs(endTimestamp - startTimestamp);
         return (int) (diff / (24 * 60 * 60 * 1000L));
     }
-    
+
     /**
      * 获取本周的日期列表（周一到周日的0点时间戳）
      * 
@@ -118,24 +151,43 @@ public class DateUtils {
      */
     public static long[] getThisWeekDates() {
         Calendar calendar = Calendar.getInstance();
-        
+
         // 设置为本周周一
         int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
         int offset = (dayOfWeek == Calendar.SUNDAY) ? -6 : (2 - dayOfWeek);
         calendar.add(Calendar.DAY_OF_MONTH, offset);
-        
+
         // 设置为0点
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
-        
+
         long[] weekDates = new long[7];
         for (int i = 0; i < 7; i++) {
             weekDates[i] = calendar.getTimeInMillis();
             calendar.add(Calendar.DAY_OF_MONTH, 1);
         }
-        
+
         return weekDates;
+    }
+
+    /**
+     * 判断两个时间戳是否为同一天
+     *
+     * @param ts1 时间戳1
+     * @param ts2 时间戳2
+     * @return true 如果是同一天
+     */
+    public static boolean isSameDay(long ts1, long ts2) {
+        return getDayStartTimestamp(ts1) == getDayStartTimestamp(ts2);
+    }
+
+    /**
+     * 格式化日期 (yyyy-MM-dd)
+     */
+    public static String formatDate(long timestamp) {
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault());
+        return sdf.format(new java.util.Date(timestamp));
     }
 }

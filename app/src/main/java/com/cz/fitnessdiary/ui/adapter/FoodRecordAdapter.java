@@ -96,9 +96,15 @@ public class FoodRecordAdapter extends RecyclerView.Adapter<FoodRecordAdapter.Vi
             }
             binding.tvCalories.setText(info);
 
-            // 格式化记录时间
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
-            binding.tvRecordTime.setText(sdf.format(new Date(food.getRecordDate())));
+            // Plan 1.2: 显示份数和单位
+            if (food.getServings() > 0) {
+                String unit = food.getServingUnit() != null ? food.getServingUnit() : "份";
+                String portionInfo = food.getServings() + unit;
+                binding.tvPortions.setText(portionInfo);
+                binding.tvPortions.setVisibility(android.view.View.VISIBLE);
+            } else {
+                binding.tvPortions.setVisibility(android.view.View.GONE);
+            }
 
             // 删除按钮点击
             binding.btnDelete.setOnClickListener(v -> {

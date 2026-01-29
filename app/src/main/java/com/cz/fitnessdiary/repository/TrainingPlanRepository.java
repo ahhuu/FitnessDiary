@@ -55,6 +55,28 @@ public class TrainingPlanRepository {
         executorService.execute(() -> trainingPlanDao.insert(plan));
     }
 
+    public void insertAll(List<TrainingPlan> plans) {
+        executorService.execute(() -> trainingPlanDao.insertAll(plans));
+    }
+
+    /**
+     * [v1.2] 将现有无前缀的分类迁移到 '基础-' 前缀
+     */
+    public void migrateToBasic() {
+        executorService.execute(() -> {
+            List<TrainingPlan> plans = trainingPlanDao.getAllPlansList();
+            if (plans != null) {
+                for (TrainingPlan plan : plans) {
+                    String cat = plan.getCategory();
+                    if (cat != null && !cat.startsWith("基础-") && !cat.startsWith("进阶-")) {
+                        plan.setCategory("基础-" + cat);
+                        trainingPlanDao.update(plan);
+                    }
+                }
+            }
+        });
+    }
+
     /**
      * 更新训练计划
      */

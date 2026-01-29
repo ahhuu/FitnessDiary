@@ -54,23 +54,31 @@ public class AchievementAdapter extends RecyclerView.Adapter<AchievementAdapter.
 
         void bind(Achievement achievement) {
             binding.tvTitle.setText(achievement.getTitle());
-            binding.tvDescription.setText(achievement.getDescription());
             binding.ivIcon.setImageResource(achievement.getIconRes());
+
+            // 点击查看成就说明
+            binding.getRoot().setOnClickListener(v -> {
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(binding.getRoot().getContext())
+                        .setTitle(achievement.getTitle())
+                        .setMessage(achievement.getDescription())
+                        .setPositiveButton("知道了", null)
+                        .show();
+            });
 
             if (achievement.isUnlocked()) {
                 // 已解锁：彩色图标 + 深色文字
                 binding.ivIcon.setAlpha(1.0f);
-                binding.tvTitle.setTextColor(Color.parseColor("#212121"));
-                binding.tvDescription.setTextColor(Color.parseColor("#757575"));
-                binding.tvStatus.setText("✓ 已点亮");
-                binding.tvStatus.setTextColor(Color.parseColor("#4CAF50"));
+                binding.ivIcon.clearColorFilter();
+                binding.tvTitle.setTextColor(androidx.core.content.ContextCompat
+                        .getColor(binding.getRoot().getContext(), com.cz.fitnessdiary.R.color.text_primary));
             } else {
-                // 未解锁：灰色
-                binding.ivIcon.setAlpha(0.3f);
-                binding.tvTitle.setTextColor(Color.parseColor("#BDBDBD"));
-                binding.tvDescription.setTextColor(Color.parseColor("#E0E0E0"));
-                binding.tvStatus.setText("未解锁");
-                binding.tvStatus.setTextColor(Color.parseColor("#BDBDBD"));
+                // 未解锁：置灰图标 + 灰色文字
+                binding.ivIcon.setAlpha(0.7f);
+                android.graphics.ColorMatrix matrix = new android.graphics.ColorMatrix();
+                matrix.setSaturation(0); // 置灰
+                binding.ivIcon.setColorFilter(new android.graphics.ColorMatrixColorFilter(matrix));
+                binding.tvTitle.setTextColor(androidx.core.content.ContextCompat
+                        .getColor(binding.getRoot().getContext(), com.cz.fitnessdiary.R.color.text_hint));
             }
         }
     }

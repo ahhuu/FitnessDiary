@@ -22,7 +22,7 @@ import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.databinding.FragmentProfileBinding;
 import com.cz.fitnessdiary.ui.adapter.AchievementAdapter;
 import com.cz.fitnessdiary.viewmodel.ProfileViewModel;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import com.cz.fitnessdiary.ui.fragment.AchievementBottomSheetFragment;
 
 /**
  * Profile Fragment - 用户个人信息页面
@@ -33,8 +33,10 @@ public class ProfileFragment extends Fragment {
     private FragmentProfileBinding binding;
     private ProfileViewModel viewModel;
     private ActivityResultLauncher<Intent> pickImageLauncher;
-    private AchievementAdapter achievementAdapter; // Plan 10
-    private boolean isAchievementsExpanded = true; // Plan 11: 折叠状态
+
+    // SAF Launchers for Backup/Restore
+    private ActivityResultLauncher<String> createBackupLauncher;
+    private ActivityResultLauncher<String[]> restoreBackupLauncher;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -47,23 +49,52 @@ public class ProfileFragment extends Fragment {
                     if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
                         if (imageUri != null) {
-                            // 申请持久化权限
-                            try {
-                                requireContext().getContentResolver().takePersistableUriPermission(
-                                        imageUri,
-                                        Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-                                // 保存 URI 到数据库
-                                viewModel.updateAvatarUri(imageUri.toString());
+                            // [v1.1] 物理存储：将外部图片拷贝到内部私有目录
+                            java.io.File localFile = com.cz.fitnessdiary.utils.MediaManager
+                                    .saveToInternal(requireContext(), imageUri);
+                            if (localFile != null) {
+                                // 保存本地路径到数据库
+                                String localPath = localFile.getAbsolutePath();
+                                viewModel.updateAvatarUri(localPath);
 
                                 // 立即更新头像显示
-                                binding.ivAvatar.setImageURI(imageUri);
-
-                                Toast.makeText(getContext(), "头像已更新", Toast.LENGTH_SHORT).show();
-                            } catch (SecurityException e) {
-                                Toast.makeText(getContext(), "无法获取图片权限", Toast.LENGTH_SHORT).show();
+                                binding.ivAvatar.setImageURI(Uri.fromFile(localFile));
+                                Toast.makeText(getContext(), "头像已本地化存储", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(getContext(), "图片本地化失败", Toast.LENGTH_SHORT).show();
                             }
                         }
+                    }
+                });
+
+        // 注册备份创建器 (SAF)
+        createBackupLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument("application/octet-stream"),
+                uri -> {
+                    if (uri != null) {
+                        try {
+                            boolean success = com.cz.fitnessdiary.utils.BackupManager.backupDatabase(requireContext(),
+                                    uri);
+                            if (success) {
+                                Toast.makeText(getContext(), "✅ 备份完成", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // 尝试获取源文件路径用于诊断
+                                String path = requireContext().getDatabasePath("fitness_diary_db").getAbsolutePath();
+                                Toast.makeText(getContext(), "❌ 备份失败: 找不到文件或数据为空\n路径: " + path, Toast.LENGTH_LONG)
+                                        .show();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(getContext(), "❌ 备份过程中发生异常: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
+
+        // 注册恢复选择器 (SAF)
+        restoreBackupLauncher = registerForActivityResult(
+                new ActivityResultContracts.OpenDocument(),
+                uri -> {
+                    if (uri != null) {
+                        showConfirmRestoreDialog(uri);
                     }
                 });
     }
@@ -82,33 +113,22 @@ public class ProfileFragment extends Fragment {
 
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
 
-        setupAchievementRecyclerView(); // Plan 10
+        setupAchievementEntry(); // v1.2
+        setupReportEntry(); // Plan 11
         observeViewModel();
         setupClickListeners();
     }
 
-    // Plan 10: 设置成就墙 RecyclerView
-    private void setupAchievementRecyclerView() {
-        achievementAdapter = new AchievementAdapter();
-        binding.rvAchievements.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.rvAchievements.setAdapter(achievementAdapter);
-
-        // Plan 11: 设置折叠交互
-        binding.layoutAchievementHeader.setOnClickListener(v -> toggleAchievementsExpansion());
+    @Override
+    public void onResume() {
+        super.onResume();
     }
 
-    // Plan 11: 切换成就板块展开/折叠
-    private void toggleAchievementsExpansion() {
-        isAchievementsExpanded = !isAchievementsExpanded;
-
-        // 切换可见性
-        binding.rvAchievements.setVisibility(isAchievementsExpanded ? View.VISIBLE : View.GONE);
-
-        // 旋转箭头动画
-        binding.ivAchievementArrow.animate()
-                .rotation(isAchievementsExpanded ? 0 : 180)
-                .setDuration(300)
-                .start();
+    // Plan 1.2: 成就系统已移至 AchievementBottomSheetFragment
+    private void setupAchievementEntry() {
+        binding.cardAchievements.setOnClickListener(v -> {
+            new AchievementBottomSheetFragment().show(getChildFragmentManager(), "AchievementBottomSheet");
+        });
     }
 
     /**
@@ -135,7 +155,9 @@ public class ProfileFragment extends Fragment {
                 // 加载头像
                 if (user.getAvatarUri() != null && !user.getAvatarUri().isEmpty()) {
                     try {
-                        Uri avatarUri = Uri.parse(user.getAvatarUri());
+                        String uriString = user.getAvatarUri();
+                        Uri avatarUri = uriString.startsWith("/") ? Uri.fromFile(new java.io.File(uriString))
+                                : Uri.parse(uriString);
                         binding.ivAvatar.setImageURI(avatarUri);
                     } catch (Exception e) {
                         // 如果 URI 无效，使用默认头像
@@ -176,11 +198,29 @@ public class ProfileFragment extends Fragment {
             }
         });
 
-        // Plan 10: 观察成就数据
+        // Plan 1.2: 观察成就数据并更新概览文字
         viewModel.getAchievements().observe(getViewLifecycleOwner(), achievements -> {
             if (achievements != null) {
-                achievementAdapter.setAchievements(achievements);
+                int unlockedCount = 0;
+                for (com.cz.fitnessdiary.model.Achievement a : achievements) {
+                    if (a.isUnlocked())
+                        unlockedCount++;
+                }
+                binding.tvAchievementSummary.setText("已获得 " + unlockedCount + " 枚");
             }
+        });
+
+    }
+
+    /**
+     * [Plan Data Visualization] 初始化并配置数据看板
+     */
+    /**
+     * [Plan Data Visualization] 初始化数据周报入口
+     */
+    private void setupReportEntry() {
+        binding.cardDataReport.setOnClickListener(v -> {
+            new ReportBottomSheetFragment().show(getChildFragmentManager(), "ReportBottomSheet");
         });
     }
 
@@ -205,8 +245,8 @@ public class ProfileFragment extends Fragment {
         // 点击目标卡片 - 切换目标
         binding.cardGoal.setOnClickListener(v -> showGoalSelectionDialog());
 
-        // 点击清除数据
-        binding.cardClearData.setOnClickListener(v -> showClearDataDialog());
+        // 点击右上角设置按钮 (Plan: Data Management)
+        binding.btnSettingsTop.setOnClickListener(v -> showSettingsBottomSheet());
 
         // Plan 33: 点击BMI - 显示详情
         binding.layoutBmi.setOnClickListener(v -> showBMIDetailDialog());
@@ -365,10 +405,20 @@ public class ProfileFragment extends Fragment {
                 .setMessage("确定要清除所有数据吗？此操作不可恢复！")
                 .setPositiveButton("确定清除", (dialog, which) -> {
                     viewModel.clearAllData();
-                    Toast.makeText(getContext(), "数据已清除", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "数据已清除，正在注销...", Toast.LENGTH_SHORT).show();
 
-                    // 重新加载数据
-                    requireActivity().recreate();
+                    // [物理重启逻辑] 清除数据后强制物理重启，返回欢迎页
+                    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                        android.content.Context context = requireContext();
+                        android.content.Intent intent = context.getPackageManager()
+                                .getLaunchIntentForPackage(context.getPackageName());
+                        if (intent != null) {
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                    | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                        }
+                        Runtime.getRuntime().exit(0);
+                    }, 1000);
                 })
                 .setNegativeButton("取消", null)
                 .show();
@@ -378,6 +428,71 @@ public class ProfileFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    /**
+     * 显示设置中心底部弹窗
+     */
+    private void showSettingsBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog bottomSheetDialog = new com.google.android.material.bottomsheet.BottomSheetDialog(
+                requireContext());
+        View view = getLayoutInflater().inflate(R.layout.dialog_bottom_settings, null);
+        bottomSheetDialog.setContentView(view);
+
+        // 1. 备份数据
+        view.findViewById(R.id.btn_backup).setOnClickListener(v -> {
+            bottomSheetDialog.dismiss();
+            String fileName = "FitnessDiary_Backup_"
+                    + new java.text.SimpleDateFormat("yyyyMMdd_HHmm", java.util.Locale.getDefault())
+                            .format(new java.util.Date())
+                    + ".db";
+            createBackupLauncher.launch(fileName);
+        });
+
+        // 2. 恢复数据
+        view.findViewById(R.id.btn_restore).setOnClickListener(v -> {
+            bottomSheetDialog.dismiss();
+            restoreBackupLauncher.launch(new String[] { "application/octet-stream", "application/x-sqlite3", "*/*" });
+        });
+
+        // 3. 清除数据
+        view.findViewById(R.id.btn_clear_all).setOnClickListener(v -> {
+            bottomSheetDialog.dismiss();
+            showClearDataDialog();
+        });
+
+        bottomSheetDialog.show();
+    }
+
+    /**
+     * 恢复前进行二次确认
+     */
+    private void showConfirmRestoreDialog(Uri uri) {
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("⚠️ 确认恢复数据？")
+                .setMessage("恢复操作将覆盖当前所有的本地数据，且无法撤销！建议在恢复前先执行一次备份。")
+                .setPositiveButton("确认恢复", (dialog, which) -> {
+                    boolean success = com.cz.fitnessdiary.utils.BackupManager.restoreDatabase(requireContext(), uri);
+                    if (success) {
+                        Toast.makeText(getContext(), "🎉 恢复成功！应用即将重启", Toast.LENGTH_LONG).show();
+                        // [物理重启逻辑] 强制物理重启应用以确保数据库单例刷新
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                            android.content.Context context = requireContext();
+                            android.content.Intent intent = context.getPackageManager()
+                                    .getLaunchIntentForPackage(context.getPackageName());
+                            if (intent != null) {
+                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                        | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(intent);
+                            }
+                            Runtime.getRuntime().exit(0);
+                        }, 1000);
+                    } else {
+                        Toast.makeText(getContext(), "❌ 恢复失败，请检查文件是否有效", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     /**

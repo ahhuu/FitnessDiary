@@ -40,29 +40,36 @@ public class MainHomeFragment extends Fragment {
     }
 
     private void setupViewPager() {
-        List<Fragment> fragments = new ArrayList<>();
-        fragments.add(new CheckInFragment());
-        fragments.add(new PlanFragment());
-        fragments.add(new DietFragment());
-        fragments.add(new ProfileFragment());
-
         FragmentStateAdapter adapter = new FragmentStateAdapter(this) {
             @NonNull
             @Override
             public Fragment createFragment(int position) {
-                return fragments.get(position);
+                switch (position) {
+                    case 0:
+                        return new CheckInFragment();
+                    case 1:
+                        return new PlanFragment();
+                    case 2:
+                        return new DietFragment();
+                    case 3:
+                        return new ProfileFragment();
+                    default:
+                        return new CheckInFragment();
+                }
             }
 
             @Override
             public int getItemCount() {
-                return fragments.size();
+                return 4;
             }
         };
 
         binding.viewPager.setAdapter(adapter);
 
-        // 关键：禁用 ViewPager2 的离屏加载限制以保证页面平滑，但其实默认已经很好
-        // binding.viewPager.setOffscreenPageLimit(3);
+        // 关键优化：预加载所有页面 (0点到3点)
+        // 这将消除冷启动后初次左右滑动时的卡顿，代价是启动初始由于需要并行初始化4个Fragment会稍微增加一点点负荷
+        // 但对于目前这款轻量级应用来说，这是保证流畅度的最佳方案。
+        binding.viewPager.setOffscreenPageLimit(3);
 
         // 滑动监听：同步底部导航
         binding.viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {

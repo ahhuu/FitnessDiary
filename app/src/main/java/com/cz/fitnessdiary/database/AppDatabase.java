@@ -29,7 +29,7 @@ import java.util.concurrent.Executors;
  * 使用单例模式确保整个应用只有一个数据库实例
  */
 @Database(entities = { User.class, TrainingPlan.class, DailyLog.class, FoodRecord.class,
-        FoodLibrary.class }, version = 5, exportSchema = false)
+        FoodLibrary.class }, version = 6, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -103,6 +103,21 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 5 -> Version 6 (v1.2)
+     */
+    static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // 为 training_plan 添加 duration 字段
+            database.execSQL("ALTER TABLE training_plan ADD COLUMN duration INTEGER NOT NULL DEFAULT 0");
+            // 为 daily_log 添加 duration 字段
+            database.execSQL("ALTER TABLE daily_log ADD COLUMN duration INTEGER NOT NULL DEFAULT 0");
+            // 为 food_record 添加 serving_unit 字段 (v1.2)
+            database.execSQL("ALTER TABLE food_record ADD COLUMN serving_unit TEXT");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -113,7 +128,11 @@ public abstract class AppDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             AppDatabase.class,
                             DATABASE_NAME)
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5) // 添加迁移策略
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6) // 添加迁移策略
+                            // [Migration Pre-reservation]
+                            // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
+                            // 即使恢复了旧版本的备份数据库，Room 也会自动检测版本并执行这些迁移脚本，
+                            // 从而确保数据结构的实时统一。
                             .fallbackToDestructiveMigration()
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override

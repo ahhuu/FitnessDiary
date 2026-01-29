@@ -108,23 +108,20 @@ public class DietFragment extends Fragment {
             @Override
             public Drawable getCompoundDrawableBottom(android.content.Context context, int year, int month, int day,
                     boolean valid, boolean selected) {
-                // 将年月日转换为当地 0 点时间戳进行比对
+                // MaterialDatePicker 的装饰器回调是基于 UTC 的年月日
+                // 我们构造一个 UTC 0点的时间戳进行匹配
                 java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
                 cal.set(year, month, day, 0, 0, 0);
                 cal.set(java.util.Calendar.MILLISECOND, 0);
-                long utcTimestamp = cal.getTimeInMillis();
+                long utcStart = cal.getTimeInMillis();
 
-                // 转换回本地 0 点进行比对 (兼容性处理)
-                java.util.Calendar localCal = java.util.Calendar.getInstance();
-                localCal.setTimeInMillis(utcTimestamp);
-                long localStart = DateUtils.getDayStartTimestamp(localCal.getTimeInMillis());
-
-                if (finalRecordedDates.contains(localStart)) {
+                // 同时考虑到本地存储的时间戳可能是本地 0点，这里做一个兼容或转换逻辑
+                // 暂时假设 finalRecordedDates 包含的是 UTC 0点的时间戳 (我们在 ViewModel 中会做对齐)
+                if (finalRecordedDates.contains(utcStart)) {
                     GradientDrawable dot = new GradientDrawable();
                     dot.setShape(GradientDrawable.OVAL);
                     dot.setSize(12, 12);
                     dot.setColor(ContextCompat.getColor(requireContext(), R.color.color_success));
-                    // 使用 InsetDrawable 控制边距，让点显示在正下方
                     return new InsetDrawable(dot, 0, 0, 0, 4);
                 }
                 return null;
@@ -142,7 +139,7 @@ public class DietFragment extends Fragment {
 
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("选择日期")
-                .setSelection(currentSelection)
+                .setSelection(DateUtils.localToUtcDayStart(currentSelection))
                 .setDayViewDecorator(decorator)
                 .setCalendarConstraints(new CalendarConstraints.Builder()
                         .setValidator(DateValidatorPointBackward.now()) // 不允许选择未来日期
@@ -483,7 +480,11 @@ public class DietFragment extends Fragment {
         for (int i = 0; i < records.size(); i++) {
             com.cz.fitnessdiary.database.entity.FoodRecord r = records.get(i);
             String timeStr = timeFormat.format(new java.util.Date(r.getRecordDate()));
-            items[i] = "• " + r.getFoodName() + " (" + r.getCalories() + "千卡)  " + timeStr;
+            String portions = "";
+            if (r.getServings() > 0) {
+                portions = r.getServings() + (r.getServingUnit() != null ? r.getServingUnit() : "份") + " - ";
+            }
+            items[i] = "• " + r.getFoodName() + " (" + portions + r.getCalories() + "千卡)  " + timeStr;
         }
 
         new AlertDialog.Builder(requireContext())

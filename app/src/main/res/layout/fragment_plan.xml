@@ -30,70 +30,73 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                <!-- 左侧：数据展示 (经典版) -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                    <!-- 大数字 -->
-                    <TextView
-                        android:id="@+id/tv_plan_count"
-                        android:layout_width="wrap_content"
+                    <!-- 左侧：数据展示 -->
+                    <LinearLayout
+                        android:id="@+id/layout_plan_stats"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textSize="56sp"
-                        android:textColor="@color/fitnessdiary_primary"
-                        android:textStyle="bold"
-                        android:includeFontPadding="false" />
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
 
-                    <!-- 单位和描述 -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="个 · 活跃计划"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp" />
-                    
-                </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_plan_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="56sp"
+                            android:textColor="@color/fitnessdiary_primary"
+                            android:textStyle="bold"
+                            android:includeFontPadding="false" />
 
-                <!-- 右侧：图标与动态部位标签 (绿底白字版) -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="个 · 活跃计划"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="4dp" />
+                        
+                    </LinearLayout>
 
+                    <!-- 右侧：图标 -->
                     <ImageView
+                        android:id="@+id/iv_hero_icon"
                         android:layout_width="64dp"
                         android:layout_height="64dp"
                         android:src="@drawable/ic_hero_dumbbell"
-                        android:layout_marginBottom="8dp"
                         android:contentDescription="训练图标" />
 
-                    <!-- 动态标签容器 -->
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/cg_categories"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        app:chipSpacingHorizontal="2dp"
-                        app:chipSpacingVertical="0dp" />
-                    
-                    <TextView
-                        android:id="@+id/tv_covered_categories"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="暂无目标"
-                        android:textSize="12sp"
-                        android:textColor="@color/text_secondary"
-                        android:visibility="gone" />
                 </LinearLayout>
+
+                <!-- 底部：动态分类标签 (v1.2: 独立区域避免遮挡) -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/cg_categories"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:chipSpacingHorizontal="6dp"
+                    app:chipSpacingVertical="0dp" />
+                
+                <TextView
+                    android:id="@+id/tv_covered_categories"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="暂无目标"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:visibility="gone" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

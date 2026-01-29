@@ -171,8 +171,14 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         void bind(TrainingPlan plan) {
             binding.tvPlanName.setText(plan.getName());
 
-            // 显示组数和次数
-            binding.tvSetsReps.setText(plan.getSets() + " 组 × " + plan.getReps() + " 次");
+            // 显示组数和次数/时长 (v1.2: 针对 1次 + 有时长的计划优化显示)
+            String setsReps;
+            if (plan.getReps() == 1 && plan.getDuration() > 0) {
+                setsReps = plan.getSets() + " 组 × " + plan.getDuration() + "s";
+            } else {
+                setsReps = plan.getSets() + " 组 × " + plan.getReps() + " 次";
+            }
+            binding.tvSetsReps.setText(setsReps);
             binding.tvSetsReps.setVisibility(View.VISIBLE);
 
             // 显示描述（如果有）
@@ -183,16 +189,30 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 binding.tvPlanDescription.setVisibility(View.GONE);
             }
 
-            // Plan 21 & 22: 修复列表图片显示 & 去除 tint 染色
+            // Plan 21 & 22: [v1.1 完美适配] 兼容本地路径与着色器清理
             if (plan.getMediaUri() != null && !plan.getMediaUri().isEmpty()) {
-                // 有图：清除着色器，显示原图
+                // 有图：彻底清除 Tint、滤镜和背景，防止遮挡
+                binding.ivMediaThumbnail.setImageTintList(null);
                 binding.ivMediaThumbnail.setColorFilter(null);
+                binding.ivMediaThumbnail.clearColorFilter();
+                binding.ivMediaThumbnail.setBackground(null);
+                binding.ivMediaThumbnail.setPadding(0, 0, 0, 0);
+                binding.ivMediaThumbnail.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                binding.ivMediaThumbnail.setVisibility(View.VISIBLE);
+
                 try {
-                    Uri uri = Uri.parse(plan.getMediaUri());
+                    // [v1.1 兼容性修复] 识别是 Content URI 还是本地绝对路径
+                    Object loadTarget;
+                    if (plan.getMediaUri().startsWith("/")) {
+                        loadTarget = Uri.fromFile(new java.io.File(plan.getMediaUri()));
+                    } else {
+                        loadTarget = Uri.parse(plan.getMediaUri());
+                    }
+
                     Glide.with(itemView.getContext())
-                            .load(uri)
+                            .load(loadTarget)
                             .placeholder(R.drawable.ic_placeholder_plan)
-                            .error(R.drawable.ic_placeholder_plan)
+                            .error(android.R.drawable.ic_menu_close_clear_cancel)
                             .centerCrop()
                             .into(binding.ivMediaThumbnail);
                 } catch (Exception e) {
@@ -205,8 +225,15 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 // 无图：恢复默认并着色
                 int primaryColor = ContextCompat.getColor(itemView.getContext(), R.color.fitnessdiary_primary);
                 binding.ivMediaThumbnail.setColorFilter(primaryColor);
+                binding.ivMediaThumbnail.setImageTintList(android.content.res.ColorStateList.valueOf(primaryColor));
                 binding.ivMediaThumbnail.setImageResource(R.drawable.ic_placeholder_plan);
+
+                // 恢复默认 Padding 和 ScaleType
+                int padding = (int) (12 * itemView.getContext().getResources().getDisplayMetrics().density);
+                binding.ivMediaThumbnail.setPadding(padding, padding, padding, padding);
+                binding.ivMediaThumbnail.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
             }
+            binding.ivMediaThumbnail.setVisibility(View.VISIBLE);
 
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) {

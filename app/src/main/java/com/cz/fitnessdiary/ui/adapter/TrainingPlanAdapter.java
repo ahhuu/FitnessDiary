@@ -81,9 +81,14 @@ public class TrainingPlanAdapter extends RecyclerView.Adapter<TrainingPlanAdapte
             // Locale.getDefault());
             // binding.tvCreateTime.setText(sdf.format(new Date(plan.getCreateTime())));
 
-            // 显示组数和次数（2.0 新功能）
-            if (plan.getSets() > 0 && plan.getReps() > 0) {
-                String setsReps = plan.getSets() + "组 x " + plan.getReps() + "次";
+            // 显示组数和次数/时长 (v1.2: 针对 1次 + 有时长的计划优化显示)
+            if (plan.getSets() > 0) {
+                String setsReps;
+                if (plan.getReps() == 1 && plan.getDuration() > 0) {
+                    setsReps = plan.getSets() + " 组 × " + plan.getDuration() + "s";
+                } else {
+                    setsReps = plan.getSets() + " 组 × " + plan.getReps() + " 次";
+                }
                 binding.tvSetsReps.setText(setsReps);
                 binding.tvSetsReps.setVisibility(View.VISIBLE);
             } else {
@@ -106,9 +111,17 @@ public class TrainingPlanAdapter extends RecyclerView.Adapter<TrainingPlanAdapte
                     android.util.Log.d("TrainingPlanAdapter",
                             "Loading Image for " + plan.getName() + ": " + plan.getMediaUri());
 
+                    // [v1.1 兼容性修复] 识别是 Content URI 还是本地绝对路径
+                    Object loadTarget;
+                    if (plan.getMediaUri().startsWith("/")) {
+                        loadTarget = new java.io.File(plan.getMediaUri());
+                    } else {
+                        loadTarget = Uri.parse(plan.getMediaUri());
+                    }
+
                     Glide.with(binding.getRoot().getContext())
-                            .load(Uri.parse(plan.getMediaUri()))
-                            // 使用原图尺寸或控件测量尺寸，不强制 override(300,300)，但必须确保 View 是 Visible
+                            .load(loadTarget)
+                            // 使用原图尺寸或控件测量尺寸
                             .override(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)
                             .centerCrop()
                             .placeholder(R.drawable.ic_placeholder_plan)

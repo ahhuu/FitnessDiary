@@ -57,9 +57,19 @@ public interface FoodRecordDao {
     LiveData<List<Long>> getAllRecordTimestamps();
 
     /**
-     * 计算指定日期范围的总热量（同步方法）- Plan 10
-     * 用于成就判定
+     * 获取所有食物记录 (同步方法)
      */
+    @Query("SELECT * FROM food_record ORDER BY record_date DESC")
+    List<FoodRecord> getAllFoodRecordsSync();
+
+    /**
+     * 计算指定日期范围的总热量（同步方法）- Plan 10
+     * /**
+     * 计算总记录条数 (同步方法) - v1.2
+     */
+    @Query("SELECT COUNT(*) FROM food_record")
+    int getTotalRecordCountSync();
+
     @Query("SELECT SUM(calories) FROM food_record WHERE record_date >= :startDate AND record_date < :endDate")
     Integer getTotalCaloriesByDateRangeSync(long startDate, long endDate);
 }

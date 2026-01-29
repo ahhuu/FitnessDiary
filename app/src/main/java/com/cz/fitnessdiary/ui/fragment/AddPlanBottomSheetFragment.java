@@ -60,13 +60,14 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                         Uri mediaUri = result.getData().getData();
                         if (mediaUri != null) {
-                            try {
-                                requireContext().getContentResolver().takePersistableUriPermission(
-                                        mediaUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                                selectedMediaUri = mediaUri.toString();
+                            // [v1.1] 物理存储：本地化图片
+                            java.io.File localFile = com.cz.fitnessdiary.utils.MediaManager
+                                    .saveToInternal(requireContext(), mediaUri);
+                            if (localFile != null) {
+                                selectedMediaUri = localFile.getAbsolutePath();
                                 updateMediaPreview();
-                            } catch (SecurityException e) {
-                                e.printStackTrace();
+                            } else {
+                                Toast.makeText(requireContext(), "素材本地化失败", Toast.LENGTH_SHORT).show();
                             }
                         }
                     }
@@ -97,6 +98,36 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
 
         setupUI();
         setupListeners();
+        setupCategoryAutoComplete();
+    }
+
+    private void setupCategoryAutoComplete() {
+        // 由于布局中虽然 ID 是 et_plan_category 但类型是 TextInputEditText，
+        // 我们需要确保它是能够处理联想的（如果 xml 中没改，这里需要动态注入或转换）
+        // 建议 xml 也要改，但在代码中可以先尝试这种注入方式。
+        // v1.2: 观察 ViewModel 联想分类列表
+        viewModel.getUniqueCategories().observe(getViewLifecycleOwner(), categories -> {
+            if (categories != null && !categories.isEmpty()) {
+                android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                        requireContext(),
+                        android.R.layout.simple_dropdown_item_1line,
+                        categories);
+
+                // 进行安全转换，如果 xml 已经是 AutoCompleteTextView 或子类
+                if (binding.etPlanCategory instanceof android.widget.AutoCompleteTextView) {
+                    android.widget.AutoCompleteTextView autoCategory = (android.widget.AutoCompleteTextView) binding.etPlanCategory;
+                    autoCategory.setAdapter(adapter);
+                    autoCategory.setThreshold(0);
+                    // 点击即显示
+                    autoCategory.setOnFocusChangeListener((v, hasFocus) -> {
+                        if (hasFocus && autoCategory.getText().toString().isEmpty()) {
+                            autoCategory.showDropDown();
+                        }
+                    });
+                    autoCategory.setOnClickListener(v -> autoCategory.showDropDown());
+                }
+            }
+        });
     }
 
     private void setupUI() {
@@ -106,7 +137,15 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
             binding.etPlanDescription.setText(existingPlan.getDescription());
             binding.etSets.setText(String.valueOf(existingPlan.getSets()));
             binding.etReps.setText(String.valueOf(existingPlan.getReps()));
-            binding.etPlanCategory.setText(existingPlan.getCategory());
+
+            // [v1.2] 显示时去掉模式前缀 (基础-/进阶-)
+            String displayCat = existingPlan.getCategory();
+            if (displayCat != null && displayCat.contains("-")) {
+                displayCat = displayCat.split("-")[1];
+            }
+            binding.etPlanCategory.setText(displayCat);
+
+            binding.etDuration.setText(String.valueOf(existingPlan.getDuration()));
             binding.btnSave.setText("保存修改");
 
             selectedMediaUri = existingPlan.getMediaUri();
@@ -153,7 +192,9 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
     private void updateMediaPreview() {
         if (selectedMediaUri != null) {
             binding.ivMediaPreview.setVisibility(View.VISIBLE);
-            Glide.with(this).load(Uri.parse(selectedMediaUri)).centerCrop().into(binding.ivMediaPreview);
+            Object loadTarget = selectedMediaUri.startsWith("/") ? new java.io.File(selectedMediaUri)
+                    : Uri.parse(selectedMediaUri);
+            Glide.with(this).load(loadTarget).centerCrop().into(binding.ivMediaPreview);
         } else {
             binding.ivMediaPreview.setVisibility(View.GONE);
         }
@@ -165,6 +206,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
         String setsStr = binding.etSets.getText().toString().trim();
         String repsStr = binding.etReps.getText().toString().trim();
         String category = binding.etPlanCategory.getText().toString().trim();
+        String durationStr = binding.etDuration.getText().toString().trim();
 
         if (name.isEmpty()) {
             Toast.makeText(getContext(), "请输入计划名称", Toast.LENGTH_SHORT).show();
@@ -174,6 +216,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
         try {
             int sets = setsStr.isEmpty() ? 0 : Integer.parseInt(setsStr);
             int reps = repsStr.isEmpty() ? 0 : Integer.parseInt(repsStr);
+            int duration = durationStr.isEmpty() ? 0 : Integer.parseInt(durationStr);
 
             // 获取排期
             StringBuilder daysBuilder = new StringBuilder();
@@ -187,11 +230,19 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
             }
             String scheduledDays = daysBuilder.length() == 0 ? "0" : daysBuilder.toString();
 
+            // [v1.2] 获取当前模式并自动补全分类前缀
+            String currentMode = viewModel.getFilterMode().getValue();
+            String finalCategory = category.isEmpty() ? "无分类" : category;
+            if (!finalCategory.startsWith("基础-") && !finalCategory.startsWith("进阶-")) {
+                finalCategory = currentMode + "-" + finalCategory;
+            }
+
             if (existingPlan == null) {
                 TrainingPlan newPlan = new TrainingPlan(name, description, System.currentTimeMillis(), sets, reps,
                         selectedMediaUri);
-                newPlan.setCategory(category.isEmpty() ? "无分类" : category);
+                newPlan.setCategory(finalCategory);
                 newPlan.setScheduledDays(scheduledDays);
+                newPlan.setDuration(duration);
                 viewModel.addPlan(newPlan);
                 Toast.makeText(getContext(), "添加成功", Toast.LENGTH_SHORT).show();
             } else {
@@ -199,9 +250,10 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                 existingPlan.setDescription(description);
                 existingPlan.setSets(sets);
                 existingPlan.setReps(reps);
-                existingPlan.setCategory(category.isEmpty() ? "无分类" : category);
+                existingPlan.setCategory(finalCategory);
                 existingPlan.setScheduledDays(scheduledDays);
                 existingPlan.setMediaUri(selectedMediaUri);
+                existingPlan.setDuration(duration);
                 viewModel.updatePlan(existingPlan);
                 Toast.makeText(getContext(), "修改成功", Toast.LENGTH_SHORT).show();
             }

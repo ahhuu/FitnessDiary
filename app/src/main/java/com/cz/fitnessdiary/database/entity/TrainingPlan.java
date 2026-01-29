@@ -122,6 +122,9 @@ public class TrainingPlan implements java.io.Serializable {
     @ColumnInfo(name = "scheduled_days")
     private String scheduledDays; // 计划执行日 ("1,3,5" 或 "0")
 
+    @ColumnInfo(name = "duration", defaultValue = "0")
+    private int duration; // 预设时长 (单位：秒)
+
     public String getCategory() {
         return category;
     }
@@ -136,5 +139,13 @@ public class TrainingPlan implements java.io.Serializable {
 
     public void setScheduledDays(String scheduledDays) {
         this.scheduledDays = scheduledDays;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
     }
 }

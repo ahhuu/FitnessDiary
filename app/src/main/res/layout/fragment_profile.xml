@@ -71,8 +71,21 @@
 
                 </LinearLayout>
 
+                <!-- 右侧：设置按钮 -->
+                <ImageButton
+                    android:id="@+id/btn_settings_top"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_settings"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    app:tint="@color/fitnessdiary_primary"
+                    android:contentDescription="设置" />
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
 
         <!-- 核心数据 (2x2 Grid) -->
         <com.google.android.material.card.MaterialCardView
@@ -437,7 +450,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Plan 10 & 11: 成就墙 (可折叠) -->
+        <!-- Plan 1.2: 成就系统入口 (点击进入底栏) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_achievements"
             android:layout_width="match_parent"
@@ -446,57 +459,48 @@
             app:cardCornerRadius="24dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
+            android:clickable="true"
+            android:focusable="true"
             android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <!-- 头部：点击折叠 -->
-                <LinearLayout
-                    android:id="@+id/layout_achievement_header"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp"
-                    android:gravity="center_vertical"
-                    android:background="?attr/selectableItemBackground">
+                    android:layout_weight="1"
+                    android:text="🏆 成就勋章墙"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="🏆 我的成就"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
-
-                    <ImageView
-                        android:id="@+id/iv_achievement_arrow"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_expand_more"
-                        app:tint="@color/text_secondary"
-                        android:contentDescription="展开/折叠" />
-
-                </LinearLayout>
-
-                <!-- 列表内容 -->
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_achievements"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tv_achievement_summary"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false"
-                    android:visibility="visible"
-                    android:paddingBottom="16dp" />
+                    android:text="已获得 0 枚"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginEnd="8dp" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_arrow_right"
+                    app:tint="@color/text_hint"
+                    android:contentDescription="查看详情" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 清除数据按钮 -->
+        <!-- Plan 11: 数据周报入口 (点击弹出 BottomSheet) -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_clear_data"
+            android:id="@+id/card_data_report"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="@color/fitnessdiary_surface"
@@ -504,29 +508,59 @@
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="12dp"
+                android:padding="16dp"
                 android:gravity="center_vertical">
 
-                <TextView
+                <!-- 左侧图标 -->
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_analytics"
+                    app:tint="@color/fitnessdiary_primary"
+                    android:background="@drawable/bg_circle_light_primary"
+                    android:padding="8dp"
+                    android:contentDescription="图标" />
+
+                <!-- 中间文本 -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="清除所有数据"
-                    android:textSize="16sp"
-                    android:textColor="@color/error" />
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="数据周报"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="查看本周训练与饮食分析"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="2dp" />
+
+                </LinearLayout>
+
+                <!-- 右侧箭头 -->
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@android:drawable/ic_menu_delete"
-                    android:tint="@color/error"
-                    android:contentDescription="删除图标" />
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_arrow_right"
+                    app:tint="@color/text_hint"
+                    android:contentDescription="查看详情" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -534,3 +568,5 @@
     </LinearLayout>
 
 </ScrollView>
+
+

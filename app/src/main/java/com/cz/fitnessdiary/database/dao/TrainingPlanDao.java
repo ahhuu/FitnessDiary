@@ -24,6 +24,9 @@ public interface TrainingPlanDao {
     @Insert
     void insert(TrainingPlan plan);
 
+    @Insert
+    void insertAll(List<TrainingPlan> plans);
+
     /**
      * 更新训练计划 (Plan 10: 用于编辑计划功能)
      */

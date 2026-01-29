@@ -37,18 +37,25 @@ public class CheckInViewModel extends AndroidViewModel {
         allLogs = dailyLogRepository.getAllLogs();
         executorService = Executors.newSingleThreadExecutor();
 
-        // 初始化记录日期集合 (用于日历高亮)
-        recordedDates = androidx.lifecycle.Transformations.map(
-                dailyLogRepository.getAllRecordTimestamps(),
-                timestamps -> {
+        // 初始化记录日期集合 (用于日历高亮 - v1.2: 仅高亮全勤日)
+        recordedDates = androidx.lifecycle.Transformations.switchMap(dailyLogRepository.getAllLogs(),
+                logs -> androidx.lifecycle.Transformations.map(trainingPlanRepository.getAllPlans(), allPlans -> {
                     java.util.Set<Long> dates = new java.util.HashSet<>();
-                    if (timestamps != null) {
-                        for (Long ts : timestamps) {
-                            dates.add(DateUtils.getDayStartTimestamp(ts));
+                    if (logs != null && allPlans != null) {
+                        // 提取所有涉及的日期
+                        java.util.Set<Long> potentialDates = new java.util.HashSet<>();
+                        for (DailyLog log : logs) {
+                            potentialDates.add(DateUtils.getUtcDayStartTimestamp(log.getDate()));
+                        }
+                        // 检查每一天是否全勤
+                        for (Long date : potentialDates) {
+                            if (isFullAttendanceUtc(date, logs, allPlans)) {
+                                dates.add(date);
+                            }
                         }
                     }
                     return dates;
-                });
+                }));
 
         // 计算连续打卡天数
         calculateConsecutiveDays();
@@ -88,7 +95,16 @@ public class CheckInViewModel extends AndroidViewModel {
     }
 
     /**
-     * 获取选定日期需完成的训练计划 (Plan 26 + Plan 13 回溯)
+     * [v1.2] 获取当前的计划模式 (从 SharedPreferences 同步)
+     */
+    private String getCurrentPlanMode() {
+        android.content.SharedPreferences sp = getApplication().getSharedPreferences("fitness_diary_prefs",
+                android.content.Context.MODE_PRIVATE);
+        return sp.getString("current_plan_mode", "基础");
+    }
+
+    /**
+     * 获取选定日期需完成的训练计划 (Plan 26 + Plan 13 回溯 + [v1.2] 模式过滤)
      */
     public LiveData<List<com.cz.fitnessdiary.database.entity.TrainingPlan>> getSelectedDatePlans() {
         return androidx.lifecycle.Transformations.switchMap(selectedDate,
@@ -97,6 +113,9 @@ public class CheckInViewModel extends AndroidViewModel {
                     if (allPlans == null)
                         return targetPlans;
 
+                    // [v1.2] 获取当前选中的模式前缀
+                    String mode = getCurrentPlanMode();
+
                     // 获取选定日期是周几 (1=周一, 7=周日)
                     java.util.Calendar calendar = java.util.Calendar.getInstance();
                     calendar.setTimeInMillis(date);
@@ -104,6 +123,12 @@ public class CheckInViewModel extends AndroidViewModel {
                     int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
 
                     for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
+                        // [v1.2] 模式过滤：只展示当前模式下的计划
+                        String cat = plan.getCategory();
+                        if (cat == null || !cat.startsWith(mode + "-")) {
+                            continue;
+                        }
+
                         String scheduledDays = plan.getScheduledDays();
                         boolean isScheduled = false;
                         if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
@@ -133,6 +158,17 @@ public class CheckInViewModel extends AndroidViewModel {
             date = DateUtils.getTodayStartTimestamp();
         DailyLog log = new DailyLog(planId, date, false);
         dailyLogRepository.insert(log);
+        calculateConsecutiveDays();
+    }
+
+    /**
+     * [v1.2] 强制刷新数据 (当计划模式可能改变时调用)
+     */
+    public void refreshData() {
+        // 触发选定日期计划的重新计算
+        Long current = selectedDate.getValue();
+        selectedDate.setValue(current);
+        // 重新计算连续天数
         calculateConsecutiveDays();
     }
 
@@ -213,18 +249,26 @@ public class CheckInViewModel extends AndroidViewModel {
         });
     }
 
-    // 检查某天是否全勤
-    private boolean isFullAttendance(long dateStr, List<DailyLog> allLogs,
+    // 检查某天是否全勤 (UTC 版本，用于日历高亮)
+    private boolean isFullAttendanceUtc(long utcDateTs, List<DailyLog> allLogs,
             List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans) {
+        // [v1.2] 获取选定模式前缀
+        String modePrefix = getCurrentPlanMode() + "-";
+
         // 1. 找出当天应做的计划
-        // 注意：这里用"当前排期"去判断"历史日期"是否全勤，是简化的逻辑
-        java.util.Calendar calendar = java.util.Calendar.getInstance();
-        calendar.setTimeInMillis(dateStr);
+        // 注意：这里用 UTC Calendar 确定周几
+        java.util.Calendar calendar = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+        calendar.setTimeInMillis(utcDateTs);
         int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
         int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
 
         List<Integer> targetPlanIds = new ArrayList<>();
         for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
+            // [v1.2] 模式过滤
+            if (plan.getCategory() == null || !plan.getCategory().startsWith(modePrefix)) {
+                continue;
+            }
+
             String scheduledDays = plan.getScheduledDays();
             boolean isScheduled = false;
             if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
@@ -244,10 +288,63 @@ public class CheckInViewModel extends AndroidViewModel {
         }
 
         if (targetPlanIds.isEmpty())
-            return false; // Plan 9 Fix: 无计划时不显示已打卡
+            return false;
 
         // 2. 检查当天日志
         // 必须所有 targetPlanIds 都有对应的 log 且 completed=true
+        int completedCount = 0;
+        for (DailyLog log : allLogs) {
+            if (DateUtils.getUtcDayStartTimestamp(log.getDate()) == utcDateTs) {
+                if (targetPlanIds.contains(log.getPlanId()) && log.isCompleted()) {
+                    completedCount++;
+                }
+            }
+        }
+
+        return completedCount >= targetPlanIds.size();
+    }
+
+    // 检查某天是否全勤
+    private boolean isFullAttendance(long dateStr, List<DailyLog> allLogs,
+            List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans) {
+        // [v1.2] 获取选定模式前缀
+        String modePrefix = getCurrentPlanMode() + "-";
+
+        // 1. 找出当天应做的计划
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setTimeInMillis(dateStr);
+        int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
+        int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
+
+        List<Integer> targetPlanIds = new ArrayList<>();
+        for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
+            // [v1.2] 模式过滤
+            if (plan.getCategory() == null || !plan.getCategory().startsWith(modePrefix)) {
+                continue;
+            }
+
+            String scheduledDays = plan.getScheduledDays();
+            boolean isScheduled = false;
+            if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+                isScheduled = true;
+            } else {
+                String[] days = scheduledDays.split(",");
+                for (String day : days) {
+                    if (day.trim().equals(String.valueOf(dayIndex))) {
+                        isScheduled = true;
+                        break;
+                    }
+                }
+            }
+            if (isScheduled) {
+                targetPlanIds.add(plan.getPlanId());
+            }
+        }
+
+        if (targetPlanIds.isEmpty())
+            return false;
+
+        // 2. 检查当天日志
         int completedCount = 0;
         for (DailyLog log : allLogs) {
             if (DateUtils.getDayStartTimestamp(log.getDate()) == dateStr) {

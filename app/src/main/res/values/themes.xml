@@ -98,4 +98,14 @@
         <item name="cornerSizeBottomLeft">0dp</item>
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
+
+    <!-- 底部导航栏指示器样式：设为透明以满足视觉轻量化需求 -->
+    <style name="App.Custom.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">#00000000</item> <!-- 透明 -->
+    </style>
+
+    <!-- 底部导航栏文字样式：更小更紧凑 -->
+    <style name="TextAppearance.Nav.Small" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">10sp</item>
+    </style>
 </resources>

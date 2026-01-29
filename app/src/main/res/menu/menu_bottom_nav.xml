@@ -2,21 +2,21 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/checkInFragment"
-        android:icon="@android:drawable/ic_menu_today"
+        android:icon="@drawable/selector_nav_icon_checkin"
         android:title="@string/nav_checkin" />
     
     <item
         android:id="@+id/planFragment"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:icon="@drawable/selector_nav_icon_plan"
         android:title="@string/nav_plan" />
     
     <item
         android:id="@+id/dietFragment"
-        android:icon="@android:drawable/ic_menu_edit"
+        android:icon="@drawable/selector_nav_icon_diet"
         android:title="@string/nav_diet" />
     
     <item
         android:id="@+id/profileFragment"
-        android:icon="@android:drawable/ic_menu_myplaces"
+        android:icon="@drawable/selector_nav_icon_profile"
         android:title="我的" />
 </menu>
