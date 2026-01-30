@@ -117,14 +117,23 @@ public class PlanFragment extends Fragment {
      * [v1.2] 显示训练模式选择弹窗
      */
     private void showModeSelectionDialog() {
-        String[] modes = { "基础训练计划", "进阶训练计划" };
+        String[] modes = { "基础训练计划", "进阶训练计划", "自定义训练计划" };
         String currentMode = viewModel.getFilterMode().getValue();
-        int checkedItem = "进阶".equals(currentMode) ? 1 : 0;
+        int checkedItem = 0;
+        if ("进阶".equals(currentMode))
+            checkedItem = 1;
+        if ("自定义".equals(currentMode))
+            checkedItem = 2;
 
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("选择训练种类")
                 .setSingleChoiceItems(modes, checkedItem, (dialog, which) -> {
-                    String selectedModeStr = (which == 1) ? "进阶" : "基础";
+                    String selectedModeStr = "基础";
+                    if (which == 1)
+                        selectedModeStr = "进阶";
+                    if (which == 2)
+                        selectedModeStr = "自定义";
+
                     viewModel.setFilterMode(selectedModeStr);
                     Toast.makeText(requireContext(), "已切换至 " + modes[which], Toast.LENGTH_SHORT).show();
                     dialog.dismiss();

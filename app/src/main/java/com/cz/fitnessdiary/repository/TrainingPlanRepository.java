@@ -60,16 +60,18 @@ public class TrainingPlanRepository {
     }
 
     /**
-     * [v1.2] 将现有无前缀的分类迁移到 '基础-' 前缀
+     * [v1.2] 将现有无前缀的分类迁移到 '自定义-' 前缀
+     * 保证用户备份恢复的数据归类为自定义，而不混入基础库
      */
-    public void migrateToBasic() {
+    public void migrateLegacyToCustom() {
         executorService.execute(() -> {
             List<TrainingPlan> plans = trainingPlanDao.getAllPlansList();
             if (plans != null) {
                 for (TrainingPlan plan : plans) {
                     String cat = plan.getCategory();
-                    if (cat != null && !cat.startsWith("基础-") && !cat.startsWith("进阶-")) {
-                        plan.setCategory("基础-" + cat);
+                    // 如果没有前缀，说明是老版本数据，归类为自定义
+                    if (cat != null && !cat.startsWith("基础-") && !cat.startsWith("进阶-") && !cat.startsWith("自定义-")) {
+                        plan.setCategory("自定义-" + cat);
                         trainingPlanDao.update(plan);
                     }
                 }

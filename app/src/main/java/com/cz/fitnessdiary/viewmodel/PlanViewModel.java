@@ -44,8 +44,11 @@ public class PlanViewModel extends AndroidViewModel {
         String savedMode = sp.getString("current_plan_mode", "基础");
         filterMode.setValue(savedMode);
 
-        // [v1.2] 执行迁移：将无前缀的分类归入基础
-        repository.migrateToBasic();
+        // [v1.2] 执行迁移：将无前缀的(老版本/备份恢复)分类归入自定义
+        repository.migrateLegacyToCustom();
+
+        // [v1.2] 检查并注入基础/进阶计划库
+        checkAndSeedLibrary();
 
         // 过滤后的计划列表 (根据当前模式前缀)
         LiveData<List<TrainingPlan>> filteredPlans = Transformations.switchMap(filterMode, mode -> {
@@ -210,48 +213,80 @@ public class PlanViewModel extends AndroidViewModel {
     }
 
     /**
-     * [v1.2] 批量注入进阶计划 (仅当进阶计划为空时调用)
+     * [v1.2] 检查并注入计划库
+     * 分别检查基础和进阶计划，如果缺失则补充
      */
-    public void seedAdvancedPlans() {
+    public void checkAndSeedLibrary() {
         new Thread(() -> {
             List<TrainingPlan> all = repository.getAllPlansSync();
+            boolean hasBase = false;
             boolean hasAdvanced = false;
+
             if (all != null) {
                 for (TrainingPlan p : all) {
-                    if (p.getCategory() != null && p.getCategory().startsWith("进阶-")) {
-                        hasAdvanced = true;
-                        break;
+                    String cat = p.getCategory();
+                    if (cat != null) {
+                        if (cat.startsWith("基础-"))
+                            hasBase = true;
+                        if (cat.startsWith("进阶-"))
+                            hasAdvanced = true;
                     }
                 }
             }
 
+            long now = System.currentTimeMillis();
+            List<TrainingPlan> plansToInsert = new ArrayList<>();
+
+            // 1. 注入基础计划 (Bodyweight / Basic)
+            if (!hasBase) {
+                plansToInsert.add(createPlan("标准俯卧撑", "胸", "基础-", "经典胸肌与三头肌训练", 4, 12, 0, "1,3,5", now));
+                plansToInsert.add(createPlan("宽距俯卧撑", "胸", "基础-", "侧重胸大肌外侧", 4, 10, 0, "1,3,5", now));
+
+                plansToInsert.add(createPlan("自重深蹲", "腿", "基础-", "下肢力量根基", 4, 20, 0, "2,4,6", now));
+                plansToInsert.add(createPlan("箭步蹲", "腿", "基础-", "单腿稳定性与臀部刺激", 3, 15, 0, "2,4,6", now));
+
+                plansToInsert.add(createPlan("平板支撑", "腹", "基础-", "核心稳定性训练", 3, 1, 60, "1,2,3,4,5,6,7", now));
+                plansToInsert.add(createPlan("卷腹", "腹", "基础-", "腹直肌上部孤立", 4, 15, 0, "1,3,5", now));
+
+                plansToInsert.add(createPlan("澳洲引体向上", "背", "基础-", "背部入门动作", 4, 10, 0, "2,4,6", now));
+                plansToInsert.add(createPlan("俯身T字伸展", "背", "基础-", "改善圆肩驼背", 3, 15, 0, "2,4,6", now));
+            }
+
+            // 2. 注入进阶计划 (Weights / Advanced Skills)
             if (!hasAdvanced) {
-                List<TrainingPlan> advancedList = new ArrayList<>();
-                long now = System.currentTimeMillis();
+                plansToInsert.add(createPlan("支架俯卧撑", "胸", "进阶-", "增加胸肌拉伸幅度", 4, 15, 0, "1,3,5", now));
+                plansToInsert.add(createPlan("哑铃卧推", "胸", "进阶-", "增加肌肉维度", 4, 12, 0, "1,3,5", now));
+                plansToInsert.add(createPlan("窄距支架臂屈伸", "肱三", "进阶-", "手臂孤立训练", 4, 10, 0, "1,3,5", now));
 
-                advancedList.add(createAdvancedPlan("支架俯卧撑", "胸", "基础推力进阶", 4, 15, 0, "1,3,5", now));
-                advancedList.add(createAdvancedPlan("哑铃卧推", "胸", "增加肌肉维度", 4, 12, 0, "1,3,5", now));
-                advancedList.add(createAdvancedPlan("窄距支架臂屈伸", "肱三", "手臂孤立训练", 4, 10, 0, "1,3,5", now));
+                plansToInsert.add(createPlan("引体向上", "背", "进阶-", "顶级拉力训练", 4, 8, 0, "2,4,6", now));
+                plansToInsert.add(createPlan("杠铃划船", "背", "进阶-", "背部核心训练", 4, 12, 0, "2,4,6", now));
+                plansToInsert.add(createPlan("阿诺德推举", "肩", "进阶-", "肩部全方位雕刻", 4, 12, 0, "2,4,6", now));
 
-                advancedList.add(createAdvancedPlan("引体向上", "背", "顶级拉力训练", 4, 8, 0, "2,4,6", now));
-                advancedList.add(createAdvancedPlan("杠铃划船", "背", "背部核心训练", 4, 12, 0, "2,4,6", now));
-                advancedList.add(createAdvancedPlan("阿诺德推举", "肩", "肩部全方位雕刻", 4, 12, 0, "2,4,6", now));
+                plansToInsert.add(createPlan("动态平板支撑", "腹", "进阶-", "动态核心精雕", 3, 1, 60, "1,2,3,4,5,6,7", now));
+                plansToInsert.add(createPlan("悬垂举腿", "腹", "进阶-", "极致下腹轰炸", 4, 15, 0, "2,4,6", now));
+                plansToInsert.add(createPlan("龙旗", "腹", "进阶-", "李小龙同款核心王牌", 3, 8, 0, "2,4,6", now));
+            }
 
-                advancedList.add(createAdvancedPlan("动态平板支撑", "腹", "动态核心精雕", 3, 1, 60, "1,2,3,4,5,6,7", now));
-                advancedList.add(createAdvancedPlan("悬垂举腿", "腹", "极致下腹轰炸", 4, 15, 0, "2,4,6", now));
-                advancedList.add(createAdvancedPlan("龙旗", "腹", "李小龙同款核心王牌", 3, 8, 0, "2,4,6", now));
-
-                repository.insertAll(advancedList);
+            if (!plansToInsert.isEmpty()) {
+                repository.insertAll(plansToInsert);
             }
         }).start();
     }
 
-    private TrainingPlan createAdvancedPlan(String name, String category, String desc, int sets, int reps, int duration,
-            String days, long now) {
+    // 通用计划创建方法
+    private TrainingPlan createPlan(String name, String categoryBodyPart, String categoryPrefix, String desc,
+            int sets, int reps, int duration, String days, long now) {
         TrainingPlan plan = new TrainingPlan(name, desc, now, sets, reps, null);
-        plan.setCategory("进阶-" + category);
+        plan.setCategory(categoryPrefix + categoryBodyPart);
         plan.setDuration(duration);
         plan.setScheduledDays(days);
         return plan;
+    }
+
+    /**
+     * [已废弃] 请使用 checkAndSeedLibrary
+     */
+    public void seedAdvancedPlans() {
+        checkAndSeedLibrary();
     }
 }

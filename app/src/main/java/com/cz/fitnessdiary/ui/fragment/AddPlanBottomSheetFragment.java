@@ -230,11 +230,12 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
             }
             String scheduledDays = daysBuilder.length() == 0 ? "0" : daysBuilder.toString();
 
-            // [v1.2] 获取当前模式并自动补全分类前缀
-            String currentMode = viewModel.getFilterMode().getValue();
+            // [v1.2] 修正：新增计划统一归类为 "自定义"，不再跟随当前视图模式
+            String targetPrefix = "自定义";
             String finalCategory = category.isEmpty() ? "无分类" : category;
-            if (!finalCategory.startsWith("基础-") && !finalCategory.startsWith("进阶-")) {
-                finalCategory = currentMode + "-" + finalCategory;
+            if (!finalCategory.startsWith("基础-") && !finalCategory.startsWith("进阶-")
+                    && !finalCategory.startsWith("自定义-")) {
+                finalCategory = targetPrefix + "-" + finalCategory;
             }
 
             if (existingPlan == null) {
