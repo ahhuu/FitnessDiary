@@ -625,13 +625,16 @@ public class ProfileFragment extends Fragment {
         tvCategory.getBackground().setColorFilter(categoryColor, android.graphics.PorterDuff.Mode.SRC_IN);
         tvBmiValue.setTextColor(categoryColor);
 
-        // 设置指针位置 (BMI范围: 10-35, 映射到进度条宽度)
+        // 设置指针颜色同步
         View pointer = view.findViewById(R.id.view_bmi_pointer);
+        pointer.getBackground().setColorFilter(categoryColor, android.graphics.PorterDuff.Mode.SRC_IN);
+
+        // 设置指针位置 (BMI范围: 12-36, 映射到进度条宽度)
         pointer.post(() -> {
             View bar = view.findViewById(R.id.view_bmi_bar);
             int barWidth = bar.getWidth();
-            double clampedBmi = Math.max(10, Math.min(35, bmi));
-            double progress = (clampedBmi - 10) / 25.0; // 0.0 到 1.0
+            double clampedBmi = Math.max(12, Math.min(36, bmi));
+            double progress = (clampedBmi - 12) / 24.0; // 量程扩大至 12-36，匹配分段 UI
             int pointerMargin = (int) (progress * barWidth) - 6; // 减去指针宽度的一半
             android.view.ViewGroup.MarginLayoutParams params = (android.view.ViewGroup.MarginLayoutParams) pointer
                     .getLayoutParams();

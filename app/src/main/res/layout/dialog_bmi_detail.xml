@@ -113,47 +113,85 @@
 
                     </FrameLayout>
 
-                    <!-- 渐变进度条 -->
-                    <View
+                    <!-- 分段进度条 -->
+                    <LinearLayout
                         android:id="@+id/view_bmi_bar"
                         android:layout_width="match_parent"
                         android:layout_height="12dp"
-                        android:background="@drawable/bmi_gradient_bar"
-                        android:layout_marginBottom="8dp" />
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
 
-                    <!-- 刻度值 -->
+                        <!-- 12 - 18.5 (偏瘦) Weight: 6.5 -->
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="6.5"
+                            android:background="@drawable/bmi_bar_blue" />
+
+                        <!-- 18.5 - 24.0 (正常) Weight: 5.5 -->
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="5.5"
+                            android:background="@drawable/bmi_bar_green" />
+
+                        <!-- 24.0 - 28.0 (偏重) Weight: 4.0 -->
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="4.0"
+                            android:background="@drawable/bmi_bar_orange" />
+
+                        <!-- 28.0 - 36.0 (肥胖) Weight: 8.0 -->
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="8.0"
+                            android:background="@drawable/bmi_bar_red" />
+                    </LinearLayout>
+
+                    <!-- 刻度值 (精确对齐边界) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:layout_marginBottom="16dp">
 
+                        <!-- 偏瘦区域中央略偏右显示 18.5 -->
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
+                            android:layout_weight="6.5"
                             android:text="18.5"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"
-                            android:gravity="start" />
+                            android:gravity="end" />
 
+                        <!-- 正常区域 -->
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
+                            android:layout_weight="5.5"
                             android:text="24.0"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"
-                            android:gravity="center" />
+                            android:gravity="end" />
 
+                        <!-- 偏重区域 -->
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
+                            android:layout_weight="4.0"
                             android:text="28.0"
                             android:textSize="12sp"
                             android:textColor="@color/text_secondary"
                             android:gravity="end" />
+
+                        <!-- 肥胖区域 (留白) -->
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="8.0" />
 
                     </LinearLayout>
 
