@@ -217,9 +217,8 @@ public class DietFragment extends Fragment {
             }
         });
 
-        // Plan 32: FAB 添加自定义食物
-        com.google.android.material.floatingactionbutton.FloatingActionButton fabAddFood = view
-                .findViewById(R.id.fab_add_food);
+        // Plan 32: FAB 添加自定义食物 (同步 ImageButton 风格)
+        android.view.View fabAddFood = view.findViewById(R.id.fab_add_food);
         fabAddFood.setOnClickListener(v -> {
             showAddCustomFoodDialog(dialog, adapter);
         });
@@ -248,12 +247,14 @@ public class DietFragment extends Fragment {
 
         // 设置分类下拉 (Plan 32: 增加图标和 M3 布局)
         String[] categories = {
-                "🍜 主食 (Staples)",
-                "🥗 家常菜 (Dishes)",
-                "🥩 优质蛋白质 (Protein)",
-                "🍎 蔬菜 & 水果 (Veg & Fruits)",
-                "🍫 零食饮品 (Snacks & Drinks)",
-                "🍽️ 其他"
+                "🍱 主食: 其它主食",
+                "🍲 家常菜: 精选家常",
+                "🥩 蛋白质: 肉蛋奶",
+                "🥗 蔬菜水果: 新鲜蔬果",
+                "🍫 零食饮料: 休闲小食",
+                "🧂 调料油脂: 常用调味",
+                "🍷 酒精: 酒水明细",
+                "❓ 其他"
         };
         android.widget.ArrayAdapter<String> categoryAdapter = new android.widget.ArrayAdapter<>(
                 requireContext(), R.layout.item_dropdown_category, categories);

@@ -8,22 +8,23 @@ public class Achievement {
     private String id; // 成就 ID (如 "first_day")
     private String title; // 标题 (如 "初出茅庐")
     private String description; // 描述 (如 "完成第一次训练")
+    private String emoji; // 表情符号图标 (如 "🌱")
     private boolean isUnlocked; // 是否解锁
-    private int iconRes; // 图标资源 ID
+    private int iconRes; // 废弃: 原有的图标资源 ID
 
-    public Achievement(String id, String title, String description, int iconRes) {
+    public Achievement(String id, String title, String description, String emoji) {
         this.id = id;
         this.title = title;
         this.description = description;
-        this.iconRes = iconRes;
+        this.emoji = emoji;
         this.isUnlocked = false;
     }
 
-    public Achievement(String id, String title, String description, int iconRes, boolean isUnlocked) {
+    public Achievement(String id, String title, String description, String emoji, boolean isUnlocked) {
         this.id = id;
         this.title = title;
         this.description = description;
-        this.iconRes = iconRes;
+        this.emoji = emoji;
         this.isUnlocked = isUnlocked;
     }
 
@@ -59,6 +60,15 @@ public class Achievement {
         isUnlocked = unlocked;
     }
 
+    public String getEmoji() {
+        return emoji;
+    }
+
+    public void setEmoji(String emoji) {
+        this.emoji = emoji;
+    }
+
+    @Deprecated
     public int getIconRes() {
         return iconRes;
     }

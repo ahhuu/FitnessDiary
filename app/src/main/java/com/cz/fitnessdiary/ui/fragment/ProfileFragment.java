@@ -1,5 +1,6 @@
 package com.cz.fitnessdiary.ui.fragment;
 
+import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -20,7 +21,9 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.databinding.FragmentProfileBinding;
+import com.cz.fitnessdiary.ui.MainActivity;
 import com.cz.fitnessdiary.ui.adapter.AchievementAdapter;
+import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.viewmodel.ProfileViewModel;
 import com.cz.fitnessdiary.ui.fragment.AchievementBottomSheetFragment;
 
@@ -115,8 +118,86 @@ public class ProfileFragment extends Fragment {
 
         setupAchievementEntry(); // v1.2
         setupReportEntry(); // Plan 11
+        setupReminderEntry(); // v1.2 New
         observeViewModel();
         setupClickListeners();
+    }
+
+    /**
+     * [v1.2] 初始化训练提醒入口
+     */
+    private void setupReminderEntry() {
+        // 加载当前状态
+        boolean enabled = ReminderManager.isReminderEnabled(requireContext());
+        String time = ReminderManager.getFormattedTime(requireContext());
+
+        binding.switchReminder.setChecked(enabled);
+        binding.tvReminderTime.setText(time);
+
+        // 开关监听
+        binding.switchReminder.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                // [v1.2] 触发精确闹钟权限检查 (Android 12+)
+                if (getActivity() instanceof MainActivity) {
+                    if (((MainActivity) getActivity()).checkExactAlarmPermission()) {
+                        // 如果缺失权限且已弹窗，则将开关重置为关闭，并不再继续
+                        binding.switchReminder.setChecked(false);
+                        return;
+                    }
+                }
+
+                // 开启提醒
+                ReminderManager.setReminder(requireContext(),
+                        ReminderManager.getReminderHour(requireContext()),
+                        ReminderManager.getReminderMinute(requireContext()));
+
+                // [v1.2] 展示自启动引导弹窗
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).showAutoStartGuidance();
+                } else {
+                    Toast.makeText(getContext(), "训练提醒已开启", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                // 取消提醒
+                ReminderManager.cancelReminder(requireContext());
+                Toast.makeText(getContext(), "训练提醒已关闭", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // 点击卡片选择时间
+        binding.cardReminder.setOnClickListener(v -> {
+            // [v1.2] 触发精确闹钟权限检查 (Android 12+)
+            if (getActivity() instanceof MainActivity) {
+                if (((MainActivity) getActivity()).checkExactAlarmPermission()) {
+                    // 如果缺失权限，直接拦截，不弹出时间选择器
+                    return;
+                }
+            }
+
+            int currentHour = ReminderManager.getReminderHour(requireContext());
+            int currentMinute = ReminderManager.getReminderMinute(requireContext());
+
+            new TimePickerDialog(requireContext(), (view1, hourOfDay, minute) -> {
+                // 更新显示
+                String formattedTime = String.format("%02d:%02d", hourOfDay, minute);
+                binding.tvReminderTime.setText(formattedTime);
+
+                // 如果开关是开启的，则立即重新设定闹钟
+                if (binding.switchReminder.isChecked()) {
+                    ReminderManager.setReminder(requireContext(), hourOfDay, minute);
+                } else {
+                    // 仅保存设置，不立即开启
+                    // 我们在 setReminder 内部处理了保存，所以这里如果是关闭状态，
+                    // 其实也应该保存一下时间设置，以便下次开启时使用正确的时间。
+                    // 我们可以直接调用 setReminder 的保存逻辑，或者直接开启开关。
+                    // 习惯上点击修改时间后，通常用户希望它是开启的。
+                    binding.switchReminder.setChecked(true);
+                    ReminderManager.setReminder(requireContext(), hourOfDay, minute);
+                }
+                Toast.makeText(getContext(), "提醒时间已设为 " + formattedTime, Toast.LENGTH_SHORT).show();
+
+            }, currentHour, currentMinute, true).show();
+        });
     }
 
     @Override

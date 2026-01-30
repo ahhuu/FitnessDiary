@@ -17,7 +17,7 @@
             android:orientation="vertical"
             android:padding="12dp">
 
-            <!-- 顶部英雄数据看板 (Hero Dashboard - 已回归经典布局) -->
+            <!-- 顶部英雄数据看板 (Hero Dashboard - 已精密紧凑化) -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -27,28 +27,20 @@
                 app:strokeWidth="0dp"
                 android:layout_marginBottom="16dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:padding="16dp">
 
-                    <!-- 左侧：数据展示 -->
+                    <!-- 左侧：活跃计划数 (保持大气) -->
                     <LinearLayout
-                        android:id="@+id/layout_plan_stats"
-                        android:layout_width="0dp"
+                        android:id="@+id/layout_hero_stats"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
                         android:orientation="vertical"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true">
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent">
 
                         <TextView
                             android:id="@+id/tv_plan_count"
@@ -67,55 +59,63 @@
                             android:textSize="14sp"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="4dp" />
-                        
                     </LinearLayout>
 
-                    <!-- 右侧：图标 -->
-                    <ImageView
-                        android:id="@+id/iv_hero_icon"
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
-                        android:src="@drawable/ic_hero_dumbbell"
-                        android:contentDescription="训练图标" />
+                    <!-- 右侧：图标与标签垂直堆叠 -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/layout_hero_stats"
+                        android:layout_marginStart="16dp">
 
-                </LinearLayout>
+                        <ImageView
+                            android:id="@+id/iv_hero_icon"
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:src="@drawable/ic_hero_dumbbell"
+                            android:contentDescription="训练图标" />
 
-                <!-- 底部：动态分类标签 (v1.2: 独立区域避免遮挡) -->
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/cg_categories"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    app:chipSpacingHorizontal="6dp"
-                    app:chipSpacingVertical="0dp" />
-                
-                <TextView
-                    android:id="@+id/tv_covered_categories"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="暂无目标"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"
-                    android:visibility="gone" />
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/cg_categories"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            app:chipSpacingHorizontal="4dp"
+                            app:chipSpacingVertical="-4dp" />
 
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                        <TextView
+                            android:id="@+id/tv_covered_categories"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="暂无目标"
+                            android:textSize="11sp"
+                            android:textColor="@color/text_hint"
+                            android:visibility="gone" />
+                    </LinearLayout>
 
-        <!-- 训练计划列表 -->
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        <!-- 训练计划列表 (修正高度以适配 NestedScrollView) -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_plans"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
             android:clipToPadding="false"
             android:visibility="gone" />
 
-        <!-- 无计划提示 (升级版) -->
+        <!-- 无计划提示 (修正高度) -->
         <LinearLayout
             android:id="@+id/layout_empty_state"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="64dp"
             android:orientation="vertical"
             android:gravity="center"
             android:visibility="gone">
@@ -147,16 +147,19 @@
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
 
-    <!-- FAB 添加按钮 (Gemini 风格) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!-- 计划添加按钮 (同步饮食页风格：圆形按钮) -->
+    <ImageButton
         android:id="@+id/fab_add_plan"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="@string/plan_add"
-        app:backgroundTint="@color/fitnessdiary_accent_container"
-        app:tint="@color/fitnessdiary_on_accent_container"
-        app:srcCompat="@android:drawable/ic_input_add" />
+        android:background="@drawable/bg_dark_circle"
+        android:src="@android:drawable/ic_input_add"
+        app:tint="@android:color/white"
+        android:padding="16dp"
+        android:scaleType="fitCenter"
+        android:elevation="6dp"
+        android:contentDescription="@string/plan_add" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

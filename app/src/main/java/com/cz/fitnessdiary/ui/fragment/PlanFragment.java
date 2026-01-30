@@ -107,7 +107,7 @@ public class PlanFragment extends Fragment {
         binding.fabAddPlan.setOnClickListener(v -> showAddPlanDialog());
 
         // [v1.2] 顶部活跃计划区域点击弹出模式选择
-        binding.layoutPlanStats.setOnClickListener(v -> showModeSelectionDialog());
+        binding.layoutHeroStats.setOnClickListener(v -> showModeSelectionDialog());
 
         // 初始化时尝试注入进阶计划 (如果不存在)
         viewModel.seedAdvancedPlans();
@@ -227,7 +227,7 @@ public class PlanFragment extends Fragment {
             chip.setChipMinHeight(0);
             chip.setChipStartPadding(12f);
             chip.setChipEndPadding(12f);
-            chip.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelSmall);
+            chip.setTextAppearance(R.style.TextAppearance_App_LabelSmall);
             // 绿底白字适配经典布局
             int primaryColor = androidx.core.content.ContextCompat.getColor(requireContext(),
                     R.color.fitnessdiary_primary);

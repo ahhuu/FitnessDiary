@@ -62,16 +62,19 @@
 
     </LinearLayout>
 
-    <!-- Plan 32: 添加自定义食物 FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!-- Plan 32: 添加自定义食物圆形按钮 (同步风格) -->
+    <ImageButton
         android:id="@+id/fab_add_food"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
+        android:background="@drawable/bg_dark_circle"
         android:src="@android:drawable/ic_input_add"
         app:tint="@android:color/white"
-        app:backgroundTint="@color/fitnessdiary_primary"
+        android:padding="16dp"
+        android:scaleType="fitCenter"
+        android:elevation="6dp"
         android:contentDescription="添加自定义食物" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

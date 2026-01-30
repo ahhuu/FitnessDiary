@@ -4,9 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="12dp"
-    android:background="@drawable/item_card_background"
-    android:layout_marginBottom="8dp">
+    android:paddingVertical="14dp"
+    android:paddingHorizontal="16dp"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -20,39 +21,35 @@
             android:layout_height="wrap_content"
             android:text="食物名称"
             android:textSize="16sp"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold" />
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/text_primary" />
 
         <TextView
             android:id="@+id/tv_details"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="100 千卡/100g"
+            android:text="100 千卡/100g · 150g/碗"
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="2dp" />
             
-        <LinearLayout
+        <TextView
+            android:id="@+id/tv_macros"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
+            android:text="蛋白质: 2g · 碳水: 20g"
+            android:textSize="11sp"
+            android:textColor="@color/fitnessdiary_primary"
+            android:layout_marginTop="4dp"
+            android:alpha="0.8" />
             
-            <TextView
-                android:id="@+id/tv_macros"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="蛋白质: 2g · 碳水: 20g"
-                android:textSize="12sp"
-                android:textColor="@color/text_hint" />
-        </LinearLayout>
     </LinearLayout>
 
     <ImageView
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:src="@drawable/ic_input_add"
         app:tint="@color/fitnessdiary_primary"
-        android:layout_gravity="center_vertical" />
+        android:alpha="0.6" />
 
 </LinearLayout>

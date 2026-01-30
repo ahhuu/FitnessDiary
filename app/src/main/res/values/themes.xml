@@ -108,4 +108,6 @@
     <style name="TextAppearance.Nav.Small" parent="TextAppearance.Material3.LabelMedium">
         <item name="android:textSize">10sp</item>
     </style>
+    <!-- 训练部位标签专用样式 (避免直接引用 com.google.android.material.R) -->
+    <style name="TextAppearance.App.LabelSmall" parent="TextAppearance.Material3.LabelSmall" />
 </resources>

@@ -12,23 +12,26 @@ import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.databinding.ItemFoodGroupHeaderBinding;
 import com.cz.fitnessdiary.databinding.ItemFoodLibraryBinding;
+import com.cz.fitnessdiary.databinding.ItemFoodMainGroupBinding;
 import com.cz.fitnessdiary.model.FoodGroup;
+import com.cz.fitnessdiary.model.FoodMainGroup;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 分组食物库适配器 (Plan 30)
+ * 分组食物库适配器 (Plan 30: 升级二级目录)
  */
 public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private static final int TYPE_HEADER = 0;
-    private static final int TYPE_ITEM = 1;
+    private static final int TYPE_MAIN_HEADER = 0;
+    private static final int TYPE_SUB_HEADER = 1;
+    private static final int TYPE_ITEM = 2;
 
     private List<Object> displayList = new ArrayList<>(); // 混合列表
-    private List<FoodGroup> allGroups = new ArrayList<>();
+    private List<FoodMainGroup> allMainGroups = new ArrayList<>();
     private OnItemClickListener listener;
 
     public interface OnItemClickListener {
@@ -40,46 +43,99 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
     }
 
     /**
-     * 设置原始食物数据并自动分组 (Plan 30: 修复排序问题)
+     * 设置原始食物数据并自动二级分组与智能迁移
      */
     public void setFoodList(List<FoodLibrary> allFoods) {
         if (allFoods == null)
             return;
 
-        // 按分类分组 (使用 LinkedHashMap 保持插入顺序)
-        Map<String, List<FoodLibrary>> map = new java.util.LinkedHashMap<>();
+        // 1. 初始化大类逻辑映射 (保持交互顺序)
+        Map<String, FoodMainGroup> mainMap = new LinkedHashMap<>();
+        mainMap.put("主食", new FoodMainGroup("主食", "🍱"));
+        mainMap.put("家常菜", new FoodMainGroup("家常菜", "🍲"));
+        mainMap.put("蛋白质", new FoodMainGroup("蛋白质", "🥩"));
+        mainMap.put("蔬菜水果", new FoodMainGroup("蔬菜水果", "🥗"));
+        mainMap.put("零食饮料", new FoodMainGroup("零食饮料", "🍫"));
+        mainMap.put("调料油脂", new FoodMainGroup("调料/油脂", "🧂"));
+        mainMap.put("酒精", new FoodMainGroup("酒精", "🍷"));
+        mainMap.put("其他", new FoodMainGroup("其他", "❓"));
 
-        // 预定义分类顺序 (按照数据库定义的顺序)
-        String[] orderedCategories = {
-                "主食 (Staples)",
-                "家常菜 (Dishes)",
-                "优质蛋白质 (Protein)",
-                "蔬菜 & 水果 (Veg & Fruits)",
-                "零食饮品 (Snacks & Drinks)"
-        };
-
-        // 先初始化所有分类的空列表
-        for (String category : orderedCategories) {
-            map.put(category, new ArrayList<>());
+        // 2. 临时存储二级分组: Map<MainKey, Map<SubName, List<Food>>>
+        Map<String, Map<String, List<FoodLibrary>>> structure = new LinkedHashMap<>();
+        for (String key : mainMap.keySet()) {
+            structure.put(key, new LinkedHashMap<>());
         }
 
-        // 将食物分配到对应分类
+        // 3. 智能迁移逻辑 (正则关键字匹配)
         for (FoodLibrary food : allFoods) {
-            String cat = food.getCategory();
-            if (cat == null || cat.isEmpty())
-                cat = "其他";
+            String rawCat = food.getCategory();
+            if (rawCat == null)
+                rawCat = "其他";
 
-            if (!map.containsKey(cat)) {
-                map.put(cat, new ArrayList<>());
+            String mainKey = "其他";
+            String subName = "其它项目";
+
+            // 规则 A: 分项匹配 (如 "主食: 基础米面")
+            if (rawCat.contains(":")) {
+                String[] parts = rawCat.split(":");
+                String part0 = parts[0].trim();
+                subName = parts[1].trim();
+
+                if (part0.contains("主食"))
+                    mainKey = "主食";
+                else if (part0.contains("菜肴") || part0.contains("家常菜"))
+                    mainKey = "家常菜";
+                else if (part0.contains("蛋白"))
+                    mainKey = "蛋白质";
+                else if (part0.contains("蔬菜") || part0.contains("水果"))
+                    mainKey = "蔬菜水果";
+                else if (part0.contains("零食") || part0.contains("饮料"))
+                    mainKey = "零食饮料";
             }
-            map.get(cat).add(food);
+            // 规则 B: 历史数据智能兼容 (处理 "主食 (Staples)" 等情况)
+            else if (rawCat.contains("主食")) {
+                mainKey = "主食";
+                subName = "常用主食";
+            } else if (rawCat.contains("Protein") || rawCat.contains("蛋白质")) {
+                mainKey = "蛋白质";
+                subName = "肉蛋奶";
+            } else if (rawCat.contains("Dishes") || rawCat.contains("家常菜")) {
+                mainKey = "家常菜";
+                subName = "经典菜肴";
+            } else if (rawCat.contains("Veg") || rawCat.contains("Fruits")) {
+                mainKey = "蔬菜水果";
+                subName = "新鲜蔬果";
+            } else if (rawCat.contains("Condiment") || rawCat.contains("调料")) {
+                mainKey = "调料油脂";
+                subName = "调味油脂";
+            } else if (rawCat.contains("Alcohol") || rawCat.contains("酒精")) {
+                mainKey = "酒精";
+                subName = "酒水合集";
+            } else if (rawCat.contains("Snacks") || rawCat.contains("饮料")) {
+                mainKey = "零食饮料";
+                subName = "精选零食";
+            }
+
+            if (!structure.get(mainKey).containsKey(subName)) {
+                structure.get(mainKey).put(subName, new ArrayList<>());
+            }
+            structure.get(mainKey).get(subName).add(food);
         }
 
-        // 转换为 FoodGroup 列表 (只保留非空分类)
-        allGroups.clear();
-        for (Map.Entry<String, List<FoodLibrary>> entry : map.entrySet()) {
-            if (!entry.getValue().isEmpty()) {
-                allGroups.add(new FoodGroup(entry.getKey(), entry.getValue()));
+        // 4. 构建数据模型列表
+        allMainGroups.clear();
+        for (Map.Entry<String, FoodMainGroup> mainEntry : mainMap.entrySet()) {
+            FoodMainGroup mainGroup = mainEntry.getValue();
+            Map<String, List<FoodLibrary>> subMap = structure.get(mainEntry.getKey());
+
+            if (!subMap.isEmpty()) {
+                for (Map.Entry<String, List<FoodLibrary>> subEntry : subMap.entrySet()) {
+                    // 二级目录默认开启折叠
+                    FoodGroup subGroup = new FoodGroup(subEntry.getKey(), subEntry.getValue());
+                    subGroup.setExpanded(false);
+                    mainGroup.addSubGroup(subGroup);
+                }
+                allMainGroups.add(mainGroup);
             }
         }
 
@@ -88,10 +144,15 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
 
     private void rebuildDisplayList() {
         displayList.clear();
-        for (FoodGroup group : allGroups) {
-            displayList.add(group);
-            if (group.isExpanded()) {
-                displayList.addAll(group.getFoods());
+        for (FoodMainGroup main : allMainGroups) {
+            displayList.add(main);
+            if (main.isExpanded()) {
+                for (FoodGroup sub : main.getSubGroups()) {
+                    displayList.add(sub);
+                    if (sub.isExpanded()) {
+                        displayList.addAll(sub.getFoods());
+                    }
+                }
             }
         }
         notifyDataSetChanged();
@@ -99,15 +160,22 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
 
     @Override
     public int getItemViewType(int position) {
-        return (displayList.get(position) instanceof FoodGroup) ? TYPE_HEADER : TYPE_ITEM;
+        Object item = displayList.get(position);
+        if (item instanceof FoodMainGroup)
+            return TYPE_MAIN_HEADER;
+        if (item instanceof FoodGroup)
+            return TYPE_SUB_HEADER;
+        return TYPE_ITEM;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        if (viewType == TYPE_HEADER) {
-            return new HeaderViewHolder(ItemFoodGroupHeaderBinding.inflate(inflater, parent, false));
+        if (viewType == TYPE_MAIN_HEADER) {
+            return new MainHeaderViewHolder(ItemFoodMainGroupBinding.inflate(inflater, parent, false));
+        } else if (viewType == TYPE_SUB_HEADER) {
+            return new SubHeaderViewHolder(ItemFoodGroupHeaderBinding.inflate(inflater, parent, false));
         } else {
             return new ItemViewHolder(ItemFoodLibraryBinding.inflate(inflater, parent, false));
         }
@@ -116,8 +184,10 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         Object item = displayList.get(position);
-        if (holder instanceof HeaderViewHolder) {
-            ((HeaderViewHolder) holder).bind((FoodGroup) item);
+        if (holder instanceof MainHeaderViewHolder) {
+            ((MainHeaderViewHolder) holder).bind((FoodMainGroup) item);
+        } else if (holder instanceof SubHeaderViewHolder) {
+            ((SubHeaderViewHolder) holder).bind((FoodGroup) item);
         } else {
             ((ItemViewHolder) holder).bind((FoodLibrary) item);
         }
@@ -128,49 +198,85 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
         return displayList.size();
     }
 
-    // Header ViewHolder
-    class HeaderViewHolder extends RecyclerView.ViewHolder {
+    // --- ViewHolders ---
+
+    class MainHeaderViewHolder extends RecyclerView.ViewHolder {
+        ItemFoodMainGroupBinding binding;
+
+        MainHeaderViewHolder(ItemFoodMainGroupBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        void bind(FoodMainGroup group) {
+            binding.tvMainEmoji.setText(group.getEmoji());
+            binding.tvMainName.setText(group.getName());
+            binding.tvTotalCount.setText(group.getTotalFoodCount() + " 种");
+            binding.ivMainExpandIcon.setRotation(group.isExpanded() ? 90 : 0);
+            binding.getRoot().setOnClickListener(v -> {
+                group.toggleExpanded();
+                rebuildDisplayList();
+            });
+        }
+    }
+
+    class SubHeaderViewHolder extends RecyclerView.ViewHolder {
         ItemFoodGroupHeaderBinding binding;
 
-        HeaderViewHolder(ItemFoodGroupHeaderBinding binding) {
+        SubHeaderViewHolder(ItemFoodGroupHeaderBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
         }
 
         void bind(FoodGroup group) {
-            // Plan 30: 添加分类 emoji 图标
-            String emoji = getCategoryEmoji(group.getCategory());
-            binding.tvCategoryName.setText(emoji + " " + group.getCategory());
+            binding.tvCategoryName.setText(getCategoryEmoji(group.getCategory()) + " " + group.getCategory());
             binding.tvFoodCount.setText(group.getFoodCount() + " 种");
             binding.ivExpandIcon.setRotation(group.isExpanded() ? 90 : 0);
-
             binding.getRoot().setOnClickListener(v -> {
                 group.toggleExpanded();
                 rebuildDisplayList();
             });
         }
 
-        /**
-         * 根据分类名称获取对应的 emoji 图标
-         */
         private String getCategoryEmoji(String category) {
             if (category == null)
-                return "🍽️";
-            if (category.contains("主食"))
+                return "🔹";
+            if (category.contains("米面"))
+                return "🍚";
+            if (category.contains("粥类"))
+                return "🥣";
+            if (category.contains("薯类"))
+                return "🍠";
+            if (category.contains("包子") || category.contains("面点"))
+                return "🥯";
+            if (category.contains("饺子"))
+                return "🥟";
+            if (category.contains("汤粉") || category.contains("面条"))
                 return "🍜";
-            if (category.contains("家常菜"))
+            if (category.contains("快餐"))
+                return "🍔";
+            if (category.contains("荤菜"))
+                return "🍱";
+            if (category.contains("素菜"))
                 return "🥗";
-            if (category.contains("蛋白质"))
+            if (category.contains("蛋奶") || category.contains("豆制品"))
+                return "🥛";
+            if (category.contains("肉类") || category.contains("海鲜"))
                 return "🥩";
-            if (category.contains("蔬菜") || category.contains("水果"))
+            if (category.contains("补剂"))
+                return "💪";
+            if (category.contains("时蔬"))
+                return "🥦";
+            if (category.contains("水果"))
                 return "🍎";
-            if (category.contains("零食") || category.contains("饮品"))
-                return "🍫";
-            return "🍽️"; // 默认图标
+            if (category.contains("包装"))
+                return "🍿";
+            if (category.contains("咖啡") || category.contains("奶茶"))
+                return "☕";
+            return "🔹";
         }
     }
 
-    // Item ViewHolder
     class ItemViewHolder extends RecyclerView.ViewHolder {
         ItemFoodLibraryBinding binding;
 
@@ -181,16 +287,13 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
 
         void bind(FoodLibrary food) {
             binding.tvName.setText(food.getName());
-            binding.tvDetails.setText(food.getCaloriesPer100g() + " 千卡/100g · " +
-                    food.getWeightPerUnit() + "g/" + food.getServingUnit());
-
-            binding.tvMacros.setText(String.format("蛋白质: %.1fg · 碳水: %.1fg",
-                    food.getProteinPer100g(), food.getCarbsPer100g()));
-
+            binding.tvDetails.setText(food.getCaloriesPer100g() + " kcal/100g · " + food.getWeightPerUnit() + "g/"
+                    + food.getServingUnit());
+            binding.tvMacros
+                    .setText(String.format("蛋白质: %.1fg · 碳水: %.1fg", food.getProteinPer100g(), food.getCarbsPer100g()));
             binding.getRoot().setOnClickListener(v -> {
-                if (listener != null) {
+                if (listener != null)
                     listener.onItemClick(food);
-                }
             });
         }
     }

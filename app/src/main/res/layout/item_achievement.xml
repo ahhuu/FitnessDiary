@@ -16,12 +16,14 @@
         android:padding="12dp"
         android:gravity="center">
 
-        <ImageView
-            android:id="@+id/iv_icon"
+        <TextView
+            android:id="@+id/tv_emoji"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:layout_marginBottom="8dp"
-            android:src="@drawable/ic_hero_fire" />
+            android:gravity="center"
+            android:textSize="36sp"
+            android:text="🌱" />
 
         <TextView
             android:id="@+id/tv_title"

@@ -54,7 +54,7 @@ public class AchievementAdapter extends RecyclerView.Adapter<AchievementAdapter.
 
         void bind(Achievement achievement) {
             binding.tvTitle.setText(achievement.getTitle());
-            binding.ivIcon.setImageResource(achievement.getIconRes());
+            binding.tvEmoji.setText(achievement.getEmoji());
 
             // 点击查看成就说明
             binding.getRoot().setOnClickListener(v -> {
@@ -66,17 +66,13 @@ public class AchievementAdapter extends RecyclerView.Adapter<AchievementAdapter.
             });
 
             if (achievement.isUnlocked()) {
-                // 已解锁：彩色图标 + 深色文字
-                binding.ivIcon.setAlpha(1.0f);
-                binding.ivIcon.clearColorFilter();
+                // 已解锁：全彩 Emoji + 深色文字
+                binding.tvEmoji.setAlpha(1.0f);
                 binding.tvTitle.setTextColor(androidx.core.content.ContextCompat
                         .getColor(binding.getRoot().getContext(), com.cz.fitnessdiary.R.color.text_primary));
             } else {
-                // 未解锁：置灰图标 + 灰色文字
-                binding.ivIcon.setAlpha(0.7f);
-                android.graphics.ColorMatrix matrix = new android.graphics.ColorMatrix();
-                matrix.setSaturation(0); // 置灰
-                binding.ivIcon.setColorFilter(new android.graphics.ColorMatrixColorFilter(matrix));
+                // 未解锁：半透明 Emoji + 灰色文字
+                binding.tvEmoji.setAlpha(0.3f);
                 binding.tvTitle.setTextColor(androidx.core.content.ContextCompat
                         .getColor(binding.getRoot().getContext(), com.cz.fitnessdiary.R.color.text_hint));
             }
