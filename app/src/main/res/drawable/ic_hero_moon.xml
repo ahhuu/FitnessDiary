@@ -1,0 +1,34 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- Moon body (gradient) - High visibility crescent -->
+    <path
+        android:pathData="M11.1,12.08c1.38,2.3,3.7,3.61,6.25,3.61c1.02,0,2.01,-0.21,2.94,-0.61c-1.5,4.72-6.57,7.21-11.29,5.71s-7.21,-6.57-5.71,-11.29c1.16,-3.63,4.52,-6.04,8.32,-6.04c0.51,0,1,0.04,1.5,0.13c-1.89,1.46-3.01,3.7-3.01,6.11c0,0.96,0.35,1.82,1,2.38z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="4"
+                android:startY="4"
+                android:endX="20"
+                android:endY="20"
+                android:type="linear">
+                <item android:offset="0" android:color="#FFD54F"/>
+                <item android:offset="1" android:color="#FFB300"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    
+    <!-- 星星装饰 (高光) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M19,8l0.6,1.4l1.4,0.6l-1.4,0.6l-0.6,1.4l-0.6,-1.4l-1.4,-0.6l1.4,-0.6z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.4"
+        android:pathData="M15,4l0.4,0.9l0.9,0.4l-0.9,0.4l-0.4,0.9l-0.4,-0.9l-0.9,-0.4l0.9,-0.4z" />
+        
+</vector>

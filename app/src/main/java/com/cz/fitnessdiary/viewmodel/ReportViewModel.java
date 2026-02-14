@@ -9,9 +9,11 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.cz.fitnessdiary.database.entity.DailyLog;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
+import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.repository.DailyLogRepository;
 import com.cz.fitnessdiary.repository.FoodRecordRepository;
+import com.cz.fitnessdiary.repository.SleepRecordRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
 
@@ -29,6 +31,7 @@ public class ReportViewModel extends AndroidViewModel {
 
     private DailyLogRepository dailyLogRepository;
     private FoodRecordRepository foodRecordRepository;
+    private SleepRecordRepository sleepRecordRepository;
     private UserRepository userRepository;
     private ExecutorService executorService;
 
@@ -42,6 +45,10 @@ public class ReportViewModel extends AndroidViewModel {
     private MutableLiveData<Integer> targetCalories = new MutableLiveData<>();
     private MutableLiveData<String> dietSuggestion = new MutableLiveData<>();
 
+    // 睡眠数据 (NEW)
+    private MutableLiveData<Float> avgSleepDuration = new MutableLiveData<>();
+    private MutableLiveData<Float> avgSleepQuality = new MutableLiveData<>();
+
     // 体重模拟数据 (因为暂无历史表)
     private MutableLiveData<List<Float>> weightTrend = new MutableLiveData<>();
     private MutableLiveData<String> weightSuggestion = new MutableLiveData<>();
@@ -50,6 +57,7 @@ public class ReportViewModel extends AndroidViewModel {
         super(application);
         dailyLogRepository = new DailyLogRepository(application);
         foodRecordRepository = new FoodRecordRepository(application);
+        sleepRecordRepository = new SleepRecordRepository(application);
         userRepository = new UserRepository(application);
         executorService = Executors.newSingleThreadExecutor();
     }
@@ -84,6 +92,14 @@ public class ReportViewModel extends AndroidViewModel {
 
     public LiveData<String> getWeightSuggestion() {
         return weightSuggestion;
+    }
+
+    public LiveData<Float> getAvgSleepDuration() {
+        return avgSleepDuration;
+    }
+
+    public LiveData<Float> getAvgSleepQuality() {
+        return avgSleepQuality;
     }
 
     /**
@@ -162,6 +178,22 @@ public class ReportViewModel extends AndroidViewModel {
             int avgCal = foodDates.isEmpty() ? 0 : (totalCal / foodDates.size());
             avgCaloriesIntake.postValue(avgCal);
 
+            // 3. 计算睡眠数据 (NEW)
+            List<SleepRecord> sleepRecords = sleepRecordRepository.getSleepRecordsByDateRangeSync(startTime, endTime);
+            if (sleepRecords != null && !sleepRecords.isEmpty()) {
+                long totalDuration = 0;
+                int totalQuality = 0;
+                for (SleepRecord record : sleepRecords) {
+                    totalDuration += record.getDuration();
+                    totalQuality += record.getQuality();
+                }
+                avgSleepDuration.postValue((float) totalDuration / sleepRecords.size() / 3600f); // 转换为小时
+                avgSleepQuality.postValue((float) totalQuality / sleepRecords.size());
+            } else {
+                avgSleepDuration.postValue(0f);
+                avgSleepQuality.postValue(0f);
+            }
+
             // 获取 BMR/目标热量
             User user = userRepository.getUserSync();
             int target = 2000;
@@ -192,7 +224,7 @@ public class ReportViewModel extends AndroidViewModel {
                 dietSuggestion.postValue("🥗 完善个人信息后可获取更精准的建议。");
             }
 
-            // 3. 体重趋势 (暂无历史表，仅展示当前体重平直线)
+            // 4. 体重趋势 (暂无历史表，仅展示当前体重平直线)
             // 真实场景应查询 WeightRepository
             List<Float> realTrend = new ArrayList<>();
             // 生成 7 个点 (周) 或 30 个点 (月) 的平滑线，以模拟图表占位，但数值为真实当前体重

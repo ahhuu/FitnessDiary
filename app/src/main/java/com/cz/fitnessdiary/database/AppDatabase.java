@@ -18,6 +18,8 @@ import com.cz.fitnessdiary.database.entity.DailyLog;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
+import com.cz.fitnessdiary.database.entity.SleepRecord;
+import com.cz.fitnessdiary.database.dao.SleepRecordDao;
 import com.cz.fitnessdiary.database.entity.User;
 
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ import java.util.concurrent.Executors;
  * 使用单例模式确保整个应用只有一个数据库实例
  */
 @Database(entities = { User.class, TrainingPlan.class, DailyLog.class, FoodRecord.class,
-        FoodLibrary.class }, version = 7, exportSchema = false)
+        FoodLibrary.class, SleepRecord.class }, version = 9, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -48,6 +50,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract FoodRecordDao foodRecordDao();
 
     public abstract FoodLibraryDao foodLibraryDao();
+
+    public abstract SleepRecordDao sleepRecordDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -156,6 +160,60 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 7 -> Version 8 (增加睡眠记录)
+     */
+    static final Migration MIGRATION_7_8 = new Migration(7, 8) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `sleep_record` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`start_time` INTEGER NOT NULL, " +
+                    "`end_time` INTEGER NOT NULL, " +
+                    "`duration` INTEGER NOT NULL, " +
+                    "`quality` INTEGER NOT NULL, " +
+                    "`notes` TEXT)");
+        }
+    };
+
+    /**
+     * 数据库迁移：Version 8 -> Version 9 (修复食物库重复项)
+     * 逻辑：通过创建带唯一约束的新表并 GROUP BY name 插入数据来去重
+     */
+    static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // 1. 创建新临时表 (去重复)
+            database.execSQL("CREATE TABLE IF NOT EXISTS `food_library_temp` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`calories_per_100g` INTEGER NOT NULL, " +
+                    "`protein_per_100g` REAL NOT NULL, " +
+                    "`carbs_per_100g` REAL NOT NULL, " +
+                    "`serving_unit` TEXT, " +
+                    "`weight_per_unit` INTEGER NOT NULL, " +
+                    "`category` TEXT)");
+
+            // 2. 将旧表数据导入新表，使用 GROUP BY name 去重
+            database.execSQL("INSERT OR IGNORE INTO `food_library_temp` (" +
+                    "`name`, `calories_per_100g`, `protein_per_100g`, `carbs_per_100g`, " +
+                    "`serving_unit`, `weight_per_unit`, `category`) " +
+                    "SELECT `name`, `calories_per_100g`, `protein_per_100g`, `carbs_per_100g`, " +
+                    "`serving_unit`, `weight_per_unit`, `category` FROM `food_library` " +
+                    "GROUP BY `name` " +
+                    "HAVING `name` IS NOT NULL");
+
+            // 3. 删除旧表（同步删除旧索引）
+            database.execSQL("DROP TABLE `food_library`");
+
+            // 4. 重命名新表
+            database.execSQL("ALTER TABLE `food_library_temp` RENAME TO `food_library`");
+
+            // 5. 在最终表上重建唯一索引
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_food_library_name` ON `food_library` (`name`) ");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -167,7 +225,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             AppDatabase.class,
                             DATABASE_NAME)
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-                                    MIGRATION_6_7) // 添加 V7 迁移
+                                    MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9) // 添加 V9 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
                             // 即使恢复了旧版本的备份数据库，Room 也会自动检测版本并执行这些迁移脚本，

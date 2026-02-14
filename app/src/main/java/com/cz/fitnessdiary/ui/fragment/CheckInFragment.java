@@ -27,7 +27,12 @@ import com.cz.fitnessdiary.ui.adapter.DailyLogAdapter;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.cz.fitnessdiary.viewmodel.PlanViewModel;
 
+import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.utils.DateUtils;
+import android.app.TimePickerDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.cz.fitnessdiary.databinding.DialogAddSleepBinding;
+import java.util.Calendar;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
 import com.google.android.material.datepicker.DayViewDecorator;
@@ -58,6 +63,7 @@ public class CheckInFragment extends Fragment {
     // 暂存数据
     private List<TrainingPlan> mPlans = new ArrayList<>();
     private List<DailyLog> mLogs = new ArrayList<>();
+    private SleepRecord currentSleepRecord = null;
 
     @Nullable
     @Override
@@ -77,6 +83,7 @@ public class CheckInFragment extends Fragment {
         setupRecyclerView();
         setupWeekCalendar();
         setupDateNavigation();
+        setupSleepTracking();
         observeViewModel();
     }
 
@@ -299,6 +306,105 @@ public class CheckInFragment extends Fragment {
     }
 
     /**
+     * 设置睡眠记录点击逻辑 (NEW)
+     */
+    private void setupSleepTracking() {
+        binding.cardSleep.setOnClickListener(v -> showAddSleepDialog(currentSleepRecord));
+    }
+
+    private void showAddSleepDialog(@Nullable SleepRecord existingRecord) {
+        DialogAddSleepBinding dialogBinding = DialogAddSleepBinding.inflate(getLayoutInflater());
+        Calendar startCal = Calendar.getInstance();
+        Calendar endCal = Calendar.getInstance();
+
+        if (existingRecord != null) {
+            startCal.setTimeInMillis(existingRecord.getStartTime());
+            endCal.setTimeInMillis(existingRecord.getEndTime());
+            dialogBinding.ratingSleepQuality.setRating(existingRecord.getQuality());
+            dialogBinding.etSleepNotes.setText(existingRecord.getNotes());
+        } else {
+            // 默认值：昨晚23:00 到 今天07:00
+            startCal.set(Calendar.HOUR_OF_DAY, 23);
+            startCal.set(Calendar.MINUTE, 0);
+            startCal.add(Calendar.DAY_OF_YEAR, -1);
+
+            endCal.set(Calendar.HOUR_OF_DAY, 7);
+            endCal.set(Calendar.MINUTE, 0);
+        }
+
+        SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        SimpleDateFormat dateFmt = new SimpleDateFormat("M/d", Locale.getDefault());
+
+        // 更新按钮文字显示日期+时间
+        updateTimeButton(dialogBinding.btnStartTime, startCal, dateFmt, timeFmt);
+        updateTimeButton(dialogBinding.btnEndTime, endCal, dateFmt, timeFmt);
+
+        dialogBinding.btnStartTime.setOnClickListener(v -> {
+            new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
+                startCal.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                startCal.set(Calendar.MINUTE, minute);
+                updateTimeButton(dialogBinding.btnStartTime, startCal, dateFmt, timeFmt);
+            }, startCal.get(Calendar.HOUR_OF_DAY), startCal.get(Calendar.MINUTE), true).show();
+        });
+
+        dialogBinding.btnEndTime.setOnClickListener(v -> {
+            new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
+                endCal.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                endCal.set(Calendar.MINUTE, minute);
+                updateTimeButton(dialogBinding.btnEndTime, endCal, dateFmt, timeFmt);
+            }, endCal.get(Calendar.HOUR_OF_DAY), endCal.get(Calendar.MINUTE), true).show();
+        });
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(existingRecord == null ? "记录睡眠" : "修改睡眠记录")
+                .setView(dialogBinding.getRoot())
+                .setPositiveButton("保存", (dialog, which) -> {
+                    long startTs = startCal.getTimeInMillis();
+                    long endTs = endCal.getTimeInMillis();
+
+                    // 自动处理跨天逻辑：如果结束时间早于开始时间，且跨度小于24小时，认为跨天
+                    if (endTs <= startTs) {
+                        endCal.add(Calendar.DAY_OF_YEAR, 1);
+                        endTs = endCal.getTimeInMillis();
+                    }
+
+                    int quality = (int) dialogBinding.ratingSleepQuality.getRating();
+                    String notes = dialogBinding.etSleepNotes.getText().toString();
+
+                    if (existingRecord != null) {
+                        existingRecord.setStartTime(startTs);
+                        existingRecord.setEndTime(endTs);
+                        existingRecord.setDuration((endTs - startTs) / 1000);
+                        existingRecord.setQuality(quality);
+                        existingRecord.setNotes(notes);
+                        checkInViewModel.updateSleepRecord(existingRecord);
+                    } else {
+                        SleepRecord record = new SleepRecord(startTs, endTs, quality, notes);
+                        checkInViewModel.insertSleepRecord(record);
+                    }
+                })
+                .setNegativeButton("取消", null);
+
+        if (existingRecord != null) {
+            builder.setNeutralButton("删除", (dialog, which) -> {
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("确认删除")
+                        .setMessage("确定要删除这条睡眠记录吗？")
+                        .setPositiveButton("确定", (d2, w2) -> checkInViewModel.deleteSleepRecord(existingRecord))
+                        .setNegativeButton("取消", null)
+                        .show();
+            });
+        }
+
+        builder.show();
+    }
+
+    private void updateTimeButton(android.widget.Button btn, Calendar cal, SimpleDateFormat dFmt,
+            SimpleDateFormat tFmt) {
+        btn.setText(dFmt.format(cal.getTime()) + " " + tFmt.format(cal.getTime()));
+    }
+
+    /**
      * 观察 ViewModel 数据（双重监听）
      */
     private void observeViewModel() {
@@ -335,6 +441,32 @@ public class CheckInFragment extends Fragment {
                 binding.tvConsecutiveDays.setVisibility(View.VISIBLE);
             } else {
                 binding.tvConsecutiveDays.setVisibility(View.GONE);
+            }
+        });
+
+        // 观察睡眠记录 (NEW)
+        checkInViewModel.getSelectedDaySleepRecords().observe(getViewLifecycleOwner(), records -> {
+            if (records != null && !records.isEmpty()) {
+                currentSleepRecord = records.get(0);
+                long durationSeconds = currentSleepRecord.getDuration();
+                long hours = durationSeconds / 3600;
+                long minutes = (durationSeconds % 3600) / 60;
+
+                SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm", Locale.getDefault());
+                String range = timeFmt.format(new Date(currentSleepRecord.getStartTime())) + " - " +
+                        timeFmt.format(new Date(currentSleepRecord.getEndTime()));
+
+                String stars = "⭐";
+                StringBuilder qualityStr = new StringBuilder();
+                for (int i = 0; i < currentSleepRecord.getQuality(); i++)
+                    qualityStr.append(stars);
+
+                binding.tvSleepDuration.setText(String.format(Locale.getDefault(), "%d小时 %d分", hours, minutes));
+                binding.tvSleepQuality.setText(range + "  " + qualityStr.toString());
+            } else {
+                currentSleepRecord = null;
+                binding.tvSleepDuration.setText("未记录");
+                binding.tvSleepQuality.setText("");
             }
         });
     }

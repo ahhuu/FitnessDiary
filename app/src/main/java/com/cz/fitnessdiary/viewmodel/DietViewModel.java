@@ -362,4 +362,11 @@ public class DietViewModel extends AndroidViewModel {
     public void insertFood(FoodLibrary food) {
         foodLibraryRepository.insert(food);
     }
+
+    /**
+     * 更新食物库中的食物
+     */
+    public void updateFood(FoodLibrary food) {
+        foodLibraryRepository.update(food);
+    }
 }

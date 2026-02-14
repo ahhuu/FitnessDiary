@@ -33,13 +33,22 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
     private List<Object> displayList = new ArrayList<>(); // 混合列表
     private List<FoodMainGroup> allMainGroups = new ArrayList<>();
     private OnItemClickListener listener;
+    private OnEditClickListener editListener;
 
     public interface OnItemClickListener {
         void onItemClick(FoodLibrary food);
     }
 
+    public interface OnEditClickListener {
+        void onEditClick(FoodLibrary food);
+    }
+
     public void setOnItemClickListener(OnItemClickListener listener) {
         this.listener = listener;
+    }
+
+    public void setOnEditClickListener(OnEditClickListener listener) {
+        this.editListener = listener;
     }
 
     /**
@@ -143,18 +152,23 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
     }
 
     private void rebuildDisplayList() {
-        displayList.clear();
+        List<Object> newList = new ArrayList<>();
         for (FoodMainGroup main : allMainGroups) {
-            displayList.add(main);
+            if (main == null)
+                continue;
+            newList.add(main);
             if (main.isExpanded()) {
                 for (FoodGroup sub : main.getSubGroups()) {
-                    displayList.add(sub);
-                    if (sub.isExpanded()) {
-                        displayList.addAll(sub.getFoods());
+                    if (sub == null)
+                        continue;
+                    newList.add(sub);
+                    if (sub.isExpanded() && sub.getFoods() != null) {
+                        newList.addAll(sub.getFoods());
                     }
                 }
             }
         }
+        this.displayList = newList;
         notifyDataSetChanged();
     }
 
@@ -215,7 +229,7 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
             binding.ivMainExpandIcon.setRotation(group.isExpanded() ? 90 : 0);
             binding.getRoot().setOnClickListener(v -> {
                 group.toggleExpanded();
-                rebuildDisplayList();
+                v.post(GroupedFoodLibraryAdapter.this::rebuildDisplayList);
             });
         }
     }
@@ -234,7 +248,7 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
             binding.ivExpandIcon.setRotation(group.isExpanded() ? 90 : 0);
             binding.getRoot().setOnClickListener(v -> {
                 group.toggleExpanded();
-                rebuildDisplayList();
+                v.post(GroupedFoodLibraryAdapter.this::rebuildDisplayList);
             });
         }
 
@@ -291,6 +305,15 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
                     + food.getServingUnit());
             binding.tvMacros
                     .setText(String.format("蛋白质: %.1fg · 碳水: %.1fg", food.getProteinPer100g(), food.getCarbsPer100g()));
+
+            // 如果设置了编辑监听器，显示编辑按钮
+            if (editListener != null) {
+                binding.btnEdit.setVisibility(View.VISIBLE);
+                binding.btnEdit.setOnClickListener(v -> editListener.onEditClick(food));
+            } else {
+                binding.btnEdit.setVisibility(View.GONE);
+            }
+
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null)
                     listener.onItemClick(food);

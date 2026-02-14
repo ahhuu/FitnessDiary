@@ -8,7 +8,9 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.repository.DailyLogRepository;
+import com.cz.fitnessdiary.repository.SleepRecordRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
 
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ public class CheckInViewModel extends AndroidViewModel {
 
     private DailyLogRepository dailyLogRepository;
     private com.cz.fitnessdiary.repository.TrainingPlanRepository trainingPlanRepository;
+    private SleepRecordRepository sleepRecordRepository;
     private LiveData<List<DailyLog>> allLogs;
     private MutableLiveData<Integer> consecutiveDays = new MutableLiveData<>(0);
     private MutableLiveData<Long> selectedDate = new MutableLiveData<>(DateUtils.getTodayStartTimestamp());
@@ -33,6 +36,7 @@ public class CheckInViewModel extends AndroidViewModel {
     public CheckInViewModel(@NonNull Application application) {
         super(application);
         dailyLogRepository = new DailyLogRepository(application);
+        sleepRecordRepository = new SleepRecordRepository(application);
         trainingPlanRepository = new com.cz.fitnessdiary.repository.TrainingPlanRepository(application);
         allLogs = dailyLogRepository.getAllLogs();
         executorService = Executors.newSingleThreadExecutor();
@@ -395,5 +399,37 @@ public class CheckInViewModel extends AndroidViewModel {
 
     public interface WeekCheckedCallback {
         void onResult(boolean[] checkedDays);
+    }
+
+    /**
+     * 获取选定日期的睡眠记录
+     */
+    public LiveData<List<SleepRecord>> getSelectedDaySleepRecords() {
+        return androidx.lifecycle.Transformations.switchMap(selectedDate, date -> {
+            long dayStart = DateUtils.getDayStartTimestamp(date);
+            long tomorrowStart = dayStart + 24 * 60 * 60 * 1000L;
+            return sleepRecordRepository.getSleepRecordsByDateRange(dayStart, tomorrowStart);
+        });
+    }
+
+    /**
+     * 插入睡眠记录
+     */
+    public void insertSleepRecord(SleepRecord record) {
+        sleepRecordRepository.insert(record);
+    }
+
+    /**
+     * 更新睡眠记录
+     */
+    public void updateSleepRecord(SleepRecord record) {
+        sleepRecordRepository.update(record);
+    }
+
+    /**
+     * 删除睡眠记录
+     */
+    public void deleteSleepRecord(SleepRecord record) {
+        sleepRecordRepository.delete(record);
     }
 }

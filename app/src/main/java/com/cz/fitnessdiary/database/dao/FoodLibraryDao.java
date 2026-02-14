@@ -31,6 +31,12 @@ public interface FoodLibraryDao {
     void insert(FoodLibrary food);
 
     /**
+     * 更新食物
+     */
+    @androidx.room.Update
+    void update(FoodLibrary food);
+
+    /**
      * 模糊搜索食物（用于自动完成）
      * 
      * @param keyword 关键词

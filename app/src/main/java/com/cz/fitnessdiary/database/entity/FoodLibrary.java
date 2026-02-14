@@ -12,7 +12,8 @@ import androidx.room.Index;
  * 食物库实体类
  * 预置常见食物的热量数据，用于饮食记录的智能联想
  */
-@Entity(tableName = "food_library", indices = { @Index(value = { "name" }, name = "index_food_library_name") })
+@Entity(tableName = "food_library", indices = {
+        @Index(value = { "name" }, name = "index_food_library_name", unique = true) })
 public class FoodLibrary implements java.io.Serializable {
 
     @PrimaryKey(autoGenerate = true)

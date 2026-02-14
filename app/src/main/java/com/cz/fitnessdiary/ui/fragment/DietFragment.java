@@ -156,6 +156,36 @@ public class DietFragment extends Fragment {
     }
 
     /**
+     * 完整分类列表 (对齐官方库 + Emoji)
+     */
+    private static final String[] FOOD_CATEGORIES = {
+            "🍱 主食: 常用主食",
+            "🍚 主食: 基础米面",
+            "🥣 主食: 粥类",
+            "🍠 主食: 薯类",
+            "🥯 主食: 面点",
+            "🥟 主食: 饺子",
+            "🍜 主食: 汤粉面",
+            "🍔 主食: 快餐",
+            "🍱 家常菜: 荤菜",
+            "🥗 家常菜: 素菜",
+            "🍲 家常菜: 精选家常",
+            "🥛 蛋白质: 蛋奶豆制品",
+            "🥩 蛋白质: 肉类海鲜",
+            "💪 蛋白质: 补剂",
+            "🥦 蔬菜水果: 时蔬",
+            "🍎 蔬菜水果: 水果",
+            "🥗 蔬菜水果: 新鲜蔬果",
+            "🍿 零食饮料: 包装零食",
+            "🥤 零食饮料: 饮料",
+            "☕ 零食饮料: 咖啡奶茶",
+            "🍫 零食饮料: 休闲小食",
+            "🧂 调料油脂: 常用调味",
+            "🍷 酒精: 酒水明细",
+            "❓ 其他"
+    };
+
+    /**
      * 显示食物百科全屏搜索页
      */
     private void showFoodWikiDialog() {
@@ -170,39 +200,33 @@ public class DietFragment extends Fragment {
 
         btnBack.setOnClickListener(v -> dialog.dismiss());
 
-        // Setup Adapter (Plan 30: 使用分组适配器)
         com.cz.fitnessdiary.ui.adapter.GroupedFoodLibraryAdapter adapter = new com.cz.fitnessdiary.ui.adapter.GroupedFoodLibraryAdapter();
         rvResults.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(requireContext()));
         rvResults.setAdapter(adapter);
 
+        // 设置点击添加监听
         adapter.setOnItemClickListener(food -> {
-            // 点击食物 -> 弹出“添加到”选择框
             String[] mealOptions = { "早餐", "午餐", "晚餐", "加餐" };
-
             new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                     .setTitle("将 " + food.getName() + " 添加到...")
                     .setItems(mealOptions, (dialogInterface, which) -> {
-                        // which match the mealType int (0=Breakfast, 1=Lunch, 2=Dinner, 3=Snack)
-                        dialog.dismiss(); // 关闭百科页面
-
-                        // 打开添加弹窗，并选中对应的餐点类型，同时自动填入食物信息
+                        dialog.dismiss();
                         showSmartAddFoodDialog(which, food);
                     })
                     .show();
         });
 
-        // Load initial data (Plan 30: 使用 getAllFoodsSync 无限制加载所有食物)
+        // 设置点击编辑监听
+        adapter.setOnEditClickListener(food -> {
+            showAddOrEditFoodDialog(dialog, adapter, food);
+        });
+
         executorService.execute(() -> {
             List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
             requireActivity().runOnUiThread(() -> adapter.setFoodList(allFoods));
         });
 
-        // Search listener
         etSearch.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String query = s.toString();
@@ -213,28 +237,30 @@ public class DietFragment extends Fragment {
             }
 
             @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
             public void afterTextChanged(android.text.Editable s) {
             }
         });
 
-        // Plan 32: FAB 添加自定义食物 (同步 ImageButton 风格)
         android.view.View fabAddFood = view.findViewById(R.id.fab_add_food);
-        fabAddFood.setOnClickListener(v -> {
-            showAddCustomFoodDialog(dialog, adapter);
-        });
+        fabAddFood.setOnClickListener(v -> showAddOrEditFoodDialog(dialog, adapter, null));
 
         dialog.show();
     }
 
     /**
-     * Plan 32: 显示添加自定义食物对话框
+     * 显示添加或编辑食物对话框
      */
-    private void showAddCustomFoodDialog(android.app.Dialog parentDialog,
-            com.cz.fitnessdiary.ui.adapter.GroupedFoodLibraryAdapter adapter) {
+    private void showAddOrEditFoodDialog(android.app.Dialog parentDialog,
+            com.cz.fitnessdiary.ui.adapter.GroupedFoodLibraryAdapter adapter,
+            @Nullable FoodLibrary existingFood) {
 
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_custom_food, null);
+        boolean isEditMode = existingFood != null;
 
-        // 获取输入控件
         com.google.android.material.textfield.TextInputEditText etFoodName = dialogView.findViewById(R.id.et_food_name);
         com.google.android.material.textfield.TextInputEditText etCalories = dialogView.findViewById(R.id.et_calories);
         com.google.android.material.textfield.TextInputEditText etProtein = dialogView.findViewById(R.id.et_protein);
@@ -245,61 +271,76 @@ public class DietFragment extends Fragment {
                 .findViewById(R.id.et_weight_per_unit);
         AutoCompleteTextView spinnerCategory = dialogView.findViewById(R.id.spinner_category);
 
-        // 设置分类下拉 (Plan 32: 增加图标和 M3 布局)
-        String[] categories = {
-                "🍱 主食: 其它主食",
-                "🍲 家常菜: 精选家常",
-                "🥩 蛋白质: 肉蛋奶",
-                "🥗 蔬菜水果: 新鲜蔬果",
-                "🍫 零食饮料: 休闲小食",
-                "🧂 调料油脂: 常用调味",
-                "🍷 酒精: 酒水明细",
-                "❓ 其他"
-        };
+        // 设置分类适配器
         android.widget.ArrayAdapter<String> categoryAdapter = new android.widget.ArrayAdapter<>(
-                requireContext(), R.layout.item_dropdown_category, categories);
+                requireContext(), R.layout.item_dropdown_category, FOOD_CATEGORIES);
         spinnerCategory.setAdapter(categoryAdapter);
-        spinnerCategory.setText(categories[5], false); // 默认选择"其他"
+
+        // 如果是编辑模式，预填数据
+        if (isEditMode) {
+            etFoodName.setText(existingFood.getName());
+            etCalories.setText(String.valueOf(existingFood.getCaloriesPer100g()));
+            etProtein.setText(String.valueOf(existingFood.getProteinPer100g()));
+            etCarbs.setText(String.valueOf(existingFood.getCarbsPer100g()));
+            etServingUnit.setText(existingFood.getServingUnit());
+            etWeightPerUnit.setText(String.valueOf(existingFood.getWeightPerUnit()));
+
+            // 尝试匹配分类
+            String targetCat = existingFood.getCategory();
+            for (String cat : FOOD_CATEGORIES) {
+                if (cat.contains(targetCat)) {
+                    spinnerCategory.setText(cat, false);
+                    break;
+                }
+            }
+        } else {
+            spinnerCategory.setText(FOOD_CATEGORIES[FOOD_CATEGORIES.length - 1], false); // 默认选择"其他"
+        }
 
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle("添加自定义食物")
+                .setTitle(isEditMode ? "编辑食物信息" : "添加自定义食物")
                 .setView(dialogView)
                 .setNeutralButton("取消", null)
                 .setPositiveButton("保存", (dialogInterface, i) -> {
-                    String name = etFoodName.getText() != null ? etFoodName.getText().toString().trim() : "";
-                    String caloriesStr = etCalories.getText() != null ? etCalories.getText().toString().trim() : "";
-                    String proteinStr = etProtein.getText() != null ? etProtein.getText().toString().trim() : "";
-                    String carbsStr = etCarbs.getText() != null ? etCarbs.getText().toString().trim() : "";
-                    String servingUnit = etServingUnit.getText() != null ? etServingUnit.getText().toString().trim()
-                            : "";
-                    String weightStr = etWeightPerUnit.getText() != null ? etWeightPerUnit.getText().toString().trim()
-                            : "";
+                    String name = etFoodName.getText().toString().trim();
+                    String caloriesStr = etCalories.getText().toString().trim();
+                    String proteinStr = etProtein.getText().toString().trim();
+                    String carbsStr = etCarbs.getText().toString().trim();
+                    String servingUnit = etServingUnit.getText().toString().trim();
+                    String weightStr = etWeightPerUnit.getText().toString().trim();
                     String categoryRaw = spinnerCategory.getText().toString().trim();
 
-                    // 验证必填字段
                     if (name.isEmpty() || caloriesStr.isEmpty()) {
                         Toast.makeText(requireContext(), "请填写名称和热量", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    // 解析数值 (保持原有解析逻辑)
                     try {
                         int calories = (int) Double.parseDouble(caloriesStr);
                         double protein = proteinStr.isEmpty() ? 0 : Double.parseDouble(proteinStr);
                         double carbs = carbsStr.isEmpty() ? 0 : Double.parseDouble(carbsStr);
                         int weightPerUnit = weightStr.isEmpty() ? 100 : Integer.parseInt(weightStr);
                         String unit = servingUnit.isEmpty() ? "份" : servingUnit;
-
-                        // 清理分类名称中的 Emoji (保持数据库存储一致性)
                         String cat = categoryRaw.replaceAll("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", "").trim();
-                        if (cat.isEmpty())
-                            cat = "其他";
+                        if (cat.contains(":"))
+                            cat = cat.split(":")[0].trim(); // 只要大类
 
-                        // 创建食物对象并保存
-                        FoodLibrary newFood = new FoodLibrary(name, calories, protein, carbs, unit, weightPerUnit, cat);
-                        viewModel.insertFood(newFood);
-
-                        Toast.makeText(requireContext(), "✅ 已添加: " + name, Toast.LENGTH_SHORT).show();
+                        if (isEditMode) {
+                            existingFood.setName(name);
+                            existingFood.setCaloriesPer100g(calories);
+                            existingFood.setProteinPer100g(protein);
+                            existingFood.setCarbsPer100g(carbs);
+                            existingFood.setServingUnit(unit);
+                            existingFood.setWeightPerUnit(weightPerUnit);
+                            existingFood.setCategory(cat);
+                            viewModel.updateFood(existingFood);
+                            Toast.makeText(requireContext(), "✅ 已更新: " + name, Toast.LENGTH_SHORT).show();
+                        } else {
+                            FoodLibrary newFood = new FoodLibrary(name, calories, protein, carbs, unit, weightPerUnit,
+                                    cat);
+                            viewModel.insertFood(newFood);
+                            Toast.makeText(requireContext(), "✅ 已添加: " + name, Toast.LENGTH_SHORT).show();
+                        }
 
                         // 刷新列表
                         executorService.execute(() -> {

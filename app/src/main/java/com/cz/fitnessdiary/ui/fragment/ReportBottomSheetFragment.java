@@ -3,6 +3,7 @@ package com.cz.fitnessdiary.ui.fragment;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import java.util.Locale;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,6 +39,7 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
     private TextView tvCaloriesPercent, tvCaloriesIntakeValue, tvCaloriesTargetValue;
 
     private TextView tvWeightBmiValue;
+    private TextView tvSleepAvgValue, tvSleepQualityAvgValue;
 
     private MaterialButton btnGenerateAnalysis;
     private MaterialCardView cardAnalysisResult;
@@ -76,6 +78,8 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
         tvCaloriesTargetValue = view.findViewById(R.id.tv_calories_target_value);
 
         tvWeightBmiValue = view.findViewById(R.id.tv_weight_bmi_value);
+        tvSleepAvgValue = view.findViewById(R.id.tv_sleep_avg_value);
+        tvSleepQualityAvgValue = view.findViewById(R.id.tv_sleep_quality_avg_value);
 
         btnGenerateAnalysis = view.findViewById(R.id.btn_generate_analysis);
         cardAnalysisResult = view.findViewById(R.id.card_analysis_result);
@@ -117,6 +121,22 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
         viewModel.getWeightSuggestion().observe(getViewLifecycleOwner(), s -> {
             tvWeightBmiValue.setText(s);
         });
+
+        // Sleep (NEW)
+        viewModel.getAvgSleepDuration().observe(getViewLifecycleOwner(), duration -> {
+            tvSleepAvgValue.setText(String.format(Locale.getDefault(), "%.1f 小时", duration));
+        });
+
+        viewModel.getAvgSleepQuality().observe(getViewLifecycleOwner(), quality -> {
+            if (quality <= 0) {
+                tvSleepQualityAvgValue.setText("平均质量: --");
+            } else {
+                StringBuilder stars = new StringBuilder("平均质量: ");
+                for (int i = 0; i < Math.round(quality); i++)
+                    stars.append("⭐");
+                tvSleepQualityAvgValue.setText(stars.toString());
+            }
+        });
     }
 
     private void updateDietCircle() {
@@ -149,6 +169,8 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
         Integer workoutDays = viewModel.getTrainingDays().getValue();
         Integer avgCal = viewModel.getAvgCaloriesIntake().getValue();
         Integer targetCal = viewModel.getTargetCalories().getValue();
+        Float avgSleepDuration = viewModel.getAvgSleepDuration().getValue();
+        Float avgSleepQuality = viewModel.getAvgSleepQuality().getValue();
 
         if (workoutDays == null)
             workoutDays = 0;
@@ -156,8 +178,13 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
             avgCal = 0;
         if (targetCal == null)
             targetCal = 2000;
+        if (avgSleepDuration == null)
+            avgSleepDuration = 0f;
+        if (avgSleepQuality == null)
+            avgSleepQuality = 0f;
 
-        String result = AnalysisUtils.getAnalysisResult(workoutDays, avgCal, targetCal, isMonthMode);
+        String result = AnalysisUtils.getAnalysisResult(workoutDays, avgCal, targetCal,
+                avgSleepDuration, avgSleepQuality, isMonthMode);
 
         // 保存状态
         String today = DateUtils.formatDate(System.currentTimeMillis());

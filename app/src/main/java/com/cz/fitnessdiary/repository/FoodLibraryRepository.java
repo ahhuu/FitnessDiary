@@ -70,6 +70,13 @@ public class FoodLibraryRepository {
     }
 
     /**
+     * 更新食物
+     */
+    public void update(FoodLibrary food) {
+        executorService.execute(() -> foodLibraryDao.update(food));
+    }
+
+    /**
      * 检查并初始化食物库
      * (Plan 30: 逻辑已迁移至 AppDatabase.onCreate 统一处理，此处保留空实现或直接移除)
      */

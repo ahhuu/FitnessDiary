@@ -17,13 +17,14 @@ public class AnalysisUtils {
      * @param isMonth        是否是月度数据
      * @return 建议文案
      */
-    public static String getAnalysisResult(int workoutDays, int avgCalories, int targetCalories, boolean isMonth) {
+    public static String getAnalysisResult(int workoutDays, int avgCalories, int targetCalories,
+            float avgSleepDuration, float avgSleepQuality, boolean isMonth) {
         StringBuilder sb = new StringBuilder();
 
         // 1. 训练维度分析
         if (isMonth) {
             if (workoutDays >= 20) {
-                sb.append("🔥 您本月的训练表现简直是“健身达人”级别！极高的自律性让您的肌肉储备和代谢水平处于巅峰状态。");
+                sb.append("🔥 您本月的训练表现简直是“健身达in”级别！极高的自律性让您的肌肉储备和代谢水平处于巅峰状态。");
             } else if (workoutDays >= 12) {
                 sb.append("✨ 训练节奏掌握得不错。稳定的频率是长期进步的关键，继续保持这种生活节奏。");
             } else if (workoutDays > 0) {
@@ -57,6 +58,23 @@ public class AnalysisUtils {
                 sb.append("🥗 热量摄入不足：您的摄入低于身体基础需求。长期热量缺口过大会导致代谢降低和疲劳，建议适当补充优质脂肪和复合碳水。");
             } else {
                 sb.append("🥗 营养平衡完美：热量摄入紧贴目标曲线。保持这种优质的宏量营养素比例，有助于体脂管理和肌肉修复。");
+            }
+        }
+
+        sb.append("\n\n");
+
+        // 3. 睡眠维度分析 (NEW)
+        if (avgSleepDuration <= 0) {
+            sb.append("🌙 睡眠方面，暂无记录。良好的睡眠是身体修复和荷尔蒙分泌的基石，建议从今晚开始记录。");
+        } else {
+            if (avgSleepDuration < 6) {
+                sb.append(String.format(Locale.getDefault(),
+                        "🌙 睡眠严重不足：平均仅 %.1f 小时。长期欠薪会导致皮质醇上升，直接抑制增肌并诱发暴食。请强制增加休息时间。", avgSleepDuration));
+            } else if (avgSleepQuality < 3.5) {
+                sb.append("🌙 睡眠质量欠佳：虽然时长尚可，但反馈质量偏低。建议睡前1小时关掉电子设备，尝试冥想或温水浴，提升深度睡眠比例。");
+            } else {
+                sb.append(String.format(Locale.getDefault(), "🌙 优质睡眠：平均 %.1f 小时且质量上乘。这极大助力了您的神经系统恢复，是高强度训练后的最佳补剂。",
+                        avgSleepDuration));
             }
         }
 
