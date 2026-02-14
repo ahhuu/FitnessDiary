@@ -60,14 +60,61 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     private void rebuildDisplayList() {
-        displayList.clear();
+        List<Object> newList = new ArrayList<>();
         for (PlanGroup group : groupList) {
-            displayList.add(group); // 添加 Header
+            newList.add(group); // 添加 Header
             if (group.isExpanded()) {
-                displayList.addAll(group.getPlans()); // 添加展开的子项
+                newList.addAll(group.getPlans()); // 添加展开的子项
             }
         }
-        notifyDataSetChanged();
+
+        androidx.recyclerview.widget.DiffUtil.DiffResult result = androidx.recyclerview.widget.DiffUtil
+                .calculateDiff(new androidx.recyclerview.widget.DiffUtil.Callback() {
+                    @Override
+                    public int getOldListSize() {
+                        return displayList.size();
+                    }
+
+                    @Override
+                    public int getNewListSize() {
+                        return newList.size();
+                    }
+
+                    @Override
+                    public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                        Object oldItem = displayList.get(oldItemPosition);
+                        Object newItem = newList.get(newItemPosition);
+
+                        if (oldItem instanceof PlanGroup && newItem instanceof PlanGroup) {
+                            return ((PlanGroup) oldItem).getCategory().equals(((PlanGroup) newItem).getCategory());
+                        } else if (oldItem instanceof TrainingPlan && newItem instanceof TrainingPlan) {
+                            return ((TrainingPlan) oldItem).getPlanId() == ((TrainingPlan) newItem).getPlanId();
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                        Object oldItem = displayList.get(oldItemPosition);
+                        Object newItem = newList.get(newItemPosition);
+
+                        if (oldItem instanceof PlanGroup && newItem instanceof PlanGroup) {
+                            PlanGroup oldG = (PlanGroup) oldItem;
+                            PlanGroup newG = (PlanGroup) newItem;
+                            return oldG.isExpanded() == newG.isExpanded() && oldG.getPlanCount() == newG.getPlanCount();
+                        } else if (oldItem instanceof TrainingPlan && newItem instanceof TrainingPlan) {
+                            TrainingPlan oldP = (TrainingPlan) oldItem;
+                            TrainingPlan newP = (TrainingPlan) newItem;
+                            return oldP.getName().equals(newP.getName()) && oldP.getSets() == newP.getSets()
+                                    && oldP.getReps() == newP.getReps() && oldP.getDuration() == newP.getDuration();
+                        }
+                        return false;
+                    }
+                });
+
+        displayList.clear();
+        displayList.addAll(newList);
+        result.dispatchUpdatesTo(this);
     }
 
     @Override
@@ -142,20 +189,46 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 return com.cz.fitnessdiary.R.drawable.ic_hero_dumbbell;
 
             String cat = category.trim();
-            if (cat.contains("胸"))
-                return com.cz.fitnessdiary.R.drawable.ic_muscle_chest;
-            if (cat.contains("背"))
-                return com.cz.fitnessdiary.R.drawable.ic_muscle_back;
-            if (cat.contains("肩"))
-                return com.cz.fitnessdiary.R.drawable.ic_muscle_shoulder;
-            if (cat.contains("臂") || cat.contains("手"))
-                return com.cz.fitnessdiary.R.drawable.ic_muscle_arm;
-            if (cat.contains("腿") || cat.contains("臀"))
-                return com.cz.fitnessdiary.R.drawable.ic_muscle_leg;
-            if (cat.contains("腹") || cat.contains("核心"))
-                return com.cz.fitnessdiary.R.drawable.ic_muscle_abs;
-
-            return com.cz.fitnessdiary.R.drawable.ic_hero_dumbbell;
+            // v2.0: 使用资源匹配，降低维护成本
+            switch (cat) {
+                case "胸部":
+                case "胸":
+                    return com.cz.fitnessdiary.R.drawable.ic_muscle_chest;
+                case "背部":
+                case "背":
+                    return com.cz.fitnessdiary.R.drawable.ic_muscle_back;
+                case "肩部":
+                case "肩":
+                    return com.cz.fitnessdiary.R.drawable.ic_muscle_shoulder;
+                case "手臂":
+                case "臂":
+                case "手":
+                    return com.cz.fitnessdiary.R.drawable.ic_muscle_arm;
+                case "腿部":
+                case "腿":
+                case "臀部":
+                case "臀":
+                    return com.cz.fitnessdiary.R.drawable.ic_muscle_leg;
+                case "腹部":
+                case "腹":
+                case "核心":
+                    return com.cz.fitnessdiary.R.drawable.ic_muscle_abs;
+                default:
+                    // 模糊匹配逻辑保留，增强兼容性
+                    if (cat.contains("胸"))
+                        return com.cz.fitnessdiary.R.drawable.ic_muscle_chest;
+                    if (cat.contains("背"))
+                        return com.cz.fitnessdiary.R.drawable.ic_muscle_back;
+                    if (cat.contains("肩"))
+                        return com.cz.fitnessdiary.R.drawable.ic_muscle_shoulder;
+                    if (cat.contains("臂") || cat.contains("手"))
+                        return com.cz.fitnessdiary.R.drawable.ic_muscle_arm;
+                    if (cat.contains("腿") || cat.contains("臀"))
+                        return com.cz.fitnessdiary.R.drawable.ic_muscle_leg;
+                    if (cat.contains("腹") || cat.contains("核心"))
+                        return com.cz.fitnessdiary.R.drawable.ic_muscle_abs;
+                    return com.cz.fitnessdiary.R.drawable.ic_hero_dumbbell;
+            }
         }
     }
 

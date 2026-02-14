@@ -6,17 +6,21 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import androidx.room.Index;
+
 /**
  * 食物库实体类
  * 预置常见食物的热量数据，用于饮食记录的智能联想
  */
-@Entity(tableName = "food_library")
+@Entity(tableName = "food_library", indices = { @Index(value = { "name" }, name = "index_food_library_name") })
 public class FoodLibrary implements java.io.Serializable {
 
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
+    private long id;
+
     @NonNull
     @ColumnInfo(name = "name")
-    private String name; // 食物名称（主键）
+    private String name; // 食物名称
 
     @ColumnInfo(name = "calories_per_100g")
     private int caloriesPer100g; // 每100克的热量（千卡）
@@ -41,11 +45,11 @@ public class FoodLibrary implements java.io.Serializable {
     public FoodLibrary(String name, int caloriesPer100g, double proteinPer100g, double carbsPer100g, String servingUnit,
             int weightPerUnit, String category) {
         this.name = name;
-        this.caloriesPer100g = caloriesPer100g;
-        this.proteinPer100g = proteinPer100g;
-        this.carbsPer100g = carbsPer100g;
+        setCaloriesPer100g(caloriesPer100g);
+        setProteinPer100g(proteinPer100g);
+        setCarbsPer100g(carbsPer100g);
         this.servingUnit = servingUnit;
-        this.weightPerUnit = weightPerUnit;
+        setWeightPerUnit(weightPerUnit);
         this.category = category;
     }
 
@@ -56,13 +60,21 @@ public class FoodLibrary implements java.io.Serializable {
         this(name, caloriesPer100g, proteinPer100g, carbsPer100g, servingUnit, weightPerUnit, "其他");
     }
 
-    // 兼容旧构造函数（可选，如果要保留旧数据的兼容性，或者使用默认值）
+    // 兼容旧构造函数（可选，用于默认值）
     @Ignore
     public FoodLibrary(String name, int caloriesPer100g) {
         this(name, caloriesPer100g, 0, 0, "克", 100);
     }
 
     // Getter 和 Setter 方法
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
     }
@@ -76,7 +88,7 @@ public class FoodLibrary implements java.io.Serializable {
     }
 
     public void setCaloriesPer100g(int caloriesPer100g) {
-        this.caloriesPer100g = caloriesPer100g;
+        this.caloriesPer100g = Math.max(0, caloriesPer100g);
     }
 
     public double getProteinPer100g() {
@@ -84,7 +96,7 @@ public class FoodLibrary implements java.io.Serializable {
     }
 
     public void setProteinPer100g(double proteinPer100g) {
-        this.proteinPer100g = proteinPer100g;
+        this.proteinPer100g = Math.max(0, proteinPer100g);
     }
 
     public double getCarbsPer100g() {
@@ -92,7 +104,7 @@ public class FoodLibrary implements java.io.Serializable {
     }
 
     public void setCarbsPer100g(double carbsPer100g) {
-        this.carbsPer100g = carbsPer100g;
+        this.carbsPer100g = Math.max(0, carbsPer100g);
     }
 
     public String getServingUnit() {
@@ -108,7 +120,7 @@ public class FoodLibrary implements java.io.Serializable {
     }
 
     public void setWeightPerUnit(int weightPerUnit) {
-        this.weightPerUnit = weightPerUnit;
+        this.weightPerUnit = Math.max(1, weightPerUnit); // 重量至少为1
     }
 
     public String getCategory() {

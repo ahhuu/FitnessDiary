@@ -10,7 +10,6 @@ public class Achievement {
     private String description; // 描述 (如 "完成第一次训练")
     private String emoji; // 表情符号图标 (如 "🌱")
     private boolean isUnlocked; // 是否解锁
-    private int iconRes; // 废弃: 原有的图标资源 ID
 
     public Achievement(String id, String title, String description, String emoji) {
         this.id = id;
@@ -66,14 +65,5 @@ public class Achievement {
 
     public void setEmoji(String emoji) {
         this.emoji = emoji;
-    }
-
-    @Deprecated
-    public int getIconRes() {
-        return iconRes;
-    }
-
-    public void setIconRes(int iconRes) {
-        this.iconRes = iconRes;
     }
 }

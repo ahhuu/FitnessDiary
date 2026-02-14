@@ -29,7 +29,7 @@ import java.util.concurrent.Executors;
  * 使用单例模式确保整个应用只有一个数据库实例
  */
 @Database(entities = { User.class, TrainingPlan.class, DailyLog.class, FoodRecord.class,
-        FoodLibrary.class }, version = 6, exportSchema = false)
+        FoodLibrary.class }, version = 7, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -118,6 +118,44 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 6 -> Version 7 (v2.0 优化)
+     * 核心逻辑：由于修改了 FoodLibrary 的主键（从 name 改为自增 id），
+     * SQLite 不支持直接修改主键，必须通过【创建新表 -> 迁移数据 -> 删除旧表】的重建方式。
+     */
+    static final Migration MIGRATION_6_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // 1. 创建符合 v2.0 结构的新临时表
+            database.execSQL("CREATE TABLE IF NOT EXISTS `food_library_new` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`calories_per_100g` INTEGER NOT NULL, " +
+                    "`protein_per_100g` REAL NOT NULL, " +
+                    "`carbs_per_100g` REAL NOT NULL, " +
+                    "`serving_unit` TEXT, " +
+                    "`weight_per_unit` INTEGER NOT NULL, " +
+                    "`category` TEXT)");
+
+            // 2. 将旧表数据导入新表 (id 会自动生成)
+            database.execSQL("INSERT INTO `food_library_new` (" +
+                    "`name`, `calories_per_100g`, `protein_per_100g`, `carbs_per_100g`, " +
+                    "`serving_unit`, `weight_per_unit`, `category`) " +
+                    "SELECT `name`, `calories_per_100g`, `protein_per_100g`, `carbs_per_100g`, " +
+                    "`serving_unit`, `weight_per_unit`, `category` FROM `food_library` " +
+                    "WHERE `name` IS NOT NULL");
+
+            // 3. 删除旧表
+            database.execSQL("DROP TABLE `food_library`");
+
+            // 4. 重命名新表为正式名称
+            database.execSQL("ALTER TABLE `food_library_new` RENAME TO `food_library`");
+
+            // 5. 为 name 建立索引（用于搜索加速）
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_food_library_name` ON `food_library` (`name`) ");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -128,7 +166,8 @@ public abstract class AppDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             AppDatabase.class,
                             DATABASE_NAME)
-                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6) // 添加迁移策略
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+                                    MIGRATION_6_7) // 添加 V7 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
                             // 即使恢复了旧版本的备份数据库，Room 也会自动检测版本并执行这些迁移脚本，

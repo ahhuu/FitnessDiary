@@ -78,6 +78,7 @@ public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHo
 
     class ViewHolder extends RecyclerView.ViewHolder {
         private ItemDailyLogBinding binding;
+        private android.os.CountDownTimer activeTimer;
 
         ViewHolder(ItemDailyLogBinding binding) {
             super(binding.getRoot());
@@ -154,6 +155,14 @@ public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHo
                             .setNeutralButton("开始计时", null) // 稍后获取并设置点击监听，防止自动关闭
                             .create();
 
+                    // v2.0: 显式处理计时器清理，防止内存泄漏
+                    dialog.setOnDismissListener(d -> {
+                        if (activeTimer != null) {
+                            activeTimer.cancel();
+                            activeTimer = null;
+                        }
+                    });
+
                     dialog.setOnShowListener(d -> {
                         android.widget.Button startBtn = dialog
                                 .getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL);
@@ -169,7 +178,7 @@ public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHo
                             ivHourglass.startAnimation(rotate);
 
                             // 启动倒计时
-                            new android.os.CountDownTimer(totalSeconds * 1000L, 1000L) {
+                            activeTimer = new android.os.CountDownTimer(totalSeconds * 1000L, 1000L) {
                                 @Override
                                 public void onTick(long millisUntilFinished) {
                                     int remaining = (int) (millisUntilFinished / 1000);
@@ -187,7 +196,8 @@ public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHo
                                     new android.os.Handler(android.os.Looper.getMainLooper())
                                             .postDelayed(dialog::dismiss, 1500);
                                 }
-                            }.start();
+                            };
+                            activeTimer.start();
                         });
                     });
                     dialog.show();
