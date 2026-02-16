@@ -14,6 +14,11 @@
         android:id="@+id/dietFragment"
         android:icon="@drawable/selector_nav_icon_diet"
         android:title="@string/nav_diet" />
+
+    <item
+        android:id="@+id/aiChatFragment"
+        android:icon="@drawable/selector_nav_icon_ai"
+        android:title="@string/nav_ai" />
     
     <item
         android:id="@+id/profileFragment"

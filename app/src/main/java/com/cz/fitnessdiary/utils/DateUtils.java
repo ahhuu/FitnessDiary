@@ -190,4 +190,21 @@ public class DateUtils {
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault());
         return sdf.format(new java.util.Date(timestamp));
     }
+
+    /**
+     * 获取指定日期的“睡眠日”起始时间（凌晨 4 点）
+     * 逻辑：凌晨 4 点之前的记录被视为上一天的延续
+     *
+     * @param timestamp 选中日期的 0 点时间戳
+     * @return 该日期凌晨 4 点的时间戳
+     */
+    public static long getSleepDayStart(long timestamp) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(timestamp);
+        calendar.set(Calendar.HOUR_OF_DAY, 4);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTimeInMillis();
+    }
 }

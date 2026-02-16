@@ -45,4 +45,9 @@
     
     <!-- 分割线 -->
     <color name="divider">#E0E0E0</color>
+
+    <!-- 补全 AI 对话需要的配色 -->
+    <color name="fitnessdiary_text_primary">#1F1F1F</color>
+    <color name="fitnessdiary_text_secondary">#757575</color>
+    <color name="fitnessdiary_error">#EA4335</color>
 </resources>

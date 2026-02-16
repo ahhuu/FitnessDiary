@@ -33,4 +33,9 @@
         android:name="com.cz.fitnessdiary.ui.fragment.ProfileFragment"
         android:label="我的" />
 
+    <fragment
+        android:id="@+id/aiChatFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.AIChatFragment"
+        android:label="AI 教练" />
+
 </navigation>

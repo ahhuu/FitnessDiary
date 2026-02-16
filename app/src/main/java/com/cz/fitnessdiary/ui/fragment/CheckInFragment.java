@@ -317,41 +317,82 @@ public class CheckInFragment extends Fragment {
         Calendar startCal = Calendar.getInstance();
         Calendar endCal = Calendar.getInstance();
 
+        // 获取当前界面选中的日期
+        Long selectedTs = checkInViewModel.getSelectedDate().getValue();
+        if (selectedTs == null)
+            selectedTs = System.currentTimeMillis();
+        long midnight = DateUtils.getDayStartTimestamp(selectedTs);
+
         if (existingRecord != null) {
             startCal.setTimeInMillis(existingRecord.getStartTime());
             endCal.setTimeInMillis(existingRecord.getEndTime());
             dialogBinding.ratingSleepQuality.setRating(existingRecord.getQuality());
             dialogBinding.etSleepNotes.setText(existingRecord.getNotes());
         } else {
-            // 默认值：昨晚23:00 到 今天07:00
-            startCal.set(Calendar.HOUR_OF_DAY, 23);
-            startCal.set(Calendar.MINUTE, 0);
-            startCal.add(Calendar.DAY_OF_YEAR, -1);
-
-            endCal.set(Calendar.HOUR_OF_DAY, 7);
+            // 默认值逻辑：
+            // 选中的日期是“起床日期”。默认 08:00 起床，往前推 8 小时的 00:00 (或昨晚23点)
+            endCal.setTimeInMillis(midnight);
+            endCal.set(Calendar.HOUR_OF_DAY, 8);
             endCal.set(Calendar.MINUTE, 0);
+
+            startCal.setTimeInMillis(endCal.getTimeInMillis());
+            startCal.add(Calendar.HOUR_OF_DAY, -8);
         }
 
         SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm", Locale.getDefault());
         SimpleDateFormat dateFmt = new SimpleDateFormat("M/d", Locale.getDefault());
 
-        // 更新按钮文字显示日期+时间
-        updateTimeButton(dialogBinding.btnStartTime, startCal, dateFmt, timeFmt);
-        updateTimeButton(dialogBinding.btnEndTime, endCal, dateFmt, timeFmt);
+        // 统一更新按钮文字显示
+        Runnable updateButtons = () -> {
+            dialogBinding.btnStartDate.setText(dateFmt.format(startCal.getTime()));
+            dialogBinding.btnStartTime.setText(timeFmt.format(startCal.getTime()));
+            dialogBinding.btnEndDate.setText(dateFmt.format(endCal.getTime()));
+            dialogBinding.btnEndTime.setText(timeFmt.format(endCal.getTime()));
+        };
+        updateButtons.run();
+
+        // --- 入睡日期 & 时间 ---
+        dialogBinding.btnStartDate.setOnClickListener(v -> {
+            new android.app.DatePickerDialog(getContext(), (view, year, month, day) -> {
+                startCal.set(year, month, day);
+                updateButtons.run();
+            }, startCal.get(Calendar.YEAR), startCal.get(Calendar.MONTH), startCal.get(Calendar.DAY_OF_MONTH)).show();
+        });
 
         dialogBinding.btnStartTime.setOnClickListener(v -> {
             new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
                 startCal.set(Calendar.HOUR_OF_DAY, hourOfDay);
                 startCal.set(Calendar.MINUTE, minute);
-                updateTimeButton(dialogBinding.btnStartTime, startCal, dateFmt, timeFmt);
+
+                // [智能逻辑]：入睡时间如果填 18:00 - 23:59，自动认为是在“起床日期”的前一天
+                // 如果是凌晨 (00:00 - 17:59)，自动认为就是在“起床日期”的当天
+                if (hourOfDay >= 18) {
+                    Calendar prevDay = (Calendar) endCal.clone();
+                    prevDay.add(Calendar.DAY_OF_YEAR, -1);
+                    startCal.set(prevDay.get(Calendar.YEAR), prevDay.get(Calendar.MONTH),
+                            prevDay.get(Calendar.DAY_OF_MONTH));
+                } else {
+                    startCal.set(endCal.get(Calendar.YEAR), endCal.get(Calendar.MONTH),
+                            endCal.get(Calendar.DAY_OF_MONTH));
+                }
+
+                updateButtons.run();
             }, startCal.get(Calendar.HOUR_OF_DAY), startCal.get(Calendar.MINUTE), true).show();
+        });
+
+        // --- 起床日期 & 时间 ---
+        dialogBinding.btnEndDate.setOnClickListener(v -> {
+            new android.app.DatePickerDialog(getContext(), (view, year, month, day) -> {
+                endCal.set(year, month, day);
+                updateButtons.run();
+            }, endCal.get(Calendar.YEAR), endCal.get(Calendar.MONTH), endCal.get(Calendar.DAY_OF_MONTH)).show();
         });
 
         dialogBinding.btnEndTime.setOnClickListener(v -> {
             new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
                 endCal.set(Calendar.HOUR_OF_DAY, hourOfDay);
                 endCal.set(Calendar.MINUTE, minute);
-                updateTimeButton(dialogBinding.btnEndTime, endCal, dateFmt, timeFmt);
+                updateButtons.run();
             }, endCal.get(Calendar.HOUR_OF_DAY), endCal.get(Calendar.MINUTE), true).show();
         });
 
@@ -362,10 +403,13 @@ public class CheckInFragment extends Fragment {
                     long startTs = startCal.getTimeInMillis();
                     long endTs = endCal.getTimeInMillis();
 
-                    // 自动处理跨天逻辑：如果结束时间早于开始时间，且跨度小于24小时，认为跨天
-                    if (endTs <= startTs) {
-                        endCal.add(Calendar.DAY_OF_YEAR, 1);
-                        endTs = endCal.getTimeInMillis();
+                    // 处理异常情况：如果用户选乱了（比如结束早于开始），自动加一天或报错
+                    // 有了显式的日期选择，我们更倾向于信任用户，但为了防呆还是保留一个基本的反转检查
+                    if (endTs <= startTs && (startTs - endTs) < 24 * 60 * 60 * 1000L) {
+                        Calendar tempEnd = Calendar.getInstance();
+                        tempEnd.setTimeInMillis(endTs);
+                        tempEnd.add(Calendar.DAY_OF_YEAR, 1);
+                        endTs = tempEnd.getTimeInMillis();
                     }
 
                     int quality = (int) dialogBinding.ratingSleepQuality.getRating();
@@ -397,11 +441,6 @@ public class CheckInFragment extends Fragment {
         }
 
         builder.show();
-    }
-
-    private void updateTimeButton(android.widget.Button btn, Calendar cal, SimpleDateFormat dFmt,
-            SimpleDateFormat tFmt) {
-        btn.setText(dFmt.format(cal.getTime()) + " " + tFmt.format(cal.getTime()));
     }
 
     /**

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Subtle shadow/border -->
+    <item>
+        <shape>
+            <solid android:color="#E5E7EB" />
+            <corners
+                android:topLeftRadius="4dp"
+                android:topRightRadius="18dp"
+                android:bottomLeftRadius="18dp"
+                android:bottomRightRadius="18dp" />
+        </shape>
+    </item>
+    <!-- Main bubble -->
+    <item android:bottom="1dp" android:left="1dp" android:right="1dp" android:top="1dp">
+        <shape>
+            <solid android:color="#FBFCFE" />
+            <corners
+                android:topLeftRadius="4dp"
+                android:topRightRadius="17dp"
+                android:bottomLeftRadius="17dp"
+                android:bottomRightRadius="17dp" />
+        </shape>
+    </item>
+</layer-list>

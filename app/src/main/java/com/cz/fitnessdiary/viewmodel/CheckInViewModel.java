@@ -402,7 +402,7 @@ public class CheckInViewModel extends AndroidViewModel {
     }
 
     /**
-     * 获取选定日期的睡眠记录
+     * 获取选定日期的睡眠记录 (以起床时间落在当天为准)
      */
     public LiveData<List<SleepRecord>> getSelectedDaySleepRecords() {
         return androidx.lifecycle.Transformations.switchMap(selectedDate, date -> {

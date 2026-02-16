@@ -52,6 +52,8 @@ public class MainHomeFragment extends Fragment {
                     case 2:
                         return new DietFragment();
                     case 3:
+                        return new AIChatFragment();
+                    case 4:
                         return new ProfileFragment();
                     default:
                         return new CheckInFragment();
@@ -60,16 +62,14 @@ public class MainHomeFragment extends Fragment {
 
             @Override
             public int getItemCount() {
-                return 4;
+                return 5;
             }
         };
 
         binding.viewPager.setAdapter(adapter);
 
-        // 关键优化：预加载所有页面 (0点到3点)
-        // 这将消除冷启动后初次左右滑动时的卡顿，代价是启动初始由于需要并行初始化4个Fragment会稍微增加一点点负荷
-        // 但对于目前这款轻量级应用来说，这是保证流畅度的最佳方案。
-        binding.viewPager.setOffscreenPageLimit(3);
+        // 关键优化：预加载所有页面 (0点到4点)
+        binding.viewPager.setOffscreenPageLimit(4);
 
         // 滑动监听：同步底部导航
         binding.viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -88,6 +88,9 @@ public class MainHomeFragment extends Fragment {
                         itemId = R.id.dietFragment;
                         break;
                     case 3:
+                        itemId = R.id.aiChatFragment;
+                        break;
+                    case 4:
                         itemId = R.id.profileFragment;
                         break;
                     default:
@@ -112,8 +115,10 @@ public class MainHomeFragment extends Fragment {
                 targetPos = 1;
             else if (itemId == R.id.dietFragment)
                 targetPos = 2;
-            else if (itemId == R.id.profileFragment)
+            else if (itemId == R.id.aiChatFragment)
                 targetPos = 3;
+            else if (itemId == R.id.profileFragment)
+                targetPos = 4;
 
             // 仅在位置不同时滚动，防止重复触发
             if (targetPos != -1 && binding.viewPager.getCurrentItem() != targetPos) {

@@ -23,15 +23,15 @@ public interface SleepRecordDao {
     @Delete
     void delete(SleepRecord sleepRecord);
 
-    @Query("SELECT * FROM sleep_record WHERE start_time >= :startDate AND start_time < :endDate ORDER BY start_time DESC")
+    @Query("SELECT * FROM sleep_record WHERE end_time >= :startDate AND end_time < :endDate ORDER BY end_time DESC")
     LiveData<List<SleepRecord>> getSleepRecordsByDateRange(long startDate, long endDate);
 
     @Query("SELECT * FROM sleep_record ORDER BY start_time DESC")
     LiveData<List<SleepRecord>> getAllSleepRecords();
 
-    @Query("SELECT SUM(duration) FROM sleep_record WHERE start_time >= :startDate AND start_time < :endDate")
+    @Query("SELECT SUM(duration) FROM sleep_record WHERE end_time >= :startDate AND end_time < :endDate")
     LiveData<Long> getTotalSleepDurationByDateRange(long startDate, long endDate);
 
-    @Query("SELECT * FROM sleep_record WHERE start_time >= :startDate AND start_time < :endDate ORDER BY start_time DESC")
+    @Query("SELECT * FROM sleep_record WHERE end_time >= :startDate AND end_time < :endDate ORDER BY end_time DESC")
     List<SleepRecord> getSleepRecordsByDateRangeSync(long startDate, long endDate);
 }

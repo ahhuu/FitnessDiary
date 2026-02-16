@@ -14,6 +14,8 @@ import com.cz.fitnessdiary.database.dao.FoodLibraryDao;
 import com.cz.fitnessdiary.database.dao.FoodRecordDao;
 import com.cz.fitnessdiary.database.dao.TrainingPlanDao;
 import com.cz.fitnessdiary.database.dao.UserDao;
+import com.cz.fitnessdiary.database.dao.ChatMessageDao;
+import com.cz.fitnessdiary.database.entity.ChatMessageEntity;
 import com.cz.fitnessdiary.database.entity.DailyLog;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
@@ -21,6 +23,7 @@ import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.database.dao.SleepRecordDao;
 import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.database.entity.ChatSessionEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +34,8 @@ import java.util.concurrent.Executors;
  * 使用单例模式确保整个应用只有一个数据库实例
  */
 @Database(entities = { User.class, TrainingPlan.class, DailyLog.class, FoodRecord.class,
-        FoodLibrary.class, SleepRecord.class }, version = 9, exportSchema = false)
+        FoodLibrary.class, SleepRecord.class, ChatMessageEntity.class,
+        ChatSessionEntity.class }, version = 13, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -52,6 +56,10 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract FoodLibraryDao foodLibraryDao();
 
     public abstract SleepRecordDao sleepRecordDao();
+
+    public abstract ChatMessageDao chatMessageDao();
+
+    public abstract com.cz.fitnessdiary.database.dao.ChatSessionDao chatSessionDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -214,6 +222,58 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 9 -> Version 10 (增加聊天记录持久化)
+     */
+    static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `chat_messages` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`content` TEXT, " +
+                    "`is_user` INTEGER NOT NULL, " +
+                    "`timestamp` INTEGER NOT NULL)");
+        }
+    };
+
+    /**
+     * 数据库迁移：Version 10 -> Version 11 (增加思维链支持)
+     */
+    static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE chat_messages ADD COLUMN reasoning TEXT");
+        }
+    };
+
+    /**
+     * 数据库迁移：Version 11 -> Version 12 (增加多会话支持)
+     */
+    static final Migration MIGRATION_11_12 = new Migration(11, 12) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // ... (保持原有逻辑)
+            database.execSQL("CREATE TABLE IF NOT EXISTS `chat_sessions` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`title` TEXT, " +
+                    "`start_time` INTEGER NOT NULL, " +
+                    "`last_updated` INTEGER NOT NULL)");
+            database.execSQL("ALTER TABLE chat_messages ADD COLUMN session_id INTEGER NOT NULL DEFAULT 1");
+            database.execSQL("INSERT OR IGNORE INTO chat_sessions (id, title, start_time, last_updated) " +
+                    "VALUES (1, '默认对话', " + System.currentTimeMillis() + ", " + System.currentTimeMillis() + ")");
+        }
+    };
+
+    /**
+     * 数据库迁移：Version 12 -> Version 13 (增加文件夹分类支持)
+     */
+    static final Migration MIGRATION_12_13 = new Migration(12, 13) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE chat_sessions ADD COLUMN folder_name TEXT");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -225,7 +285,9 @@ public abstract class AppDatabase extends RoomDatabase {
                             AppDatabase.class,
                             DATABASE_NAME)
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-                                    MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9) // 添加 V9 迁移
+                                    MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+                                    MIGRATION_11_12, MIGRATION_12_13)
+                            // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
                             // 即使恢复了旧版本的备份数据库，Room 也会自动检测版本并执行这些迁移脚本，
