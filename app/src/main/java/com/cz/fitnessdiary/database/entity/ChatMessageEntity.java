@@ -28,6 +28,9 @@ public class ChatMessageEntity {
     @ColumnInfo(name = "session_id")
     private long sessionId; // 关联的对话序号
 
+    @ColumnInfo(name = "media_path")
+    private String mediaPath; // 多媒体路径 (图片等)
+
     @androidx.room.Ignore
     public ChatMessageEntity(String content, boolean isUser, long timestamp) {
         this(content, null, isUser, timestamp, 1);
@@ -43,12 +46,19 @@ public class ChatMessageEntity {
         this(content, reasoning, isUser, timestamp, 1);
     }
 
+    @androidx.room.Ignore
     public ChatMessageEntity(String content, String reasoning, boolean isUser, long timestamp, long sessionId) {
+        this(content, reasoning, isUser, timestamp, sessionId, null);
+    }
+
+    public ChatMessageEntity(String content, String reasoning, boolean isUser, long timestamp, long sessionId,
+            String mediaPath) {
         this.content = content;
         this.reasoning = reasoning;
         this.isUser = isUser;
         this.timestamp = timestamp;
         this.sessionId = sessionId;
+        this.mediaPath = mediaPath;
     }
 
     // Getter and Setter
@@ -98,5 +108,13 @@ public class ChatMessageEntity {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getMediaPath() {
+        return mediaPath;
+    }
+
+    public void setMediaPath(String mediaPath) {
+        this.mediaPath = mediaPath;
     }
 }

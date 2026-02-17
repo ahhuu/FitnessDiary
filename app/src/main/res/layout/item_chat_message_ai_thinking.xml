@@ -7,17 +7,6 @@
     android:padding="8dp"
     android:layout_marginBottom="12dp">
 
-    <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/iv_avatar"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_marginTop="2dp"
-        android:src="@drawable/ic_nav_ai_filled"
-        android:background="#E8F0FE"
-        android:padding="8dp"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
-        android:layout_marginEnd="10dp"/>
-
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -27,19 +16,36 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="正在思考"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
-
         <ProgressBar
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:layout_marginStart="8dp"
             android:indeterminate="true"
             android:indeterminateTint="@color/fitnessdiary_primary"
-            style="@android:style/Widget.Material.ProgressBar.Small" />
+            style="@android:style/Widget.Material.ProgressBar.Small"
+            android:layout_marginEnd="12dp"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_model_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AI"
+                android:textSize="11sp"
+                android:textColor="@color/fitnessdiary_primary"
+                android:alpha="0.8"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_thinking"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="正在整理器材..."
+                android:textSize="13sp"
+                android:textColor="#666666"/>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

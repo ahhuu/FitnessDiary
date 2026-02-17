@@ -77,10 +77,9 @@ public class FoodLibraryRepository {
     }
 
     /**
-     * 检查并初始化食物库
-     * (Plan 30: 逻辑已迁移至 AppDatabase.onCreate 统一处理，此处保留空实现或直接移除)
+     * 删除食物
      */
-    public void checkAndInitFoodLibrary() {
-        // 逻辑已移除，统一由数据库创建时处理
+    public void delete(FoodLibrary food) {
+        executorService.execute(() -> foodLibraryDao.delete(food));
     }
 }

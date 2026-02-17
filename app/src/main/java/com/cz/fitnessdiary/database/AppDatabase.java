@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
  */
 @Database(entities = { User.class, TrainingPlan.class, DailyLog.class, FoodRecord.class,
         FoodLibrary.class, SleepRecord.class, ChatMessageEntity.class,
-        ChatSessionEntity.class }, version = 13, exportSchema = false)
+        ChatSessionEntity.class }, version = 14, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -274,6 +274,16 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 13 -> Version 14 (增加多媒体路径字段)
+     */
+    static final Migration MIGRATION_13_14 = new Migration(13, 14) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE chat_messages ADD COLUMN media_path TEXT");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -286,7 +296,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             DATABASE_NAME)
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
-                                    MIGRATION_11_12, MIGRATION_12_13)
+                                    MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。

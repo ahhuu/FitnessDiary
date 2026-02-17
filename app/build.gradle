@@ -23,6 +23,7 @@ android {
         }
         buildConfigField "String", "GEMINI_API_KEY", "\"${properties.getProperty('gemini.api.key', '')}\""
         buildConfigField "String", "DEEPSEEK_API_KEY", "\"${properties.getProperty('deepseek.api.key', '')}\""
+        buildConfigField "String", "QWEN_API_KEY", "\"${properties.getProperty('qwen.api.key', '')}\""
     }
 
     buildTypes {
@@ -103,11 +104,14 @@ dependencies {
     // Data Visualization (MPAndroidChart)
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
-    // Gemini AI SDK
-    implementation 'com.google.ai.client.generativeai:generativeai:0.9.0'
+    // Gemini AI SDK (Removed - migrated to Qwen + DeepSeek)
+    // implementation 'com.google.ai.client.generativeai:generativeai:0.9.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 
     // Networking & JSON (for DeepSeek)
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.google.code.gson:gson:2.10.1'
+
+    // Alibaba DashScope SDK (for Qwen)
+    implementation 'com.alibaba:dashscope-sdk-java:2.16.3'
 }

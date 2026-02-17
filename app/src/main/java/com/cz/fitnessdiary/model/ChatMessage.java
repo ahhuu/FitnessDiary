@@ -9,6 +9,7 @@ public class ChatMessage {
     private String reasoning; // 思考过程 (针对 DeepSeek R1)
     private boolean isUser; // 是否是用户发送 (true=用户, false=AI)
     private long timestamp; // 时间戳
+    private String mediaPath; // 多媒体文件路径
 
     public ChatMessage(String content, boolean isUser) {
         this(0, content, null, isUser, System.currentTimeMillis());
@@ -19,11 +20,16 @@ public class ChatMessage {
     }
 
     public ChatMessage(long id, String content, String reasoning, boolean isUser, long timestamp) {
+        this(id, content, reasoning, isUser, timestamp, null);
+    }
+
+    public ChatMessage(long id, String content, String reasoning, boolean isUser, long timestamp, String mediaPath) {
         this.id = id;
         this.content = content;
         this.reasoning = reasoning;
         this.isUser = isUser;
         this.timestamp = timestamp;
+        this.mediaPath = mediaPath;
     }
 
     public long getId() {
@@ -64,5 +70,13 @@ public class ChatMessage {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getMediaPath() {
+        return mediaPath;
+    }
+
+    public void setMediaPath(String mediaPath) {
+        this.mediaPath = mediaPath;
     }
 }

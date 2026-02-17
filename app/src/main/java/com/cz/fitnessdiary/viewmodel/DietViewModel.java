@@ -369,4 +369,11 @@ public class DietViewModel extends AndroidViewModel {
     public void updateFood(FoodLibrary food) {
         foodLibraryRepository.update(food);
     }
+
+    /**
+     * 从食物库中删除食物
+     */
+    public void deleteFoodFromLibrary(FoodLibrary food) {
+        foodLibraryRepository.delete(food);
+    }
 }

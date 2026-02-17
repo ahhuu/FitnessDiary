@@ -74,4 +74,10 @@ public interface FoodLibraryDao {
      */
     @Query("SELECT COUNT(*) FROM food_library")
     int getFoodCount();
+
+    /**
+     * 删除食物
+     */
+    @androidx.room.Delete
+    void delete(FoodLibrary food);
 }

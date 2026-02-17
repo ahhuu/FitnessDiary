@@ -21,6 +21,7 @@ import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.databinding.FragmentAiChatBinding;
 import com.cz.fitnessdiary.model.ChatMessage;
 import com.cz.fitnessdiary.repository.FoodLibraryRepository;
+import com.cz.fitnessdiary.repository.FoodRecordRepository;
 import com.cz.fitnessdiary.repository.TrainingPlanRepository;
 import com.cz.fitnessdiary.ui.adapter.AIChatAdapter;
 import com.cz.fitnessdiary.ui.adapter.ChatSessionAdapter;
@@ -41,13 +42,42 @@ public class AIChatFragment extends Fragment {
     private AIChatAdapter adapter;
     private ChatSessionAdapter sessionAdapter;
     private FoodLibraryRepository foodRepository;
+    private FoodRecordRepository foodRecordRepository;
     private TrainingPlanRepository trainingRepository;
 
-    private final androidx.activity.result.ActivityResultLauncher<String> imagePickerLauncher = registerForActivityResult(
+    private android.net.Uri photoUri;
+
+    private final androidx.activity.result.ActivityResultLauncher<android.net.Uri> cameraLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+            success -> {
+                if (success && photoUri != null && viewModel != null) {
+                    viewModel.setAttachedFileUri(photoUri.toString());
+                }
+            });
+
+    private final androidx.activity.result.ActivityResultLauncher<String> mediaPickerLauncher = registerForActivityResult(
             new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
             uri -> {
                 if (uri != null && viewModel != null) {
                     viewModel.setAttachedFileUri(uri.toString());
+                }
+            });
+
+    private final androidx.activity.result.ActivityResultLauncher<String> filePickerLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null && viewModel != null) {
+                    viewModel.setAttachedFileUri(uri.toString());
+                }
+            });
+
+    private final androidx.activity.result.ActivityResultLauncher<String> requestCameraPermissionLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    launchCamera();
+                } else {
+                    Toast.makeText(requireContext(), "📷 需要相机权限才能拍照", Toast.LENGTH_SHORT).show();
                 }
             });
 
@@ -64,6 +94,7 @@ public class AIChatFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(AIChatViewModel.class);
         foodRepository = new FoodLibraryRepository(requireContext());
+        foodRecordRepository = new FoodRecordRepository(requireActivity().getApplication());
         trainingRepository = new TrainingPlanRepository(requireActivity().getApplication());
 
         setupRecyclerView();
@@ -224,7 +255,7 @@ public class AIChatFragment extends Fragment {
             }
         });
 
-        binding.btnAttach.setOnClickListener(v -> imagePickerLauncher.launch("*/*"));
+        binding.btnAttach.setOnClickListener(v -> showAttachmentMenu());
         binding.btnRemoveAttachment.setOnClickListener(v -> viewModel.setAttachedFileUri(null));
 
         binding.btnDeepThinking.setOnClickListener(v -> {
@@ -284,6 +315,59 @@ public class AIChatFragment extends Fragment {
         });
     }
 
+    private void showAttachmentMenu() {
+        android.view.ContextThemeWrapper wrapper = new android.view.ContextThemeWrapper(requireContext(),
+                com.google.android.material.R.style.Widget_Material3_PopupMenu_ListPopupWindow);
+        androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(wrapper, binding.btnAttach);
+
+        popup.getMenu().add(0, 3, 0, "📷 拍照识别");
+        popup.getMenu().add(0, 1, 1, "📄 上传文档");
+        popup.getMenu().add(0, 2, 2, "🖼️ 上传图片");
+
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == 3) {
+                launchCamera();
+            } else if (id == 1) {
+                filePickerLauncher.launch("*/*");
+            } else {
+                mediaPickerLauncher.launch("image/*");
+            }
+            return true;
+        });
+        popup.show();
+    }
+
+    private void launchCamera() {
+        // 检查权限
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(),
+                android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestCameraPermissionLauncher.launch(android.Manifest.permission.CAMERA);
+            return;
+        }
+
+        try {
+            java.io.File storageDir = requireContext().getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES);
+            if (storageDir != null && !storageDir.exists()) {
+                storageDir.mkdirs();
+            }
+
+            java.io.File imageFile = java.io.File.createTempFile(
+                    "IMG_" + System.currentTimeMillis() + "_",
+                    ".jpg",
+                    storageDir);
+
+            photoUri = androidx.core.content.FileProvider.getUriForFile(requireContext(),
+                    "com.cz.fitnessdiary.fileprovider",
+                    imageFile);
+
+            cameraLauncher.launch(photoUri);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(requireContext(), "相机启动失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void sendChatMessage(String text) {
         if (text == null || text.trim().isEmpty())
             return;
@@ -294,7 +378,7 @@ public class AIChatFragment extends Fragment {
                 android.net.Uri uri = android.net.Uri.parse(uriStr);
                 android.graphics.Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(
                         requireContext().getContentResolver(), uri);
-                viewModel.sendMessageWithAttachment(text, bitmap);
+                viewModel.sendMessageWithAttachment(text, uriStr, bitmap);
             } catch (Exception e) {
                 viewModel.sendMessage(text);
             }
@@ -363,9 +447,7 @@ public class AIChatFragment extends Fragment {
         });
 
         viewModel.getUser().observe(getViewLifecycleOwner(), user -> {
-            if (user != null && user.getAvatarUri() != null) {
-                adapter.setUserAvatarUri(user.getAvatarUri());
-            }
+            // 已删除全局头像显示，保持清洁
         });
     }
 
@@ -373,26 +455,13 @@ public class AIChatFragment extends Fragment {
         // ... (保持原有的 handleSmartAction 逻辑，处理 FOOD 和 PLAN)
         String type = actionJson.optString("type");
         if ("FOOD".equals(type)) {
-            String name = actionJson.optString("name");
-            int calories = actionJson.optInt("calories");
-            double protein = actionJson.optDouble("protein");
-            double carbs = actionJson.optDouble("carbs");
-            String unit = actionJson.optString("unit", "克");
-            String category = actionJson.optString("category", "其他");
+            org.json.JSONArray items = actionJson.optJSONArray("items");
+            if (items == null || items.length() == 0)
+                return;
 
-            new MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("一键录入食物")
-                    .setMessage(String.format("是否将“%s”添加至您的食物库？\n🔥 热量：%d\n🥩 蛋白质：%.1f\n🍞 碳水：%.1f\n📏 单位：%s\n📂 分类：%s",
-                            name, calories, protein, carbs, unit, category))
-                    .setPositiveButton("确定", (dialog, which) -> {
-                        com.cz.fitnessdiary.database.entity.FoodLibrary food = new com.cz.fitnessdiary.database.entity.FoodLibrary(
-                                name, calories, protein, carbs, unit, 100, category);
-                        foodRepository.insert(food);
-                        Toast.makeText(getContext(), "已添加 " + name, Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+            handleMultiFoodLogging(items);
         } else if ("PLAN".equals(type)) {
+            // ... (保持原有的 PLAN 处理逻辑)
             String name = actionJson.optString("name");
             int sets = actionJson.optInt("sets");
             int reps = actionJson.optInt("reps");
@@ -419,6 +488,64 @@ public class AIChatFragment extends Fragment {
                     .setNegativeButton("取消", null)
                     .show();
         }
+    }
+
+    private void handleMultiFoodLogging(org.json.JSONArray items) {
+        int count = items.length();
+        String[] foodNames = new String[count];
+        boolean[] checkedItems = new boolean[count];
+        for (int i = 0; i < count; i++) {
+            foodNames[i] = items.optJSONObject(i).optString("name");
+            checkedItems[i] = true; // 默认全选
+        }
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("智能识别：" + count + " 种食物")
+                .setMultiChoiceItems(foodNames, checkedItems, (dialog, which, isChecked) -> {
+                    checkedItems[which] = isChecked;
+                })
+                .setNeutralButton("分别入库", (dialog, which) -> {
+                    for (int i = 0; i < count; i++) {
+                        if (checkedItems[i]) {
+                            JSONObject item = items.optJSONObject(i);
+                            com.cz.fitnessdiary.database.entity.FoodLibrary food = new com.cz.fitnessdiary.database.entity.FoodLibrary(
+                                    item.optString("name"), item.optInt("calories"),
+                                    item.optDouble("protein"), item.optDouble("carbs"),
+                                    item.optString("unit", "克"), 100, item.optString("category", "其他"));
+                            foodRepository.insert(food);
+                        }
+                    }
+                    Toast.makeText(getContext(), "选定食物已入库", Toast.LENGTH_SHORT).show();
+                })
+                .setPositiveButton("一键记录", (dialog, which) -> {
+                    showMealTypeDialog(items, checkedItems);
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showMealTypeDialog(org.json.JSONArray items, boolean[] checkedItems) {
+        String[] types = { "早餐", "午餐", "晚餐", "加餐" };
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("选择用餐类型")
+                .setItems(types, (dialog, which) -> {
+                    int mealType = which; // 0,1,2,3
+                    for (int i = 0; i < items.length(); i++) {
+                        if (checkedItems[i]) {
+                            JSONObject item = items.optJSONObject(i);
+                            com.cz.fitnessdiary.database.entity.FoodRecord record = new com.cz.fitnessdiary.database.entity.FoodRecord(
+                                    item.optString("name"), item.optInt("calories"), System.currentTimeMillis());
+                            record.setProtein(item.optDouble("protein"));
+                            record.setCarbs(item.optDouble("carbs"));
+                            record.setMealType(mealType);
+                            record.setServings(1.0f);
+                            record.setServingUnit(item.optString("unit", "份"));
+                            foodRecordRepository.insert(record);
+                        }
+                    }
+                    Toast.makeText(getContext(), "已记录至今日" + types[mealType], Toast.LENGTH_SHORT).show();
+                })
+                .show();
     }
 
     private void handleAiMessageLongClick(String content) {

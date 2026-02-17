@@ -297,7 +297,8 @@ public class DietFragment extends Fragment {
             spinnerCategory.setText(FOOD_CATEGORIES[FOOD_CATEGORIES.length - 1], false); // 默认选择"其他"
         }
 
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        com.google.android.material.dialog.MaterialAlertDialogBuilder builder = new com.google.android.material.dialog.MaterialAlertDialogBuilder(
+                requireContext())
                 .setTitle(isEditMode ? "编辑食物信息" : "添加自定义食物")
                 .setView(dialogView)
                 .setNeutralButton("取消", null)
@@ -350,8 +351,29 @@ public class DietFragment extends Fragment {
                     } catch (NumberFormatException e) {
                         Toast.makeText(requireContext(), "输入格式不正确", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .show();
+                });
+
+        if (isEditMode) {
+            builder.setNegativeButton("删除", (dialogInterface, i) -> {
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("确认删除")
+                        .setMessage("确定要从食物库中删除“" + existingFood.getName() + "”吗？此操作不可撤销。")
+                        .setPositiveButton("删除", (d, w) -> {
+                            viewModel.deleteFoodFromLibrary(existingFood);
+                            Toast.makeText(requireContext(), "🗑️ 已从库中移除: " + existingFood.getName(),
+                                    Toast.LENGTH_SHORT).show();
+                            // 刷新列表
+                            executorService.execute(() -> {
+                                List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
+                                requireActivity().runOnUiThread(() -> adapter.setFoodList(allFoods));
+                            });
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+            });
+        }
+
+        builder.show();
     }
 
     private void setupCardListeners() {

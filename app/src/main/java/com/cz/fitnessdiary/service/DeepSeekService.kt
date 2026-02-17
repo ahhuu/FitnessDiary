@@ -28,7 +28,7 @@ object DeepSeekService {
 
     @JvmStatic
     @JvmOverloads
-    fun sendMessage(message: String, systemInstruction: String? = null, thinking: Boolean = false, callback: GeminiService.GeminiCallback) {
+    fun sendMessage(message: String, systemInstruction: String? = null, thinking: Boolean = false, callback: AICallback) {
         scope.launch {
             try {
                 val modelName = if (thinking) "deepseek-reasoner" else "deepseek-chat"
