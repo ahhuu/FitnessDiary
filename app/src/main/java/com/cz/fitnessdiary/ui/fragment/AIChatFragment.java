@@ -1,6 +1,7 @@
 package com.cz.fitnessdiary.ui.fragment;
 
 import android.os.Bundle;
+import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +31,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.json.JSONObject;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
@@ -135,14 +139,14 @@ public class AIChatFragment extends Fragment {
     }
 
     private void handleSessionLongClick(ChatSessionEntity session) {
-        String[] options = { "重命名", "移动至文件夹", "删除会话" };
+        String[] options = { "重命名", "归档至文件夹", "删除会话" };
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("管理会话")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
                         showRenameSessionDialog(session);
                     } else if (which == 1) {
-                        showMoveToFolderDialog(session);
+                        showArchiveToFolderDialog(session);
                     } else {
                         new MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("删除确认")
@@ -155,22 +159,71 @@ public class AIChatFragment extends Fragment {
                 .show();
     }
 
-    private void showMoveToFolderDialog(ChatSessionEntity session) {
+    private void showArchiveToFolderDialog(ChatSessionEntity session) {
+        List<String> folders = collectExistingFolders();
+        if (folders.isEmpty()) {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("暂无文件夹")
+                    .setMessage("当前没有可用文件夹，请先新建一个文件夹。")
+                    .setPositiveButton("新建文件夹", (dialog, which) -> showCreateFolderDialog(session))
+                    .setNegativeButton("取消", null)
+                    .show();
+            return;
+        }
+
+        List<String> options = new ArrayList<>(folders);
+        options.add("➕ 新建文件夹");
+        String[] items = options.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("归档至文件夹")
+                .setItems(items, (dialog, which) -> {
+                    if (which == items.length - 1) {
+                        showCreateFolderDialog(session);
+                        return;
+                    }
+                    String folder = items[which];
+                    viewModel.updateSessionFolder(session.getId(), folder);
+                    Toast.makeText(getContext(), "已归档到：" + folder, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showCreateFolderDialog(ChatSessionEntity session) {
         final EditText et = new EditText(requireContext());
-        et.setHint("输入文件夹名称 (如：计划、饮食)");
-        et.setText(session.getFolderName());
+        et.setHint("输入新文件夹名称");
         et.setPadding(48, 48, 48, 48);
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("移动至文件夹")
+                .setTitle("新建文件夹")
                 .setView(et)
                 .setPositiveButton("保存", (dialog, which) -> {
                     String folderName = et.getText().toString().trim();
+                    if (folderName.isEmpty()) {
+                        Toast.makeText(getContext(), "文件夹名称不能为空", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     viewModel.updateSessionFolder(session.getId(), folderName);
+                    Toast.makeText(getContext(), "已归档到：" + folderName, Toast.LENGTH_SHORT).show();
                 })
-                .setNegativeButton("清空文件夹", (dialog, which) -> {
-                    viewModel.updateSessionFolder(session.getId(), null);
-                })
+                .setNegativeButton("取消", null)
                 .show();
+    }
+
+    private List<String> collectExistingFolders() {
+        LinkedHashSet<String> folderSet = new LinkedHashSet<>();
+        for (ChatSessionEntity item : sessionAdapter.getCurrentList()) {
+            if (item == null) {
+                continue;
+            }
+            String folder = item.getFolderName();
+            if (folder != null) {
+                folder = folder.trim();
+            }
+            if (folder != null && !folder.isEmpty()) {
+                folderSet.add(folder);
+            }
+        }
+        return new ArrayList<>(folderSet);
     }
 
     private void showRenameSessionDialog(ChatSessionEntity session) {
@@ -190,16 +243,46 @@ public class AIChatFragment extends Fragment {
                 .show();
     }
 
-    /**
-     * 处理消息长按事件：用户消息显示编辑/删除，AI 消息（暂时）显示食物解析
-     */
     private void handleMessageLongClick(ChatMessage message) {
-        String[] options = { "编辑", "删除", "多选" };
+        if (message == null || message.getId() <= 0) {
+            return;
+        }
+
+        if (message.isUser()) {
+            showUserMessageActions(message);
+        } else {
+            showAiMessageActions(message);
+        }
+    }
+
+    private void showUserMessageActions(ChatMessage message) {
+        String[] options = { "复制", "编辑并重发", "删除", "多选" };
         new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("用户消息")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
-                        showEditDialog(message);
+                        copyToClipboard("用户消息", message.getContent());
                     } else if (which == 1) {
+                        showEditAndResendDialog(message);
+                    } else if (which == 2) {
+                        viewModel.deleteMessage(message);
+                    } else {
+                        enterSelectionMode(message);
+                    }
+                })
+                .show();
+    }
+
+    private void showAiMessageActions(ChatMessage message) {
+        String[] options = { "复制", "重新生成", "删除", "多选" };
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("AI 消息")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        copyToClipboard("AI 消息", sanitizeAiContent(message.getContent()));
+                    } else if (which == 1) {
+                        regenerateFromMessage(message);
+                    } else if (which == 2) {
                         viewModel.deleteMessage(message);
                     } else {
                         enterSelectionMode(message);
@@ -226,24 +309,6 @@ public class AIChatFragment extends Fragment {
         binding.selectionToolbar.setVisibility(View.GONE);
         binding.inputContainer.setVisibility(View.VISIBLE);
         binding.shortcutScroll.setVisibility(View.VISIBLE);
-    }
-
-    private void showEditDialog(ChatMessage message) {
-        EditText editText = new EditText(requireContext());
-        editText.setText(message.getContent());
-        editText.setPadding(40, 40, 40, 40);
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("编辑消息")
-                .setView(editText)
-                .setPositiveButton("保存", (dialog, which) -> {
-                    String newContent = editText.getText().toString().trim();
-                    if (!newContent.isEmpty()) {
-                        viewModel.editMessage(message, newContent);
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
     }
 
     private void setupListeners() {
@@ -375,11 +440,10 @@ public class AIChatFragment extends Fragment {
         String uriStr = viewModel.getAttachedFileUri().getValue();
         if (uriStr != null) {
             try {
-                android.net.Uri uri = android.net.Uri.parse(uriStr);
-                android.graphics.Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(
-                        requireContext().getContentResolver(), uri);
+                android.graphics.Bitmap bitmap = decodeScaledBitmap(android.net.Uri.parse(uriStr), 1280);
                 viewModel.sendMessageWithAttachment(text, uriStr, bitmap);
             } catch (Exception e) {
+                Toast.makeText(requireContext(), "图片读取失败，已按文本发送", Toast.LENGTH_SHORT).show();
                 viewModel.sendMessage(text);
             }
         } else {
@@ -452,41 +516,148 @@ public class AIChatFragment extends Fragment {
     }
 
     private void handleSmartAction(JSONObject actionJson) {
-        // ... (保持原有的 handleSmartAction 逻辑，处理 FOOD 和 PLAN)
         String type = actionJson.optString("type");
-        if ("FOOD".equals(type)) {
+        if ("MULTI".equals(type)) {
+            org.json.JSONArray actions = actionJson.optJSONArray("actions");
+            if (actions == null || actions.length() == 0) {
+                Toast.makeText(getContext(), "未识别到可执行操作", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            JSONObject foodAction = null;
+            JSONObject planAction = null;
+            for (int i = 0; i < actions.length(); i++) {
+                JSONObject action = actions.optJSONObject(i);
+                if (action == null)
+                    continue;
+                String actionType = action.optString("type");
+                if ("FOOD".equals(actionType)) {
+                    foodAction = action;
+                } else if ("PLAN".equals(actionType)) {
+                    planAction = action;
+                }
+            }
+            JSONObject finalFoodAction = foodAction;
+            JSONObject finalPlanAction = planAction;
+            String[] options = { "全部执行", "仅记录饮食", "仅添加计划" };
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("检测到多个智能操作")
+                    .setItems(options, (dialog, which) -> {
+                        if (which == 0 || which == 1) {
+                            if (finalFoodAction != null) {
+                                org.json.JSONArray items = finalFoodAction.optJSONArray("items");
+                                if (items != null && items.length() > 0) {
+                                    handleMultiFoodLogging(items);
+                                }
+                            }
+                        }
+                        if (which == 0 || which == 2) {
+                            if (finalPlanAction != null) {
+                                handlePlanAction(finalPlanAction);
+                            }
+                        }
+                    })
+                    .show();
+        } else if ("FOOD".equals(type)) {
             org.json.JSONArray items = actionJson.optJSONArray("items");
             if (items == null || items.length() == 0)
                 return;
-
             handleMultiFoodLogging(items);
         } else if ("PLAN".equals(type)) {
-            // ... (保持原有的 PLAN 处理逻辑)
-            String name = actionJson.optString("name");
-            int sets = actionJson.optInt("sets");
-            int reps = actionJson.optInt("reps");
-            String desc = actionJson.optString("desc");
-            String category = actionJson.optString("category", "自定义-其他");
-            if (!category.startsWith("自定义-")) {
-                category = "自定义-" + category;
-            }
+            handlePlanAction(actionJson);
+        }
+    }
 
-            final String finalCategory = category;
-            new MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("添加训练计划")
-                    .setMessage(String.format("是否将“%s”添加至您的计划？\n🔢 组数：%d\n🔁 次数：%d\n📂 分类：%s\n📝 描述：%s",
-                            name, sets, reps, category, desc))
-                    .setPositiveButton("确定", (dialog, which) -> {
-                        com.cz.fitnessdiary.database.entity.TrainingPlan plan = new com.cz.fitnessdiary.database.entity.TrainingPlan(
-                                name, desc, System.currentTimeMillis());
-                        plan.setSets(sets);
-                        plan.setReps(reps);
-                        plan.setCategory(finalCategory);
-                        trainingRepository.insert(plan);
-                        Toast.makeText(getContext(), "已添加计划 " + name, Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+    private void handlePlanAction(JSONObject actionJson) {
+        String name = actionJson.optString("name");
+        int sets = Math.max(1, actionJson.optInt("sets", 3));
+        int reps = Math.max(1, actionJson.optInt("reps", 10));
+        String desc = actionJson.optString("desc");
+        String category = actionJson.optString("category", "自定义-其他");
+        if (!category.startsWith("自定义-")) {
+            category = "自定义-" + category;
+        }
+
+        final String finalCategory = category;
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("添加训练计划")
+                .setMessage(String.format("是否将“%s”添加至您的计划？\n🔢 组数：%d\n🔁 次数：%d\n📂 分类：%s\n📝 描述：%s",
+                        name, sets, reps, category, desc))
+                .setPositiveButton("确定", (dialog, which) -> {
+                    com.cz.fitnessdiary.database.entity.TrainingPlan plan = new com.cz.fitnessdiary.database.entity.TrainingPlan(
+                            name, desc, System.currentTimeMillis());
+                    plan.setSets(sets);
+                    plan.setReps(reps);
+                    plan.setCategory(finalCategory);
+                    trainingRepository.insert(plan);
+                    Toast.makeText(getContext(), "已添加计划 " + name, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showEditAndResendDialog(ChatMessage message) {
+        EditText editText = new EditText(requireContext());
+        editText.setText(message.getContent());
+        editText.setPadding(40, 40, 40, 40);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("编辑并重发")
+                .setView(editText)
+                .setPositiveButton("发送", (dialog, which) -> {
+                    String newContent = editText.getText().toString().trim();
+                    if (!newContent.isEmpty()) {
+                        sendChatMessage(newContent);
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void regenerateFromMessage(ChatMessage aiMessage) {
+        List<ChatMessage> list = adapter.getMessages();
+        int aiIndex = -1;
+        for (int i = 0; i < list.size(); i++) {
+            ChatMessage msg = list.get(i);
+            if (msg.getId() == aiMessage.getId()) {
+                aiIndex = i;
+                break;
+            }
+        }
+
+        if (aiIndex <= 0) {
+            Toast.makeText(getContext(), "找不到可重试的上一条提问", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        for (int i = aiIndex - 1; i >= 0; i--) {
+            ChatMessage prev = list.get(i);
+            if (prev.isUser() && prev.getContent() != null && !prev.getContent().trim().isEmpty()) {
+                sendChatMessage(prev.getContent().trim());
+                Toast.makeText(getContext(), "已重新生成回复", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
+        Toast.makeText(getContext(), "找不到可重试的上一条提问", Toast.LENGTH_SHORT).show();
+    }
+
+    private String sanitizeAiContent(String content) {
+        if (content == null) {
+            return "";
+        }
+        return content.replaceAll("<action>(?s:.*?)</action>", "").trim();
+    }
+
+    private void copyToClipboard(String label, String text) {
+        if (text == null || text.trim().isEmpty()) {
+            Toast.makeText(getContext(), "没有可复制的内容", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) requireContext()
+                .getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+        if (clipboard != null) {
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(label, text));
+            Toast.makeText(getContext(), "已复制到剪贴板", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -505,17 +676,33 @@ public class AIChatFragment extends Fragment {
                     checkedItems[which] = isChecked;
                 })
                 .setNeutralButton("分别入库", (dialog, which) -> {
+                    int success = 0;
+                    int skipped = 0;
                     for (int i = 0; i < count; i++) {
                         if (checkedItems[i]) {
                             JSONObject item = items.optJSONObject(i);
+                            if (item == null) {
+                                skipped++;
+                                continue;
+                            }
+                            String name = item.optString("name", "").trim();
+                            int calories = Math.max(0, item.optInt("calories", 0));
+                            if (name.isEmpty() || calories <= 0) {
+                                skipped++;
+                                continue;
+                            }
                             com.cz.fitnessdiary.database.entity.FoodLibrary food = new com.cz.fitnessdiary.database.entity.FoodLibrary(
-                                    item.optString("name"), item.optInt("calories"),
-                                    item.optDouble("protein"), item.optDouble("carbs"),
+                                    name, calories,
+                                    Math.max(0d, item.optDouble("protein", 0d)),
+                                    Math.max(0d, item.optDouble("carbs", 0d)),
                                     item.optString("unit", "克"), 100, item.optString("category", "其他"));
                             foodRepository.insert(food);
+                            success++;
                         }
                     }
-                    Toast.makeText(getContext(), "选定食物已入库", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(),
+                            "入库完成：成功 " + success + " 条，跳过 " + skipped + " 条",
+                            Toast.LENGTH_SHORT).show();
                 })
                 .setPositiveButton("一键记录", (dialog, which) -> {
                     showMealTypeDialog(items, checkedItems);
@@ -530,43 +717,73 @@ public class AIChatFragment extends Fragment {
                 .setTitle("选择用餐类型")
                 .setItems(types, (dialog, which) -> {
                     int mealType = which; // 0,1,2,3
+                    int success = 0;
+                    int skipped = 0;
                     for (int i = 0; i < items.length(); i++) {
                         if (checkedItems[i]) {
                             JSONObject item = items.optJSONObject(i);
+                            if (item == null) {
+                                skipped++;
+                                continue;
+                            }
+                            String name = item.optString("name", "").trim();
+                            int calories = Math.max(0, item.optInt("calories", 0));
+                            if (name.isEmpty() || calories <= 0) {
+                                skipped++;
+                                continue;
+                            }
                             com.cz.fitnessdiary.database.entity.FoodRecord record = new com.cz.fitnessdiary.database.entity.FoodRecord(
-                                    item.optString("name"), item.optInt("calories"), System.currentTimeMillis());
-                            record.setProtein(item.optDouble("protein"));
-                            record.setCarbs(item.optDouble("carbs"));
+                                    name, calories, System.currentTimeMillis());
+                            record.setProtein(Math.max(0d, item.optDouble("protein", 0d)));
+                            record.setCarbs(Math.max(0d, item.optDouble("carbs", 0d)));
                             record.setMealType(mealType);
                             record.setServings(1.0f);
                             record.setServingUnit(item.optString("unit", "份"));
                             foodRecordRepository.insert(record);
+                            success++;
                         }
                     }
-                    Toast.makeText(getContext(), "已记录至今日" + types[mealType], Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(),
+                            "记录完成：成功 " + success + " 条，跳过 " + skipped + " 条（" + types[mealType] + "）",
+                            Toast.LENGTH_SHORT).show();
                 })
                 .show();
     }
 
-    private void handleAiMessageLongClick(String content) {
-        com.cz.fitnessdiary.database.entity.FoodLibrary parsedFood = com.cz.fitnessdiary.service.FoodParser
-                .parseFirstFood(content);
-        if (parsedFood == null) {
-            Toast.makeText(getContext(), "未能识别到食物信息", Toast.LENGTH_SHORT).show();
-            return;
+    private android.graphics.Bitmap decodeScaledBitmap(android.net.Uri uri, int maxSide) throws Exception {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            android.graphics.ImageDecoder.Source source = android.graphics.ImageDecoder
+                    .createSource(requireContext().getContentResolver(), uri);
+            return android.graphics.ImageDecoder.decodeBitmap(source, (decoder, info, src) -> {
+                int width = info.getSize().getWidth();
+                int height = info.getSize().getHeight();
+                int maxDim = Math.max(width, height);
+                if (maxDim > maxSide) {
+                    float scale = (float) maxSide / (float) maxDim;
+                    decoder.setTargetSize(Math.max(1, (int) (width * scale)), Math.max(1, (int) (height * scale)));
+                }
+            });
         }
 
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("智能识别建议")
-                .setMessage(String.format("解析到以下食物：\n名称：%s\n热量：%d 大卡\n蛋白质：%.1f g\n碳水：%.1f g\n\n是否添加至您的食物库？",
-                        parsedFood.getName(), parsedFood.getCaloriesPer100g(),
-                        parsedFood.getProteinPer100g(), parsedFood.getCarbsPer100g()))
-                .setPositiveButton("一键入库", (dialog, which) -> {
-                    foodRepository.insert(parsedFood);
-                    Toast.makeText(getContext(), "已成功添加到食物库！", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("取消", null)
-                .show();
+        android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+            android.graphics.BitmapFactory.decodeStream(is, null, bounds);
+        }
+        int inSampleSize = 1;
+        int maxDim = Math.max(bounds.outWidth, bounds.outHeight);
+        while (maxDim / inSampleSize > maxSide) {
+            inSampleSize *= 2;
+        }
+        android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+        opts.inSampleSize = Math.max(1, inSampleSize);
+        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is, null, opts);
+            if (bitmap == null) {
+                throw new IllegalStateException("无法解析图片");
+            }
+            return bitmap;
+        }
     }
 
     @Override

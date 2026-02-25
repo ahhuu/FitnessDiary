@@ -275,6 +275,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             // 汇总所有识别到的食物
             org.json.JSONArray allFoodItems = new org.json.JSONArray();
             JSONObject finalActionJson = null;
+            JSONObject planActionJson = null;
 
             while (matcher.find()) {
                 String actionStr = matcher.group(1);
@@ -292,9 +293,9 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                             // 兼容旧格式或独立标签格式
                             allFoodItems.put(actionJson);
                         }
-                    } else if ("PLAN".equals(type) && finalActionJson == null) {
+                    } else if ("PLAN".equals(type) && planActionJson == null) {
                         // 计划暂取第一个
-                        finalActionJson = actionJson;
+                        planActionJson = actionJson;
                     }
                 } catch (Exception e) {
                     // 忽略无效 JSON
@@ -304,11 +305,26 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             // 如果有食物，构造统一的 Action JSON
             if (allFoodItems.length() > 0) {
                 try {
-                    finalActionJson = new JSONObject();
-                    finalActionJson.put("type", "FOOD");
-                    finalActionJson.put("items", allFoodItems);
+                    JSONObject foodActionJson = new JSONObject();
+                    foodActionJson.put("type", "FOOD");
+                    foodActionJson.put("items", allFoodItems);
+
+                    if (planActionJson != null) {
+                        // 同一条回复里允许同时保留计划+饮食动作
+                        org.json.JSONArray actions = new org.json.JSONArray();
+                        actions.put(foodActionJson);
+                        actions.put(planActionJson);
+                        finalActionJson = new JSONObject();
+                        finalActionJson.put("type", "MULTI");
+                        finalActionJson.put("actions", actions);
+                    } else {
+                        finalActionJson = foodActionJson;
+                    }
                 } catch (Exception e) {
+                    finalActionJson = planActionJson;
                 }
+            } else {
+                finalActionJson = planActionJson;
             }
 
             // 彻底移除所有 <action> 标签及其内容，避免渲染到界面
@@ -319,7 +335,9 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 aiHolder.btnAction.setVisibility(View.VISIBLE);
                 String type = finalActionJson.optString("type");
 
-                if ("FOOD".equals(type)) {
+                if ("MULTI".equals(type)) {
+                    aiHolder.btnAction.setText("⚡ 执行 2 项智能操作");
+                } else if ("FOOD".equals(type)) {
                     org.json.JSONArray items = finalActionJson.optJSONArray("items");
                     if (items != null && items.length() > 0) {
                         if (items.length() == 1) {

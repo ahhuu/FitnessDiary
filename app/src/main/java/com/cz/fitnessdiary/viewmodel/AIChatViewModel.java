@@ -221,7 +221,7 @@ public class AIChatViewModel extends AndroidViewModel {
 
         new Thread(() -> {
             User user = userRepository.getUserSync();
-            String systemInstruction = buildSystemInstruction(user);
+            String systemInstruction = buildSystemInstruction(user, search);
 
             // 智能调度：图片走千问，纯文本走 DeepSeek
             if (image != null) {
@@ -234,9 +234,12 @@ public class AIChatViewModel extends AndroidViewModel {
         }).start();
     }
 
-    private String buildSystemInstruction(User user) {
+    private String buildSystemInstruction(User user, boolean searchEnabled) {
         StringBuilder sb = new StringBuilder();
         sb.append("你是 FitnessDiary 应用的 AI 私教。性格阳光、积极，像朋友一样。请多使用 Emoji 🏋️‍♂️🥗✨。\n");
+        if (searchEnabled) {
+            sb.append("【联网搜索模式已开启】回答需要时效性的事实时，请优先给出可核验结论，并明确标注不确定项。\n");
+        }
         if (user != null) {
             sb.append("当前用户信息如下：\n");
             sb.append("- 姓名/昵称：").append(user.getNickname()).append("\n");
