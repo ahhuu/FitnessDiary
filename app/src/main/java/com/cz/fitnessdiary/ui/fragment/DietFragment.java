@@ -417,16 +417,16 @@ public class DietFragment extends Fragment {
                 for (com.cz.fitnessdiary.model.MealSection section : sections) {
                     switch (section.getMealType()) {
                         case 0:
-                            updateMealCard(binding.cardBreakfast.getRoot(), "☀️ 早餐", section);
+                            updateMealCard(binding.cardBreakfast.getRoot(), "☀️ 早餐", 0, section);
                             break;
                         case 1:
-                            updateMealCard(binding.cardLunch.getRoot(), "🌞 午餐", section);
+                            updateMealCard(binding.cardLunch.getRoot(), "🌞 午餐", 1, section);
                             break;
                         case 2:
-                            updateMealCard(binding.cardDinner.getRoot(), "🌙 晚餐", section);
+                            updateMealCard(binding.cardDinner.getRoot(), "🌙 晚餐", 2, section);
                             break;
                         case 3:
-                            updateMealCard(binding.cardSnack.getRoot(), "🍪 加餐", section);
+                            updateMealCard(binding.cardSnack.getRoot(), "🍪 加餐", 3, section);
                             break;
                     }
                 }
@@ -494,7 +494,7 @@ public class DietFragment extends Fragment {
     /**
      * Plan 12: 更新餐点卡片 UI
      */
-    private void updateMealCard(View cardRoot, String title, com.cz.fitnessdiary.model.MealSection section) {
+    private void updateMealCard(View cardRoot, String title, int mealType, com.cz.fitnessdiary.model.MealSection section) {
         TextView tvName = cardRoot.findViewById(R.id.tv_meal_name);
         TextView tvCalories = cardRoot.findViewById(R.id.tv_meal_calories);
         TextView tvSummary = cardRoot.findViewById(R.id.tv_food_summary);
@@ -518,22 +518,14 @@ public class DietFragment extends Fragment {
         }
 
         // 点击卡片查看详情（支持删除）
-        cardRoot.setOnClickListener(v -> showMealDetailsDialog(title, records));
+        cardRoot.setOnClickListener(v -> showMealDetailsDialog(title, mealType, records));
     }
 
     /**
      * 显示餐点详情对话框 (支持删除)
      */
-    private void showMealDetailsDialog(String title, List<com.cz.fitnessdiary.database.entity.FoodRecord> records) {
+    private void showMealDetailsDialog(String title, int mealType, List<com.cz.fitnessdiary.database.entity.FoodRecord> records) {
         if (records == null || records.isEmpty()) {
-            // 打开添加弹窗
-            int mealType = 3;
-            if (title.equals("早餐"))
-                mealType = 0;
-            else if (title.equals("午餐"))
-                mealType = 1;
-            else if (title.equals("晚餐"))
-                mealType = 2;
             showSmartAddFoodDialog(mealType);
             return;
         }
@@ -564,13 +556,6 @@ public class DietFragment extends Fragment {
                             .show();
                 })
                 .setPositiveButton("添加更多", (dialog, which) -> {
-                    int mealType = 3;
-                    if (title.equals("早餐"))
-                        mealType = 0;
-                    else if (title.equals("午餐"))
-                        mealType = 1;
-                    else if (title.equals("晚餐"))
-                        mealType = 2;
                     showSmartAddFoodDialog(mealType);
                 })
                 .setNeutralButton("关闭", null)

@@ -13,11 +13,6 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.ItemTouchHelper;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.DailyLog;
@@ -192,65 +187,6 @@ public class CheckInFragment extends Fragment {
 
         binding.rvTodayLogs.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.rvTodayLogs.setAdapter(adapter);
-    }
-
-    /**
-     * 设置左滑完成逻辑 (v1.2)
-     */
-    private void setupSwipeToComplete() {
-        ItemTouchHelper.SimpleCallback swipeCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.RIGHT) {
-            private final ColorDrawable background = new ColorDrawable(Color.parseColor("#4CAF50")); // 绿色
-
-            @Override
-            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder,
-                    @NonNull RecyclerView.ViewHolder target) {
-                return false;
-            }
-
-            @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                int position = viewHolder.getAdapterPosition();
-                TrainingPlan plan = adapter.getPlanAt(position);
-                if (plan != null) {
-                    boolean currentlyCompleted = adapter.isPlanCompleted(plan.getPlanId());
-                    // 切换状态 (本来想只让滑动变成完成，但既然是交互，允许滑动取消也是合理的，
-                    // 不过为了符合用户"滑动完成"的需求，我们优先设为true)
-
-                    // 查找对应的 log
-                    DailyLog existingLog = null;
-                    for (DailyLog log : mLogs) {
-                        if (log.getPlanId() == plan.getPlanId()) {
-                            existingLog = log;
-                            break;
-                        }
-                    }
-
-                    if (existingLog != null) {
-                        checkInViewModel.updateCompletionStatus(existingLog.getLogId(), !currentlyCompleted);
-                    } else {
-                        checkInViewModel.checkInSelectedDate(plan.getPlanId());
-                    }
-                }
-                // 必须通知适配器更新，否则 item 会被移出视图
-                adapter.notifyItemChanged(position);
-            }
-
-            @Override
-            public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView recyclerView,
-                    @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState,
-                    boolean isCurrentlyActive) {
-                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
-                View itemView = viewHolder.itemView;
-
-                if (dX > 0) { // 向右滑动
-                    background.setBounds(itemView.getLeft(), itemView.getTop(), itemView.getLeft() + (int) dX,
-                            itemView.getBottom());
-                    background.draw(c);
-                }
-            }
-        };
-
-        new ItemTouchHelper(swipeCallback).attachToRecyclerView(binding.rvTodayLogs);
     }
 
     /**

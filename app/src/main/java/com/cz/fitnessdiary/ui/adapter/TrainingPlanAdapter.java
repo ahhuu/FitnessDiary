@@ -31,6 +31,7 @@ public class TrainingPlanAdapter extends RecyclerView.Adapter<TrainingPlanAdapte
 
     public interface OnPlanClickListener {
         void onPlanClick(TrainingPlan plan);
+        void onPlanDelete(TrainingPlan plan);
     }
 
     public TrainingPlanAdapter(OnPlanClickListener listener) {
@@ -179,10 +180,16 @@ public class TrainingPlanAdapter extends RecyclerView.Adapter<TrainingPlanAdapte
             }
             binding.ivMediaThumbnail.setVisibility(View.VISIBLE); // 始终显示，不再隐藏
 
+            binding.getRoot().setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onPlanClick(plan);
+                }
+            });
+
             // 删除按钮点击
             binding.btnDelete.setOnClickListener(v -> {
                 if (listener != null) {
-                    listener.onPlanClick(plan);
+                    listener.onPlanDelete(plan);
                 }
             });
         }
