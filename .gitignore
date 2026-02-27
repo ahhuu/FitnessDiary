@@ -40,3 +40,6 @@ build/
 # Agent
 .agent/
 .ag
+
+# Local history
+.history/
