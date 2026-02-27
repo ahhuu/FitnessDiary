@@ -193,6 +193,9 @@ public class AIChatViewModel extends AndroidViewModel {
         sendMessageWithAttachment(content, null, null);
     }
 
+    /** 上下文历史消息的最大条数（控制 token 消耗） */
+    private static final int MAX_HISTORY_MESSAGES = 20;
+
     public void sendMessageWithAttachment(String content, String mediaPath, android.graphics.Bitmap image) {
         if (content == null || content.trim().isEmpty())
             return;
@@ -223,15 +226,35 @@ public class AIChatViewModel extends AndroidViewModel {
             User user = userRepository.getUserSync();
             String systemInstruction = buildSystemInstruction(user, search);
 
+            // 加载对话历史（取最近 N 条，不含刚发的那条，因为还未入库完成）
+            List<ChatMessageEntity> allMessages = repository.getMessagesBySessionSync(finalSessionId);
+            List<ChatMessageEntity> history = trimHistory(allMessages);
+
             // 智能调度：图片走千问，纯文本走 DeepSeek
             if (image != null) {
-                sendToQwen(content, systemInstruction, image);
+                sendToQwen(content, systemInstruction, image, history);
             } else if (Boolean.TRUE.equals(isDeepThinking.getValue())) {
-                sendToDeepSeek(content, systemInstruction, true);
+                sendToDeepSeek(content, systemInstruction, true, history);
             } else {
-                sendToDeepSeek(content, systemInstruction, false);
+                sendToDeepSeek(content, systemInstruction, false, history);
             }
         }).start();
+    }
+
+    /**
+     * 裁剪历史消息，控制上下文窗口大小以节省 token 消耗。
+     * 策略：取最近 MAX_HISTORY_MESSAGES 条消息（不含本次用户消息，因为会单独发送）。
+     */
+    private List<ChatMessageEntity> trimHistory(List<ChatMessageEntity> allMessages) {
+        if (allMessages == null || allMessages.isEmpty()) {
+            return new ArrayList<>();
+        }
+        int size = allMessages.size();
+        if (size <= MAX_HISTORY_MESSAGES) {
+            return new ArrayList<>(allMessages);
+        }
+        // 只保留最近的 N 条
+        return new ArrayList<>(allMessages.subList(size - MAX_HISTORY_MESSAGES, size));
     }
 
     private String buildSystemInstruction(User user, boolean searchEnabled) {
@@ -267,9 +290,10 @@ public class AIChatViewModel extends AndroidViewModel {
         return sb.toString();
     }
 
-    private void sendToDeepSeek(final String content, final String systemInstruction, boolean thinking) {
+    private void sendToDeepSeek(final String content, final String systemInstruction, boolean thinking,
+            List<ChatMessageEntity> history) {
         currentThinkingModel.postValue("DeepSeek-V3");
-        com.cz.fitnessdiary.service.DeepSeekService.sendMessage(content, systemInstruction, thinking,
+        com.cz.fitnessdiary.service.DeepSeekService.sendMessage(content, systemInstruction, thinking, history,
                 new AICallback() {
                     @Override
                     public void onSuccess(String response, String reasoning) {
@@ -287,9 +311,10 @@ public class AIChatViewModel extends AndroidViewModel {
                 });
     }
 
-    private void sendToQwen(String content, String systemInstruction, android.graphics.Bitmap image) {
+    private void sendToQwen(String content, String systemInstruction, android.graphics.Bitmap image,
+            List<ChatMessageEntity> history) {
         currentThinkingModel.postValue("Qwen-VL-Plus");
-        com.cz.fitnessdiary.service.QwenService.sendMessage(content, systemInstruction, image,
+        com.cz.fitnessdiary.service.QwenService.sendMessage(content, systemInstruction, image, history,
                 new AICallback() {
                     @Override
                     public void onSuccess(String response, String reasoning) {

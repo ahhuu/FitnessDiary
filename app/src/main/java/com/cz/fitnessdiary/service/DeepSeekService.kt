@@ -1,6 +1,7 @@
 package com.cz.fitnessdiary.service
 
 import com.cz.fitnessdiary.BuildConfig
+import com.cz.fitnessdiary.database.entity.ChatMessageEntity
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonArray
@@ -15,6 +16,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * DeepSeek AI 服务 - 标准 OpenAI 接口实现
+ * 支持携带对话历史以实现上下文记忆
  */
 object DeepSeekService {
     private val client = OkHttpClient.Builder()
@@ -26,9 +28,23 @@ object DeepSeekService {
     private val scope = CoroutineScope(Dispatchers.IO)
     private const val API_URL = "https://api.deepseek.com/chat/completions"
 
+    /**
+     * 发送消息（带对话历史）
+     * @param message 当前用户消息
+     * @param systemInstruction 系统指令
+     * @param thinking 是否使用 DeepSeek Reasoner 模型
+     * @param history 历史消息列表（已按时间排序, 最旧在前）
+     * @param callback 回调接口
+     */
     @JvmStatic
     @JvmOverloads
-    fun sendMessage(message: String, systemInstruction: String? = null, thinking: Boolean = false, callback: AICallback) {
+    fun sendMessage(
+        message: String,
+        systemInstruction: String? = null,
+        thinking: Boolean = false,
+        history: List<ChatMessageEntity>? = null,
+        callback: AICallback
+    ) {
         scope.launch {
             try {
                 val modelName = if (thinking) "deepseek-reasoner" else "deepseek-chat"
@@ -36,18 +52,29 @@ object DeepSeekService {
                         "在回答食物营养价值时，请务必以 ### [食物名] 开头，并明确列出 [热量]、[蛋白质]、[碳水] 等数值（以每100g为标准）。" +
                         "请始终使用中文回答。"
 
+                val messagesArray = JsonArray().apply {
+                    // 1. 系统指令
+                    add(JsonObject().apply {
+                        addProperty("role", "system")
+                        addProperty("content", finalSystemPrompt)
+                    })
+                    // 2. 历史对话（仅内容摘要，减少 token）
+                    history?.forEach { msg ->
+                        add(JsonObject().apply {
+                            addProperty("role", if (msg.isUser) "user" else "assistant")
+                            addProperty("content", msg.content ?: "")
+                        })
+                    }
+                    // 3. 当前用户消息
+                    add(JsonObject().apply {
+                        addProperty("role", "user")
+                        addProperty("content", message)
+                    })
+                }
+
                 val jsonRequest = JsonObject().apply {
                     addProperty("model", modelName)
-                    add("messages", JsonArray().apply {
-                        add(JsonObject().apply {
-                            addProperty("role", "system")
-                            addProperty("content", finalSystemPrompt)
-                        })
-                        add(JsonObject().apply {
-                            addProperty("role", "user")
-                            addProperty("content", message)
-                        })
-                    })
+                    add("messages", messagesArray)
                     addProperty("stream", false)
                 }
 

@@ -103,6 +103,13 @@ public class ChatRepository {
         executorService.execute(() -> chatMessageDao.deleteMessages(ids));
     }
 
+    /**
+     * 同步获取指定会话的所有消息（在后台线程调用）
+     */
+    public List<ChatMessageEntity> getMessagesBySessionSync(long sessionId) {
+        return chatMessageDao.getMessagesBySessionSync(sessionId);
+    }
+
     public void deleteAll() {
         executorService.execute(() -> chatMessageDao.deleteAll());
     }

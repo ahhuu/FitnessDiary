@@ -271,6 +271,46 @@ public class DietFragment extends Fragment {
                 .findViewById(R.id.et_weight_per_unit);
         AutoCompleteTextView spinnerCategory = dialogView.findViewById(R.id.spinner_category);
 
+        // === 千卡/千焦 单位切换 ===
+        com.google.android.material.button.MaterialButtonToggleGroup toggleUnit = dialogView
+                .findViewById(R.id.toggle_calorie_unit);
+        com.google.android.material.textfield.TextInputLayout layoutCalories = dialogView
+                .findViewById(R.id.layout_calories);
+        // isKJ[0] 标记当前输入框是否处于千焦模式
+        final boolean[] isKJ = { false };
+
+        toggleUnit.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            String currentText = etCalories.getText().toString().trim();
+            if (checkedId == R.id.btn_unit_kj) {
+                // 切换到千焦模式
+                layoutCalories.setHint("热量 (千焦/100g) *");
+                layoutCalories.setSuffixText("KJ");
+                isKJ[0] = true;
+                // 自动换算已有数值: kcal → KJ
+                if (!currentText.isEmpty()) {
+                    try {
+                        double kcalVal = Double.parseDouble(currentText);
+                        int kjVal = (int) Math.round(kcalVal * 4.184);
+                        etCalories.setText(String.valueOf(kjVal));
+                    } catch (NumberFormatException ignored) { }
+                }
+            } else {
+                // 切换到千卡模式
+                layoutCalories.setHint("热量 (千卡/100g) *");
+                layoutCalories.setSuffixText("kcal");
+                isKJ[0] = false;
+                // 自动换算已有数值: KJ → kcal
+                if (!currentText.isEmpty()) {
+                    try {
+                        double kjVal = Double.parseDouble(currentText);
+                        int kcalVal = (int) Math.round(kjVal / 4.184);
+                        etCalories.setText(String.valueOf(kcalVal));
+                    } catch (NumberFormatException ignored) { }
+                }
+            }
+        });
+
         // 设置分类适配器
         android.widget.ArrayAdapter<String> categoryAdapter = new android.widget.ArrayAdapter<>(
                 requireContext(), R.layout.item_dropdown_category, FOOD_CATEGORIES);
@@ -317,7 +357,14 @@ public class DietFragment extends Fragment {
                     }
 
                     try {
-                        int calories = (int) Double.parseDouble(caloriesStr);
+                        double caloriesInput = Double.parseDouble(caloriesStr);
+                        // 如果用户以千焦输入，转换为千卡存储
+                        int calories;
+                        if (isKJ[0]) {
+                            calories = (int) Math.round(caloriesInput / 4.184);
+                        } else {
+                            calories = (int) caloriesInput;
+                        }
                         double protein = proteinStr.isEmpty() ? 0 : Double.parseDouble(proteinStr);
                         double carbs = carbsStr.isEmpty() ? 0 : Double.parseDouble(carbsStr);
                         int weightPerUnit = weightStr.isEmpty() ? 100 : Integer.parseInt(weightStr);

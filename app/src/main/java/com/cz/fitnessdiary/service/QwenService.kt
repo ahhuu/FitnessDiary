@@ -9,6 +9,7 @@ import com.alibaba.dashscope.exception.ApiException
 import com.alibaba.dashscope.exception.NoApiKeyException
 import com.alibaba.dashscope.utils.JsonUtils
 import com.cz.fitnessdiary.BuildConfig
+import com.cz.fitnessdiary.database.entity.ChatMessageEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,7 +19,7 @@ import android.graphics.Bitmap
 
 /**
  * 通义千问 (Qwen) AI 服务 - 基于 DashScope SDK
- * 专注于多模态任务（图片理解 + 文本）
+ * 专注于多模态任务（图片理解 + 文本），支持对话历史上下文
  */
 object QwenService {
     private const val MODEL_NAME = "qwen3.5-plus" // 使用旗舰原生多模态模型
@@ -26,10 +27,11 @@ object QwenService {
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
     /**
-     * 为 Java 提供的异步发送方法（支持多模态）
+     * 为 Java 提供的异步发送方法（支持多模态 + 对话历史）
      * @param message 用户文本消息
      * @param systemInstruction 可选的自定义系统指令
      * @param image 可选的图片（Bitmap）
+     * @param history 历史消息列表（已按时间排序, 最旧在前）
      * @param callback 回调接口
      */
     @JvmStatic
@@ -38,6 +40,7 @@ object QwenService {
         message: String,
         systemInstruction: String? = null,
         image: Bitmap? = null,
+        history: List<ChatMessageEntity>? = null,
         callback: AICallback
     ) {
         serviceScope.launch {
@@ -49,6 +52,26 @@ object QwenService {
                        "请始终使用中文回答。"
 
                 // 构建消息列表
+                val allMessages = mutableListOf<MultiModalMessage>()
+
+                // 1. 系统指令
+                val systemMessage = MultiModalMessage.builder()
+                    .role(Role.SYSTEM.value)
+                    .content(listOf(mapOf("text" to finalSystemPrompt)))
+                    .build()
+                allMessages.add(systemMessage)
+
+                // 2. 历史对话（仅文本，不包含图片以节省 token）
+                history?.forEach { msg ->
+                    val role = if (msg.isUser) Role.USER.value else Role.ASSISTANT.value
+                    val historyMsg = MultiModalMessage.builder()
+                        .role(role)
+                        .content(listOf(mapOf("text" to (msg.content ?: ""))))
+                        .build()
+                    allMessages.add(historyMsg)
+                }
+
+                // 3. 当前用户消息（可能含图片）
                 val userContentList = mutableListOf<Map<String, Any>>()
                 
                 // 如果有图片，先添加图片
@@ -60,21 +83,17 @@ object QwenService {
                 // 再添加文本
                 userContentList.add(mapOf("text" to message))
 
-                val systemMessage = MultiModalMessage.builder()
-                    .role(Role.SYSTEM.value)
-                    .content(listOf(mapOf("text" to finalSystemPrompt)))
-                    .build()
-
                 val userMessage = MultiModalMessage.builder()
                     .role(Role.USER.value)
                     .content(userContentList)
                     .build()
+                allMessages.add(userMessage)
 
                 // 构建 API 参数
                 val param = MultiModalConversationParam.builder()
                     .apiKey(API_KEY)
                     .model(MODEL_NAME)
-                    .messages(listOf(systemMessage, userMessage))
+                    .messages(allMessages)
                     .topP(0.8)
                     .build()
 
