@@ -6,6 +6,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -18,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.ChatSessionEntity;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
+import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.databinding.FragmentAiChatBinding;
 import com.cz.fitnessdiary.model.ChatMessage;
@@ -106,6 +109,8 @@ public class AIChatFragment extends Fragment {
         setupListeners();
         observeViewModel();
     }
+
+    private long selectedRecordDate = System.currentTimeMillis();
 
     private void setupRecyclerView() {
         adapter = new AIChatAdapter();
@@ -705,49 +710,93 @@ public class AIChatFragment extends Fragment {
                             Toast.LENGTH_SHORT).show();
                 })
                 .setPositiveButton("一键记录", (dialog, which) -> {
-                    showMealTypeDialog(items, checkedItems);
+                    selectedRecordDate = System.currentTimeMillis(); // 重置为当前时间
+                    showMealTypeAndDatePickerDialog(items, checkedItems);
                 })
                 .setNegativeButton("取消", null)
                 .show();
     }
 
-    private void showMealTypeDialog(org.json.JSONArray items, boolean[] checkedItems) {
+    private void showMealTypeAndDatePickerDialog(org.json.JSONArray items, boolean[] checkedItems) {
         String[] types = { "早餐", "午餐", "晚餐", "加餐" };
+        final int[] selectedType = { 1 }; // 默认午餐
+
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_meal_date_picker, null);
+        com.google.android.material.button.MaterialButton btnDate = dialogView.findViewById(R.id.btn_select_date);
+        RadioGroup groupType = dialogView.findViewById(R.id.group_meal_type);
+
+        // 初始化显示
+        btnDate.setText("日期: " + com.cz.fitnessdiary.utils.DateUtils.formatDate(selectedRecordDate));
+
+        btnDate.setOnClickListener(v -> {
+            com.google.android.material.datepicker.MaterialDatePicker<Long> datePicker = com.google.android.material.datepicker.MaterialDatePicker.Builder
+                    .datePicker()
+                    .setTitleText("选择记录日期")
+                    .setSelection(com.cz.fitnessdiary.utils.DateUtils.localToUtcDayStart(selectedRecordDate))
+                    .build();
+
+            datePicker.addOnPositiveButtonClickListener(selection -> {
+                selectedRecordDate = selection;
+                btnDate.setText("日期: " + com.cz.fitnessdiary.utils.DateUtils.formatDate(selectedRecordDate));
+            });
+            datePicker.show(getChildFragmentManager(), "DATE_PICKER");
+        });
+
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("选择用餐类型")
-                .setItems(types, (dialog, which) -> {
-                    int mealType = which; // 0,1,2,3
-                    int success = 0;
-                    int skipped = 0;
-                    for (int i = 0; i < items.length(); i++) {
-                        if (checkedItems[i]) {
-                            JSONObject item = items.optJSONObject(i);
-                            if (item == null) {
-                                skipped++;
-                                continue;
-                            }
-                            String name = item.optString("name", "").trim();
-                            int calories = Math.max(0, item.optInt("calories", 0));
-                            if (name.isEmpty() || calories <= 0) {
-                                skipped++;
-                                continue;
-                            }
-                            com.cz.fitnessdiary.database.entity.FoodRecord record = new com.cz.fitnessdiary.database.entity.FoodRecord(
-                                    name, calories, System.currentTimeMillis());
-                            record.setProtein(Math.max(0d, item.optDouble("protein", 0d)));
-                            record.setCarbs(Math.max(0d, item.optDouble("carbs", 0d)));
-                            record.setMealType(mealType);
-                            record.setServings(1.0f);
-                            record.setServingUnit(item.optString("unit", "份"));
-                            foodRecordRepository.insert(record);
-                            success++;
-                        }
-                    }
-                    Toast.makeText(getContext(),
-                            "记录完成：成功 " + success + " 条，跳过 " + skipped + " 条（" + types[mealType] + "）",
-                            Toast.LENGTH_SHORT).show();
+                .setTitle("确认记录详情")
+                .setView(dialogView)
+                .setPositiveButton("确定记录", (dialog, which) -> {
+                    int id = groupType.getCheckedRadioButtonId();
+                    int mealType = 1;
+                    if (id == R.id.radio_breakfast)
+                        mealType = 0;
+                    else if (id == R.id.radio_lunch)
+                        mealType = 1;
+                    else if (id == R.id.radio_dinner)
+                        mealType = 2;
+                    else if (id == R.id.radio_snack)
+                        mealType = 3;
+
+                    saveFoodRecords(items, checkedItems, mealType, selectedRecordDate);
                 })
+                .setNegativeButton("取消", null)
                 .show();
+    }
+
+    private void saveFoodRecords(org.json.JSONArray items, boolean[] checkedItems, int mealType, long timestamp) {
+        String[] types = { "早餐", "午餐", "晚餐", "加餐" };
+        int success = 0;
+        int skipped = 0;
+        for (int i = 0; i < items.length(); i++) {
+            if (checkedItems[i]) {
+                JSONObject item = items.optJSONObject(i);
+                if (item == null) {
+                    skipped++;
+                    continue;
+                }
+                String name = item.optString("name", "").trim();
+                int calories = Math.max(0, item.optInt("calories", 0));
+                if (name.isEmpty() || calories <= 0) {
+                    skipped++;
+                    continue;
+                }
+
+                // 创建记录，使用用户选择的时间戳
+                com.cz.fitnessdiary.database.entity.FoodRecord record = new com.cz.fitnessdiary.database.entity.FoodRecord(
+                        name, calories, timestamp);
+                record.setProtein(Math.max(0d, item.optDouble("protein", 0d)));
+                record.setCarbs(Math.max(0d, item.optDouble("carbs", 0d)));
+                record.setMealType(mealType);
+                record.setServings(1.0f);
+                record.setServingUnit(item.optString("unit", "份"));
+                foodRecordRepository.insert(record);
+                success++;
+            }
+        }
+        Toast.makeText(getContext(),
+                "记录完成：成功 " + success + " 条（" + types[mealType] + "），日期："
+                        + com.cz.fitnessdiary.utils.DateUtils.formatDate(timestamp),
+                Toast.LENGTH_SHORT).show();
     }
 
     private android.graphics.Bitmap decodeScaledBitmap(android.net.Uri uri, int maxSide) throws Exception {
