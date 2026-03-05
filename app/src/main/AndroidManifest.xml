@@ -52,6 +52,7 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.cz.fitnessdiary.ACTION_TRAINING_REMINDER" />
+                <action android:name="com.cz.fitnessdiary.ACTION_RECORD_REMINDER" />
             </intent-filter>
         </receiver>
 
@@ -70,3 +71,4 @@
     </application>
 
 </manifest>
+

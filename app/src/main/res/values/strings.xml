@@ -11,13 +11,13 @@
     <string name="btn_start">开始使用</string>
     
     <!-- Bottom Navigation -->
-    <string name="nav_checkin">打卡</string>
+    <string name="nav_checkin">记录</string>
     <string name="nav_plan">计划</string>
     <string name="nav_diet">饮食</string>
     <string name="nav_ai">AI教练</string>
     
     <!-- Check-in Screen -->
-    <string name="checkin_title">今日训练</string>
+    <string name="checkin_title">记录</string>
     <string name="checkin_no_plans">暂无训练计划，请先添加计划</string>
     <string name="checkin_completed">已完成</string>
     
@@ -58,3 +58,4 @@
     <string name="plan_category">训练分类 (如: 胸肌, 有氧)</string>
     <string name="plan_schedule">计划排期 (默认每天)</string>
 </resources>
+

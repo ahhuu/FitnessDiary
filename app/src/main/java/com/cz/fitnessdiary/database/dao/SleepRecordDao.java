@@ -34,4 +34,8 @@ public interface SleepRecordDao {
 
     @Query("SELECT * FROM sleep_record WHERE end_time >= :startDate AND end_time < :endDate ORDER BY end_time DESC")
     List<SleepRecord> getSleepRecordsByDateRangeSync(long startDate, long endDate);
+
+    @Query("SELECT * FROM sleep_record ORDER BY end_time DESC LIMIT :limit")
+    List<SleepRecord> getRecentRecordsSync(int limit);
 }
+

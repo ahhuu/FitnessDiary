@@ -10,20 +10,21 @@ import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
+
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.ui.MainActivity;
 import com.cz.fitnessdiary.utils.ReminderManager;
 
 /**
  * 提醒广播接收器
- * 负责接收闹钟广播并弹出通知
  */
 public class ReminderReceiver extends BroadcastReceiver {
 
     private static final String CHANNEL_ID = "training_reminder_channel";
-    private static final int NOTIFICATION_ID = 1001;
+    private static final int TRAINING_NOTIFICATION_ID = 1001;
 
     private static final String TAG = "ReminderReceiver";
 
@@ -32,62 +33,75 @@ public class ReminderReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         Log.d(TAG, "onReceive: action=" + action);
 
-        // 使用 ApplicationContext 避免 Receiver 生命周期限制导致的 Context 泄漏或失效
         Context appContext = context.getApplicationContext();
 
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            // 开机自启，恢复闹钟
             ReminderManager.restoreReminder(appContext);
-        } else if (ReminderManager.ACTION_REMINDER.equals(action)) {
-            // [v1.2] 测试阶段 Toast
-            Toast.makeText(appContext, "训练提醒！", Toast.LENGTH_LONG).show();
+            ReminderManager.restoreAll(appContext);
+            return;
+        }
 
-            // 闹钟触发，显示通知
-            showNotification(appContext);
-            // 设置明天的闹钟（循环）
+        if (ReminderManager.ACTION_REMINDER.equals(action)) {
+            Toast.makeText(appContext, "训练提醒！", Toast.LENGTH_LONG).show();
+            showNotification(appContext, TRAINING_NOTIFICATION_ID, "该训练啦！", "今天的训练目标还没完成，点击开始打卡吧。", null, 0L);
             ReminderManager.restoreReminder(appContext);
+            return;
+        }
+
+        if (ReminderManager.ACTION_RECORD_REMINDER.equals(action)) {
+            long scheduleId = intent.getLongExtra(ReminderManager.EXTRA_SCHEDULE_ID, 0L);
+            String moduleType = intent.getStringExtra(ReminderManager.EXTRA_MODULE_TYPE);
+            String title = intent.getStringExtra(ReminderManager.EXTRA_TITLE);
+            long targetId = intent.getLongExtra(ReminderManager.EXTRA_TARGET_ID, 0L);
+            String content = intent.getStringExtra(ReminderManager.EXTRA_CONTENT);
+
+            if (title == null || title.trim().isEmpty()) {
+                title = "记录提醒";
+            }
+            if (content == null || content.trim().isEmpty()) {
+                content = "请完成今日记录";
+            }
+
+            showNotification(appContext, 2000 + (int) (scheduleId % 500), title, content, moduleType, targetId);
+            ReminderManager.restoreAll(appContext);
         }
     }
 
-    private void showNotification(Context context) {
-        // [v1.2] 统一渠道创建
+    private void showNotification(Context context, int notifyId, String title, String content, String moduleType, long targetId) {
         createNotificationChannel(context);
 
-        // 点击通知跳转到 App
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        if (moduleType != null) {
+            intent.putExtra(ReminderManager.EXTRA_MODULE_TYPE, moduleType);
+        }
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
-                0,
+                notifyId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_nav_checkin_filled)
-                .setContentTitle("该训练啦！💪")
-                .setContentText("今天的训练目标还没完成，点击开始打卡吧。")
+                .setContentTitle(title)
+                .setContentText(content)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // 锁屏可见性
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
 
         try {
             NotificationManagerCompat compatManager = NotificationManagerCompat.from(context);
-            // 检查权限确认 (Android 13+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (compatManager.areNotificationsEnabled()) {
-                    compatManager.notify(NOTIFICATION_ID, builder.build());
-                    Log.d(TAG, "Notification sent via NotificationManagerCompat");
+                    compatManager.notify(notifyId, builder.build());
                 } else {
-                    Log.e(TAG, "Notification permission not granted for background process");
+                    Log.e(TAG, "Notification permission not granted");
                 }
             } else {
-                // Android 13 以下不需要 POST_NOTIFICATIONS 运行时权限，但 lint 可能会报错
-                // noinspection MissingPermission
-                compatManager.notify(NOTIFICATION_ID, builder.build());
-                Log.d(TAG, "Notification sent via NotificationManagerCompat (Pre-13)");
+                compatManager.notify(notifyId, builder.build());
             }
         } catch (Exception e) {
             Log.e(TAG, "Error showing notification: " + e.getMessage());
@@ -95,12 +109,11 @@ public class ReminderReceiver extends BroadcastReceiver {
     }
 
     private void createNotificationChannel(Context context) {
-        // minSdkVersion >= 26，无需检查 Build.VERSION_CODES.O
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
-                "每日训练提醒",
+                "每日记录提醒",
                 NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription("用于提醒每日健身训练");
+        channel.setDescription("用于提醒每日训练、喝水、用药与自定义记录");
         channel.enableLights(true);
         channel.setLightColor(android.graphics.Color.BLUE);
         channel.enableVibration(true);

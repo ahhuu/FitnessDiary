@@ -24,6 +24,22 @@ import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.database.dao.SleepRecordDao;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.ChatSessionEntity;
+import com.cz.fitnessdiary.database.dao.WeightRecordDao;
+import com.cz.fitnessdiary.database.dao.WaterRecordDao;
+import com.cz.fitnessdiary.database.dao.MedicationRecordDao;
+import com.cz.fitnessdiary.database.dao.CustomTrackerDao;
+import com.cz.fitnessdiary.database.dao.CustomRecordDao;
+import com.cz.fitnessdiary.database.dao.ReminderScheduleDao;
+import com.cz.fitnessdiary.database.dao.HabitItemDao;
+import com.cz.fitnessdiary.database.dao.HabitRecordDao;
+import com.cz.fitnessdiary.database.entity.WeightRecord;
+import com.cz.fitnessdiary.database.entity.WaterRecord;
+import com.cz.fitnessdiary.database.entity.MedicationRecord;
+import com.cz.fitnessdiary.database.entity.CustomTracker;
+import com.cz.fitnessdiary.database.entity.CustomRecord;
+import com.cz.fitnessdiary.database.entity.ReminderSchedule;
+import com.cz.fitnessdiary.database.entity.HabitItem;
+import com.cz.fitnessdiary.database.entity.HabitRecord;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +51,7 @@ import java.util.concurrent.Executors;
  */
 @Database(entities = { User.class, TrainingPlan.class, DailyLog.class, FoodRecord.class,
         FoodLibrary.class, SleepRecord.class, ChatMessageEntity.class,
-        ChatSessionEntity.class }, version = 14, exportSchema = false)
+        ChatSessionEntity.class, WeightRecord.class, WaterRecord.class, MedicationRecord.class, CustomTracker.class, CustomRecord.class, ReminderSchedule.class, HabitItem.class, HabitRecord.class }, version = 16, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -60,6 +76,22 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract ChatMessageDao chatMessageDao();
 
     public abstract com.cz.fitnessdiary.database.dao.ChatSessionDao chatSessionDao();
+
+    public abstract WeightRecordDao weightRecordDao();
+
+    public abstract WaterRecordDao waterRecordDao();
+
+    public abstract MedicationRecordDao medicationRecordDao();
+
+    public abstract CustomTrackerDao customTrackerDao();
+
+    public abstract CustomRecordDao customRecordDao();
+
+    public abstract ReminderScheduleDao reminderScheduleDao();
+
+    public abstract HabitItemDao habitItemDao();
+
+    public abstract HabitRecordDao habitRecordDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -284,6 +316,37 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 14 -> Version 15 (新增首页记录模块)
+     */
+    static final Migration MIGRATION_14_15 = new Migration(14, 15) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `weight_record` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `weight` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `note` TEXT)");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `water_record` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `amount_ml` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `note` TEXT)");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `medication_record` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `dosage` TEXT, `is_taken` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `note` TEXT)");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `custom_tracker` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `unit` TEXT, `color_hex` TEXT, `is_enabled` INTEGER NOT NULL, `sort_order` INTEGER NOT NULL)");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `custom_record` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tracker_id` INTEGER NOT NULL, `numeric_value` REAL, `text_value` TEXT, `timestamp` INTEGER NOT NULL, FOREIGN KEY(`tracker_id`) REFERENCES `custom_tracker`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_custom_record_tracker_id` ON `custom_record` (`tracker_id`)");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `reminder_schedule` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `module_type` TEXT, `target_id` INTEGER NOT NULL, `hour` INTEGER NOT NULL, `minute` INTEGER NOT NULL, `repeat_days` TEXT, `is_enabled` INTEGER NOT NULL, `title` TEXT, `content` TEXT)");
+        }
+    };
+    /**
+     * 数据库迁移：Version 15 -> Version 16 (新增习惯模块)
+     */
+    static final Migration MIGRATION_15_16 = new Migration(15, 16) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `habit_item` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `is_default` INTEGER NOT NULL, `is_enabled` INTEGER NOT NULL, `sort_order` INTEGER NOT NULL, `auto_rule` TEXT)");
+            database.execSQL("CREATE TABLE IF NOT EXISTS `habit_record` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `habit_id` INTEGER NOT NULL, `record_date` INTEGER NOT NULL, `is_completed` INTEGER NOT NULL, `source` TEXT, `timestamp` INTEGER NOT NULL, FOREIGN KEY(`habit_id`) REFERENCES `habit_item`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_habit_record_habit_id_record_date` ON `habit_record` (`habit_id`, `record_date`)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_habit_record_habit_id` ON `habit_record` (`habit_id`)");
+            database.execSQL("INSERT INTO `habit_item` (`name`, `is_default`, `is_enabled`, `sort_order`, `auto_rule`) VALUES ('每日打卡', 1, 1, 0, 'DAILY_CHECKIN')");
+            database.execSQL("INSERT INTO `habit_item` (`name`, `is_default`, `is_enabled`, `sort_order`, `auto_rule`) VALUES ('早餐', 1, 1, 1, 'BREAKFAST')");
+            database.execSQL("INSERT INTO `habit_item` (`name`, `is_default`, `is_enabled`, `sort_order`, `auto_rule`) VALUES ('早睡', 1, 1, 2, 'EARLY_SLEEP')");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -296,7 +359,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             DATABASE_NAME)
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
-                                    MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                                    MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
@@ -478,3 +541,7 @@ public abstract class AppDatabase extends RoomDatabase {
         foodLibraryDao.insertAll(foods);
     }
 }
+
+
+
+

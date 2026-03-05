@@ -1,68 +1,79 @@
 package com.cz.fitnessdiary.ui.fragment;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.SystemClock;
+import android.text.InputType;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.navigation.NavOptions;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.HabitItem;
+import com.cz.fitnessdiary.database.entity.HabitRecord;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.databinding.FragmentCheckinBinding;
-import com.cz.fitnessdiary.ui.adapter.DailyLogAdapter;
-import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
-import com.cz.fitnessdiary.viewmodel.PlanViewModel;
-
-import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.utils.DateUtils;
-import android.app.TimePickerDialog;
+import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
+import com.cz.fitnessdiary.viewmodel.HomeDashboardViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.cz.fitnessdiary.databinding.DialogAddSleepBinding;
-import java.util.Calendar;
-import com.google.android.material.datepicker.CalendarConstraints;
-import com.google.android.material.datepicker.DateValidatorPointBackward;
-import com.google.android.material.datepicker.DayViewDecorator;
-import com.google.android.material.datepicker.MaterialDatePicker;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.InsetDrawable;
-import android.graphics.drawable.GradientDrawable;
-import androidx.core.content.ContextCompat;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.List;
-import java.text.SimpleDateFormat;
-import java.util.Locale;
-import java.util.Date;
 
-/**
- * 每日打卡页面 - 2.0 升级版
- * 添加本周日历视图和连续打卡天数
- */
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
 public class CheckInFragment extends Fragment {
+    private static final String PREF_HOME_CARDS = "home_card_prefs";
+    private static final String KEY_SHOW_WATER = "show_water";
+    private static final String KEY_SHOW_SLEEP = "show_sleep";
+    private static final String KEY_SHOW_HABIT = "show_habit";
+    private static final String KEY_SHOW_MEDICATION = "show_medication";
+    private static final String KEY_SHOW_WEIGHT = "show_weight";
+    private static final String KEY_SHOW_CUSTOM = "show_custom";
+    private static final String KEY_SMALL_ORDER = "small_order";
+
+    private static final String CARD_WATER = "water";
+    private static final String CARD_SLEEP = "sleep";
+    private static final String CARD_HABIT = "habit";
+    private static final String CARD_MEDICATION = "medication";
+    private static final String CARD_WEIGHT = "weight";
+    private static final String CARD_CUSTOM = "custom";
 
     private FragmentCheckinBinding binding;
     private CheckInViewModel checkInViewModel;
-    private PlanViewModel planViewModel;
-    private DailyLogAdapter adapter;
+    private HomeDashboardViewModel homeDashboardViewModel;
+    private final List<TrainingPlan> currentPlans = new ArrayList<>();
+    private final List<DailyLog> currentLogs = new ArrayList<>();
+    private final List<String> smallCardOrder = new ArrayList<>();
+    private final List<HabitItem> habitItems = new ArrayList<>();
+    private final Map<Long, HabitRecord> habitRecords = new HashMap<>();
+    private long lastNavigateTs = 0L;
 
-    // 暂存数据
-    private List<TrainingPlan> mPlans = new ArrayList<>();
-    private List<DailyLog> mLogs = new ArrayList<>();
-    private SleepRecord currentSleepRecord = null;
+    public CheckInFragment() {
+        super();
+    }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+    public View onCreateView(@NonNull android.view.LayoutInflater inflater, @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
         binding = FragmentCheckinBinding.inflate(inflater, container, false);
         return binding.getRoot();
@@ -71,405 +82,339 @@ public class CheckInFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         checkInViewModel = new ViewModelProvider(this).get(CheckInViewModel.class);
-        planViewModel = new ViewModelProvider(this).get(PlanViewModel.class);
-
-        setupRecyclerView();
-        setupWeekCalendar();
-        setupDateNavigation();
-        setupSleepTracking();
-        observeViewModel();
+        homeDashboardViewModel = new ViewModelProvider(this).get(HomeDashboardViewModel.class);
+        setupActions();
+        observeData();
+        loadCardConfig();
+        applyCardConfig();
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        // [v1.2] 每次进入页面刷新一次数据，确保同步最新的计划模式
-        if (checkInViewModel != null) {
-            checkInViewModel.refreshData();
-            setupWeekCalendar(); // 刷新周视图小圆点
-        }
+    private void setupActions() {
+        v(R.id.card_sport).setOnClickListener(v -> openDetail(R.id.sportRecordDetailFragment));
+        v(R.id.card_water).setOnClickListener(v -> openDetail(R.id.waterRecordDetailFragment));
+        v(R.id.card_sleep).setOnClickListener(v -> openDetail(R.id.sleepRecordDetailFragment));
+        v(R.id.card_habit).setOnClickListener(v -> openDetail(R.id.habitRecordDetailFragment));
+        v(R.id.card_medication).setOnClickListener(v -> openDetail(R.id.medicationRecordDetailFragment));
+        v(R.id.card_weight_small).setOnClickListener(v -> openDetail(R.id.weightRecordDetailFragment));
+        v(R.id.card_custom).setOnClickListener(v -> openDetail(R.id.customCategoryFragment));
+
+        binding.btnAddSport.setOnClickListener(v -> openDetail(R.id.sportRecordDetailFragment));
+        v(R.id.btn_add_water).setOnClickListener(v -> quickNumberInput("记录喝水(ml)", value -> homeDashboardViewModel.addWater(value.intValue(), null)));
+        v(R.id.btn_add_weight).setOnClickListener(v -> quickNumberInput("添加体重(kg)", value -> homeDashboardViewModel.addWeight(value.floatValue(), null)));
+        v(R.id.btn_add_medication).setOnClickListener(v -> quickTextInput("添加用药", text -> homeDashboardViewModel.addMedication(text, "", true, null)));
+        v(R.id.btn_add_sleep).setOnClickListener(v -> openDetail(R.id.sleepRecordDetailFragment));
+        v(R.id.btn_add_habit).setOnClickListener(v -> openDetail(R.id.habitRecordDetailFragment));
+        v(R.id.btn_add_custom).setOnClickListener(v -> openDetail(R.id.customCategoryFragment));
+
+        binding.fabQuickAdd.setOnClickListener(v -> new MaterialAlertDialogBuilder(requireContext()).setTitle("快捷新增")
+                .setItems(new String[] { "运动", "体重", "喝水", "用药", "习惯", "睡眠", "自定义分类" }, (d, i) -> {
+                    if (i == 0) openDetail(R.id.sportRecordDetailFragment);
+                    if (i == 1) v(R.id.btn_add_weight).performClick();
+                    if (i == 2) v(R.id.btn_add_water).performClick();
+                    if (i == 3) v(R.id.btn_add_medication).performClick();
+                    if (i == 4) openDetail(R.id.habitRecordDetailFragment);
+                    if (i == 5) openDetail(R.id.sleepRecordDetailFragment);
+                    if (i == 6) openDetail(R.id.customCategoryFragment);
+                }).show());
+
+        binding.btnEditHomeCards.setOnClickListener(v -> showEditCardsDialog());
     }
 
-    /**
-     * 设置日期导航 (Plan 13: 对齐饮食页)
-     */
-    private void setupDateNavigation() {
-        binding.btnPrevDay.setOnClickListener(v -> checkInViewModel.toPreviousDay());
-        binding.btnNextDay.setOnClickListener(v -> checkInViewModel.toNextDay());
-        binding.tvSelectedDate.setOnClickListener(v -> showDatePickerDialog());
+    private interface NumberConsumer { void accept(Double v); }
+    private interface TextConsumer { void accept(String v); }
+
+    private void quickNumberInput(String title, NumberConsumer c) {
+        EditText et = new EditText(requireContext());
+        et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        new MaterialAlertDialogBuilder(requireContext()).setTitle(title).setView(et)
+                .setPositiveButton("保存", (d, w) -> {
+                    try { c.accept(Double.parseDouble(et.getText().toString().trim())); }
+                    catch (Exception e) { Toast.makeText(getContext(), "请输入正确数字", Toast.LENGTH_SHORT).show(); }
+                }).setNegativeButton("取消", null).show();
     }
 
-    /**
-     * 打开日历选择器 (Plan 13: M3 + 打卡足迹高亮)
-     */
-    private void showDatePickerDialog() {
-        Long currentSelection = checkInViewModel.getSelectedDate().getValue();
-        if (currentSelection == null)
-            currentSelection = System.currentTimeMillis();
-
-        Set<Long> recordedDates = checkInViewModel.getRecordedDates().getValue();
-        if (recordedDates == null)
-            recordedDates = new HashSet<>();
-
-        final Set<Long> finalRecordedDates = recordedDates;
-        DayViewDecorator decorator = new DayViewDecorator() {
-            @Nullable
-            @Override
-            public Drawable getCompoundDrawableBottom(android.content.Context context, int year, int month, int day,
-                    boolean valid, boolean selected) {
-                // MaterialDatePicker 的装饰器回调是基于 UTC 的年月日
-                java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
-                cal.set(year, month, day, 0, 0, 0);
-                cal.set(java.util.Calendar.MILLISECOND, 0);
-                long utcStart = cal.getTimeInMillis();
-
-                if (finalRecordedDates.contains(utcStart)) {
-                    GradientDrawable dot = new GradientDrawable();
-                    dot.setShape(GradientDrawable.OVAL);
-                    dot.setSize(12, 12);
-                    dot.setColor(ContextCompat.getColor(requireContext(), R.color.color_success));
-                    return new InsetDrawable(dot, 0, 0, 0, 4);
-                }
-                return null;
-            }
-
-            @Override
-            public void writeToParcel(android.os.Parcel dest, int flags) {
-            }
-
-            @Override
-            public int describeContents() {
-                return 0;
-            }
-        };
-
-        MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText("选择日期")
-                .setSelection(DateUtils.localToUtcDayStart(currentSelection))
-                .setDayViewDecorator(decorator)
-                .setCalendarConstraints(new CalendarConstraints.Builder()
-                        .setValidator(DateValidatorPointBackward.now())
-                        .build())
-                .build();
-
-        datePicker.addOnPositiveButtonClickListener(selection -> {
-            checkInViewModel.setSelectedDate(selection);
-        });
-
-        datePicker.show(getParentFragmentManager(), "CHECKIN_DATE_PICKER");
-    }
-
-    /**
-     * 设置 RecyclerView
-     */
-    private void setupRecyclerView() {
-        adapter = new DailyLogAdapter((planId, isCompleted) -> {
-            // CheckBox 点击切换完成状态
-            // 查找对应的 log
-            DailyLog existingLog = null;
-            for (DailyLog log : mLogs) {
-                if (log.getPlanId() == planId) {
-                    existingLog = log;
-                    break;
-                }
-            }
-
-            if (existingLog != null) {
-                // 已有打卡记录，更新状态
-                checkInViewModel.updateCompletionStatus(existingLog.getLogId(), isCompleted);
-            } else {
-                // 无打卡记录，在选定日期创建
-                checkInViewModel.checkInSelectedDate(planId);
-            }
-        });
-
-        binding.rvTodayLogs.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.rvTodayLogs.setAdapter(adapter);
-    }
-
-    /**
-     * 设置本周日历视图
-     */
-    private void setupWeekCalendar() {
-        // 显示周一到周日
-        String[] weekDays = { "一", "二", "三", "四", "五", "六", "日" };
-
-        checkInViewModel.getThisWeekCheckedDates(checkedDays -> {
-            requireActivity().runOnUiThread(() -> {
-                binding.weekCalendar.removeAllViews();
-
-                for (int i = 0; i < 7; i++) {
-                    LinearLayout dayContainer = new LinearLayout(getContext());
-                    dayContainer.setOrientation(LinearLayout.VERTICAL);
-                    dayContainer.setGravity(Gravity.CENTER);
-                    dayContainer.setLayoutParams(new LinearLayout.LayoutParams(
-                            0,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            1.0f));
-                    dayContainer.setPadding(8, 8, 8, 8);
-
-                    // 星期文字
-                    TextView tvDay = new TextView(getContext());
-                    tvDay.setText(weekDays[i]);
-                    tvDay.setTextSize(12);
-                    tvDay.setTextColor(getResources().getColor(R.color.text_secondary, null));
-                    tvDay.setGravity(Gravity.CENTER);
-
-                    // 打卡圆点
-                    View dot = new View(getContext());
-                    LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(
-                            dpToPx(24),
-                            dpToPx(24));
-                    dotParams.setMargins(0, 8, 0, 0);
-                    dot.setLayoutParams(dotParams);
-
-                    if (checkedDays[i]) {
-                        // 已打卡：绿色实心圆
-                        dot.setBackgroundResource(R.drawable.circle_checked);
-                    } else {
-                        // 未打卡：灰色空心圆
-                        dot.setBackgroundResource(R.drawable.circle_unchecked);
+    private void quickTextInput(String title, TextConsumer c) {
+        EditText et = new EditText(requireContext());
+        new MaterialAlertDialogBuilder(requireContext()).setTitle(title).setView(et)
+                .setPositiveButton("保存", (d, w) -> {
+                    String s = et.getText() == null ? "" : et.getText().toString().trim();
+                    if (s.isEmpty()) {
+                        Toast.makeText(getContext(), "请输入内容", Toast.LENGTH_SHORT).show();
+                        return;
                     }
-
-                    dayContainer.addView(tvDay);
-                    dayContainer.addView(dot);
-                    binding.weekCalendar.addView(dayContainer);
-                }
-            });
-        });
+                    c.accept(s);
+                }).setNegativeButton("取消", null).show();
     }
 
-    /**
-     * 设置睡眠记录点击逻辑 (NEW)
-     */
-    private void setupSleepTracking() {
-        binding.cardSleep.setOnClickListener(v -> showAddSleepDialog(currentSleepRecord));
-    }
-
-    private void showAddSleepDialog(@Nullable SleepRecord existingRecord) {
-        DialogAddSleepBinding dialogBinding = DialogAddSleepBinding.inflate(getLayoutInflater());
-        Calendar startCal = Calendar.getInstance();
-        Calendar endCal = Calendar.getInstance();
-
-        // 获取当前界面选中的日期
-        Long selectedTs = checkInViewModel.getSelectedDate().getValue();
-        if (selectedTs == null)
-            selectedTs = System.currentTimeMillis();
-        long midnight = DateUtils.getDayStartTimestamp(selectedTs);
-
-        if (existingRecord != null) {
-            startCal.setTimeInMillis(existingRecord.getStartTime());
-            endCal.setTimeInMillis(existingRecord.getEndTime());
-            dialogBinding.ratingSleepQuality.setRating(existingRecord.getQuality());
-            dialogBinding.etSleepNotes.setText(existingRecord.getNotes());
-        } else {
-            // 默认值逻辑：
-            // 选中的日期是“起床日期”。默认 08:00 起床，往前推 8 小时的 00:00 (或昨晚23点)
-            endCal.setTimeInMillis(midnight);
-            endCal.set(Calendar.HOUR_OF_DAY, 8);
-            endCal.set(Calendar.MINUTE, 0);
-
-            startCal.setTimeInMillis(endCal.getTimeInMillis());
-            startCal.add(Calendar.HOUR_OF_DAY, -8);
-        }
-
-        SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm", Locale.getDefault());
-        SimpleDateFormat dateFmt = new SimpleDateFormat("M/d", Locale.getDefault());
-
-        // 统一更新按钮文字显示
-        Runnable updateButtons = () -> {
-            dialogBinding.btnStartDate.setText(dateFmt.format(startCal.getTime()));
-            dialogBinding.btnStartTime.setText(timeFmt.format(startCal.getTime()));
-            dialogBinding.btnEndDate.setText(dateFmt.format(endCal.getTime()));
-            dialogBinding.btnEndTime.setText(timeFmt.format(endCal.getTime()));
-        };
-        updateButtons.run();
-
-        // --- 入睡日期 & 时间 ---
-        dialogBinding.btnStartDate.setOnClickListener(v -> {
-            new android.app.DatePickerDialog(getContext(), (view, year, month, day) -> {
-                startCal.set(year, month, day);
-                updateButtons.run();
-            }, startCal.get(Calendar.YEAR), startCal.get(Calendar.MONTH), startCal.get(Calendar.DAY_OF_MONTH)).show();
-        });
-
-        dialogBinding.btnStartTime.setOnClickListener(v -> {
-            new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
-                startCal.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                startCal.set(Calendar.MINUTE, minute);
-
-                // [智能逻辑]：入睡时间如果填 18:00 - 23:59，自动认为是在“起床日期”的前一天
-                // 如果是凌晨 (00:00 - 17:59)，自动认为就是在“起床日期”的当天
-                if (hourOfDay >= 18) {
-                    Calendar prevDay = (Calendar) endCal.clone();
-                    prevDay.add(Calendar.DAY_OF_YEAR, -1);
-                    startCal.set(prevDay.get(Calendar.YEAR), prevDay.get(Calendar.MONTH),
-                            prevDay.get(Calendar.DAY_OF_MONTH));
-                } else {
-                    startCal.set(endCal.get(Calendar.YEAR), endCal.get(Calendar.MONTH),
-                            endCal.get(Calendar.DAY_OF_MONTH));
-                }
-
-                updateButtons.run();
-            }, startCal.get(Calendar.HOUR_OF_DAY), startCal.get(Calendar.MINUTE), true).show();
-        });
-
-        // --- 起床日期 & 时间 ---
-        dialogBinding.btnEndDate.setOnClickListener(v -> {
-            new android.app.DatePickerDialog(getContext(), (view, year, month, day) -> {
-                endCal.set(year, month, day);
-                updateButtons.run();
-            }, endCal.get(Calendar.YEAR), endCal.get(Calendar.MONTH), endCal.get(Calendar.DAY_OF_MONTH)).show();
-        });
-
-        dialogBinding.btnEndTime.setOnClickListener(v -> {
-            new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
-                endCal.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                endCal.set(Calendar.MINUTE, minute);
-                updateButtons.run();
-            }, endCal.get(Calendar.HOUR_OF_DAY), endCal.get(Calendar.MINUTE), true).show();
-        });
-
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(existingRecord == null ? "记录睡眠" : "修改睡眠记录")
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton("保存", (dialog, which) -> {
-                    long startTs = startCal.getTimeInMillis();
-                    long endTs = endCal.getTimeInMillis();
-
-                    // 处理异常情况：如果用户选乱了（比如结束早于开始），自动加一天或报错
-                    // 有了显式的日期选择，我们更倾向于信任用户，但为了防呆还是保留一个基本的反转检查
-                    if (endTs <= startTs && (startTs - endTs) < 24 * 60 * 60 * 1000L) {
-                        Calendar tempEnd = Calendar.getInstance();
-                        tempEnd.setTimeInMillis(endTs);
-                        tempEnd.add(Calendar.DAY_OF_YEAR, 1);
-                        endTs = tempEnd.getTimeInMillis();
-                    }
-
-                    int quality = (int) dialogBinding.ratingSleepQuality.getRating();
-                    String notes = dialogBinding.etSleepNotes.getText().toString();
-
-                    if (existingRecord != null) {
-                        existingRecord.setStartTime(startTs);
-                        existingRecord.setEndTime(endTs);
-                        existingRecord.setDuration((endTs - startTs) / 1000);
-                        existingRecord.setQuality(quality);
-                        existingRecord.setNotes(notes);
-                        checkInViewModel.updateSleepRecord(existingRecord);
-                    } else {
-                        SleepRecord record = new SleepRecord(startTs, endTs, quality, notes);
-                        checkInViewModel.insertSleepRecord(record);
-                    }
-                })
-                .setNegativeButton("取消", null);
-
-        if (existingRecord != null) {
-            builder.setNeutralButton("删除", (dialog, which) -> {
-                new MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("确认删除")
-                        .setMessage("确定要删除这条睡眠记录吗？")
-                        .setPositiveButton("确定", (d2, w2) -> checkInViewModel.deleteSleepRecord(existingRecord))
-                        .setNegativeButton("取消", null)
-                        .show();
-            });
-        }
-
-        builder.show();
-    }
-
-    /**
-     * 观察 ViewModel 数据（双重监听）
-     */
-    private void observeViewModel() {
-        // 观察选定日期标题 (Plan 13)
-        checkInViewModel.getSelectedDate().observe(getViewLifecycleOwner(), date -> {
-            if (DateUtils.isToday(date)) {
-                binding.tvSelectedDate.setText("今日");
-            } else {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy年M月d日", Locale.getDefault());
-                binding.tvSelectedDate.setText(sdf.format(new Date(date)));
-            }
-        });
-
-        // 监听选定日期训练计划 (Plan 26 + Plan 13)
+    private void observeData() {
+        checkInViewModel.getSelectedDate().observe(getViewLifecycleOwner(), homeDashboardViewModel::setSelectedDate);
         checkInViewModel.getSelectedDatePlans().observe(getViewLifecycleOwner(), plans -> {
-            if (plans != null) {
-                mPlans = plans;
-                updateAdapter();
-            }
+            currentPlans.clear();
+            if (plans != null) currentPlans.addAll(plans);
+            refreshSportCard();
+            refreshHabitCard();
         });
-
-        // 监听选定日期打卡记录
         checkInViewModel.getSelectedDateLogs().observe(getViewLifecycleOwner(), logs -> {
-            if (logs != null) {
-                mLogs = logs;
-                updateAdapter();
-            }
+            currentLogs.clear();
+            if (logs != null) currentLogs.addAll(logs);
+            refreshSportCard();
+            refreshHabitCard();
+        });
+        checkInViewModel.getConsecutiveDays().observe(getViewLifecycleOwner(), days -> binding.tvConsecutiveDays.setText("连续 " + (days == null ? 0 : days) + " 天"));
+        checkInViewModel.getThisWeekCheckedDates(checkedDays -> {
+            int weekly = 0;
+            for (boolean checked : checkedDays) if (checked) weekly++;
+            int finalWeekly = weekly;
+            requireActivity().runOnUiThread(() -> binding.tvSportWeekly.setText("本周达成 " + finalWeekly + " 天"));
         });
 
-        // 观察连续打卡天数
-        checkInViewModel.getConsecutiveDays().observe(getViewLifecycleOwner(), days -> {
-            if (days != null && days > 0) {
-                binding.tvConsecutiveDays.setText("已连续坚持 " + days + " 天");
-                binding.tvConsecutiveDays.setVisibility(View.VISIBLE);
-            } else {
-                binding.tvConsecutiveDays.setVisibility(View.GONE);
-            }
+        homeDashboardViewModel.getLatestWeight().observe(getViewLifecycleOwner(), r -> {
+            setTextIfExists(R.id.tv_weight_value, r == null ? "-- kg" : String.format(java.util.Locale.getDefault(), "%.1f kg", r.getWeight()));
+            setTextIfExists(R.id.tv_weight_update, r == null ? "暂无更新" : getUpdateText(r.getTimestamp()));
+            setTextIfExists(R.id.tv_weight_summary, "点击查看体重明细");
         });
-
-        // 观察睡眠记录 (NEW)
-        checkInViewModel.getSelectedDaySleepRecords().observe(getViewLifecycleOwner(), records -> {
-            if (records != null && !records.isEmpty()) {
-                currentSleepRecord = records.get(0);
-                long durationSeconds = currentSleepRecord.getDuration();
-                long hours = durationSeconds / 3600;
-                long minutes = (durationSeconds % 3600) / 60;
-
-                SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm", Locale.getDefault());
-                String range = timeFmt.format(new Date(currentSleepRecord.getStartTime())) + " - " +
-                        timeFmt.format(new Date(currentSleepRecord.getEndTime()));
-
-                String stars = "⭐";
-                StringBuilder qualityStr = new StringBuilder();
-                for (int i = 0; i < currentSleepRecord.getQuality(); i++)
-                    qualityStr.append(stars);
-
-                binding.tvSleepDuration.setText(String.format(Locale.getDefault(), "%d小时 %d分", hours, minutes));
-                binding.tvSleepQuality.setText(range + "  " + qualityStr.toString());
-            } else {
-                currentSleepRecord = null;
-                binding.tvSleepDuration.setText("未记录");
-                binding.tvSleepQuality.setText("");
+        homeDashboardViewModel.getTodayWaterTotal().observe(getViewLifecycleOwner(), total -> {
+            int v = total == null ? 0 : total;
+            setTextIfExists(R.id.tv_water_value, v + " ml");
+            setTextIfExists(R.id.tv_water_summary, "目标1600ml");
+        });
+        homeDashboardViewModel.getLatestWater().observe(getViewLifecycleOwner(), r -> setTextIfExists(R.id.tv_water_update, r == null ? "暂无更新" : getUpdateText(r.getTimestamp())));
+        homeDashboardViewModel.getTodayMedicationTakenCount().observe(getViewLifecycleOwner(), c -> setTextIfExists(R.id.tv_medication_value, (c == null ? 0 : c) + " 次"));
+        homeDashboardViewModel.getLatestMedication().observe(getViewLifecycleOwner(), r -> setTextIfExists(R.id.tv_medication_update, r == null ? "暂无更新" : getUpdateText(r.getTimestamp())));
+        homeDashboardViewModel.getEnabledTrackerCount().observe(getViewLifecycleOwner(), c -> setTextIfExists(R.id.tv_custom_value, (c == null ? 0 : c) + " 类"));
+        homeDashboardViewModel.getTodayCustomRecordCount().observe(getViewLifecycleOwner(), c -> setTextIfExists(R.id.tv_custom_summary, "今日 " + (c == null ? 0 : c) + " 条"));
+        homeDashboardViewModel.getEnabledHabits().observe(getViewLifecycleOwner(), items -> {
+            habitItems.clear();
+            if (items != null) habitItems.addAll(items);
+            refreshHabitCard();
+        });
+        homeDashboardViewModel.getSelectedDateHabitRecords().observe(getViewLifecycleOwner(), records -> {
+            habitRecords.clear();
+            if (records != null) {
+                for (HabitRecord r : records) {
+                    habitRecords.put(r.getHabitId(), r);
+                }
             }
+            refreshHabitCard();
         });
     }
 
-    /**
-     * 合并更新适配器
-     */
-    private void updateAdapter() {
-        if (adapter != null) {
-            adapter.setData(mPlans, mLogs);
+    private void refreshSportCard() {
+        HashSet<Integer> donePlanIds = new HashSet<>();
+        for (DailyLog log : currentLogs) if (log.isCompleted()) donePlanIds.add(log.getPlanId());
+        int done = 0;
+        for (TrainingPlan plan : currentPlans) if (donePlanIds.contains(plan.getPlanId())) done++;
+        binding.tvSportTodayCount.setText("今日完成 " + done + " 项");
+        Long selected = checkInViewModel.getSelectedDate().getValue();
+        binding.tvSportUpdate.setText(DateUtils.isToday(selected == null ? 0 : selected) ? "今日更新" : "历史记录");
+    }
 
-            // 更新UI显示
-            if (mPlans.isEmpty()) {
-                binding.tvNoLogs.setVisibility(View.VISIBLE);
-                binding.rvTodayLogs.setVisibility(View.GONE);
-            } else {
-                binding.tvNoLogs.setVisibility(View.GONE);
-                binding.rvTodayLogs.setVisibility(View.VISIBLE);
+    private void refreshHabitCard() {
+        int total = habitItems.size();
+        int completed = 0;
+        for (HabitItem item : habitItems) {
+            HabitRecord r = habitRecords.get(item.getId());
+            if (r != null && r.isCompleted()) completed++;
+        }
+        setTextIfExists(R.id.tv_habit_value, completed + " / " + total);
+        setTextIfExists(R.id.tv_habit_summary, "默认：每日打卡/早餐/早睡");
+        setTextIfExists(R.id.tv_habit_update, "今日状态");
+    }
+
+    private void openDetail(int destination) {
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastNavigateTs < 280) {
+            return;
+        }
+        lastNavigateTs = now;
+
+        Bundle args = new Bundle();
+        Long ts = checkInViewModel.getSelectedDate().getValue();
+        args.putLong("selectedDate", ts == null ? System.currentTimeMillis() : ts);
+
+        NavOptions navOptions = new NavOptions.Builder()
+                .setEnterAnim(R.anim.slide_in_right)
+                .setExitAnim(R.anim.fade_out_fast)
+                .setPopEnterAnim(R.anim.fade_in_fast)
+                .setPopExitAnim(R.anim.slide_out_right)
+                .build();
+        NavHostFragment.findNavController(this).navigate(destination, args, navOptions);
+    }
+
+    private void showEditCardsDialog() {
+        ScrollView sv = new ScrollView(requireContext());
+        LinearLayout root = new LinearLayout(requireContext());
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(16);
+        root.setPadding(pad, pad, pad, pad);
+        sv.addView(root);
+
+        CheckBox cWater = buildToggle(root, "喝水", isCardEnabled(KEY_SHOW_WATER, true));
+        CheckBox cSleep = buildToggle(root, "睡眠", isCardEnabled(KEY_SHOW_SLEEP, true));
+        CheckBox cHabit = buildToggle(root, "习惯", isCardEnabled(KEY_SHOW_HABIT, true));
+        CheckBox cMed = buildToggle(root, "用药", isCardEnabled(KEY_SHOW_MEDICATION, true));
+        CheckBox cWeight = buildToggle(root, "体重", isCardEnabled(KEY_SHOW_WEIGHT, true));
+        CheckBox cCustom = buildToggle(root, "自定义分类", isCardEnabled(KEY_SHOW_CUSTOM, true));
+
+        List<String> temp = new ArrayList<>(smallCardOrder);
+        LinearLayout oc = new LinearLayout(requireContext());
+        oc.setOrientation(LinearLayout.VERTICAL);
+        root.addView(oc);
+        renderOrderEditor(oc, temp);
+
+        new MaterialAlertDialogBuilder(requireContext()).setTitle("编辑首页卡片").setView(sv).setPositiveButton("保存", (d, w) -> {
+            SharedPreferences sp = requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE);
+            sp.edit().putBoolean(KEY_SHOW_WATER, cWater.isChecked()).putBoolean(KEY_SHOW_SLEEP, cSleep.isChecked())
+                    .putBoolean(KEY_SHOW_HABIT, cHabit.isChecked()).putBoolean(KEY_SHOW_MEDICATION, cMed.isChecked())
+                    .putBoolean(KEY_SHOW_WEIGHT, cWeight.isChecked()).putBoolean(KEY_SHOW_CUSTOM, cCustom.isChecked())
+                    .putString(KEY_SMALL_ORDER, String.join(",", temp)).apply();
+            loadCardConfig();
+            applyCardConfig();
+        }).setNegativeButton("取消", null).show();
+    }
+
+    private void loadCardConfig() {
+        SharedPreferences sp = requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE);
+        String raw = sp.getString(KEY_SMALL_ORDER,
+                CARD_WATER + "," + CARD_SLEEP + "," + CARD_HABIT + "," + CARD_MEDICATION + "," + CARD_WEIGHT + "," + CARD_CUSTOM);
+        smallCardOrder.clear();
+        if (raw != null) {
+            for (String s : raw.split(",")) {
+                String id = s.trim();
+                if (!smallCardOrder.contains(id)) smallCardOrder.add(id);
             }
+        }
+        if (!smallCardOrder.contains(CARD_WATER)) smallCardOrder.add(CARD_WATER);
+        if (!smallCardOrder.contains(CARD_SLEEP)) smallCardOrder.add(CARD_SLEEP);
+        if (!smallCardOrder.contains(CARD_HABIT)) smallCardOrder.add(CARD_HABIT);
+        if (!smallCardOrder.contains(CARD_MEDICATION)) smallCardOrder.add(CARD_MEDICATION);
+        if (!smallCardOrder.contains(CARD_WEIGHT)) smallCardOrder.add(CARD_WEIGHT);
+        if (!smallCardOrder.contains(CARD_CUSTOM)) smallCardOrder.add(CARD_CUSTOM);
+    }
+
+    private void applyCardConfig() {
+        Map<String, View> map = new HashMap<>();
+        map.put(CARD_WATER, v(R.id.card_water));
+        map.put(CARD_SLEEP, v(R.id.card_sleep));
+        map.put(CARD_HABIT, v(R.id.card_habit));
+        map.put(CARD_MEDICATION, v(R.id.card_medication));
+        map.put(CARD_WEIGHT, v(R.id.card_weight_small));
+        map.put(CARD_CUSTOM, v(R.id.card_custom));
+
+        for (View card : map.values()) {
+            ViewGroup parent = (ViewGroup) card.getParent();
+            if (parent != null) parent.removeView(card);
+        }
+
+        binding.layoutSmallCardsTop.removeAllViews();
+        binding.layoutSmallCardsMiddle.removeAllViews();
+        binding.layoutSmallCardsBottom.removeAllViews();
+
+        List<String> enabled = new ArrayList<>();
+        for (String id : smallCardOrder) {
+            if (CARD_WATER.equals(id) && isCardEnabled(KEY_SHOW_WATER, true)) enabled.add(id);
+            if (CARD_SLEEP.equals(id) && isCardEnabled(KEY_SHOW_SLEEP, true)) enabled.add(id);
+            if (CARD_HABIT.equals(id) && isCardEnabled(KEY_SHOW_HABIT, true)) enabled.add(id);
+            if (CARD_MEDICATION.equals(id) && isCardEnabled(KEY_SHOW_MEDICATION, true)) enabled.add(id);
+            if (CARD_WEIGHT.equals(id) && isCardEnabled(KEY_SHOW_WEIGHT, true)) enabled.add(id);
+            if (CARD_CUSTOM.equals(id) && isCardEnabled(KEY_SHOW_CUSTOM, true)) enabled.add(id);
+        }
+
+        LinearLayout[] rows = new LinearLayout[] {
+                binding.layoutSmallCardsTop,
+                binding.layoutSmallCardsMiddle,
+                binding.layoutSmallCardsBottom
+        };
+
+        for (int i = 0; i < enabled.size(); i++) {
+            View card = map.get(enabled.get(i));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(190), 1f);
+            if (i % 2 == 0) lp.setMarginEnd(dp(6)); else lp.setMarginStart(dp(6));
+            card.setLayoutParams(lp);
+            rows[i / 2].addView(card);
+        }
+
+        binding.layoutSmallCardsTop.setVisibility(enabled.size() > 0 ? View.VISIBLE : View.GONE);
+        binding.layoutSmallCardsMiddle.setVisibility(enabled.size() > 2 ? View.VISIBLE : View.GONE);
+        binding.layoutSmallCardsBottom.setVisibility(enabled.size() > 4 ? View.VISIBLE : View.GONE);
+    }
+
+    private boolean isCardEnabled(String key, boolean def) {
+        return requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE).getBoolean(key, def);
+    }
+
+    private CheckBox buildToggle(LinearLayout root, String text, boolean checked) {
+        CheckBox cb = new CheckBox(requireContext());
+        cb.setText(text);
+        cb.setChecked(checked);
+        root.addView(cb);
+        return cb;
+    }
+
+    private String getUpdateText(long ts) {
+        long d = (System.currentTimeMillis() - ts) / (24L * 60L * 60L * 1000L);
+        return d <= 0 ? "今日更新" : d + " 天前更新";
+    }
+
+    private int dp(int x) {
+        return Math.round(x * getResources().getDisplayMetrics().density);
+    }
+
+    private void renderOrderEditor(LinearLayout c, List<String> o) {
+        c.removeAllViews();
+        for (int i = 0; i < o.size(); i++) {
+            final int idx = i;
+            LinearLayout r = new LinearLayout(requireContext());
+            r.setOrientation(LinearLayout.HORIZONTAL);
+            r.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView t = new TextView(requireContext());
+            t.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            t.setText(o.get(i));
+            r.addView(t);
+
+            ImageButton up = new ImageButton(requireContext());
+            up.setImageResource(android.R.drawable.arrow_up_float);
+            up.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            up.setEnabled(i > 0);
+            up.setOnClickListener(v -> {
+                if (idx > 0) {
+                    String cur = o.get(idx);
+                    o.set(idx, o.get(idx - 1));
+                    o.set(idx - 1, cur);
+                    renderOrderEditor(c, o);
+                }
+            });
+            r.addView(up);
+
+            ImageButton down = new ImageButton(requireContext());
+            down.setImageResource(android.R.drawable.arrow_down_float);
+            down.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            down.setEnabled(i < o.size() - 1);
+            down.setOnClickListener(v -> {
+                if (idx < o.size() - 1) {
+                    String cur = o.get(idx);
+                    o.set(idx, o.get(idx + 1));
+                    o.set(idx + 1, cur);
+                    renderOrderEditor(c, o);
+                }
+            });
+            r.addView(down);
+            c.addView(r);
         }
     }
 
-    /**
-     * dp转px
-     */
-    private int dpToPx(int dp) {
-        float density = getResources().getDisplayMetrics().density;
-        return Math.round(dp * density);
+    @SuppressWarnings("unchecked")
+    private <T extends View> T v(int id) {
+        return (T) binding.getRoot().findViewById(id);
+    }
+
+    private void setTextIfExists(int id, CharSequence text) {
+        TextView t = binding.getRoot().findViewById(id);
+        if (t != null) {
+            t.setText(text);
+        }
     }
 
     @Override

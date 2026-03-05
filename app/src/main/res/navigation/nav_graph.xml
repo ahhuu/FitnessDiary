@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph">
@@ -16,7 +16,7 @@
     <fragment
         android:id="@+id/checkInFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.CheckInFragment"
-        android:label="每日打卡" />
+        android:label="记录" />
 
     <fragment
         android:id="@+id/planFragment"
@@ -38,4 +38,45 @@
         android:name="com.cz.fitnessdiary.ui.fragment.AIChatFragment"
         android:label="AI 教练" />
 
+
+    <fragment
+        android:id="@+id/sportRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.SportRecordDetailFragment"
+        android:label="运动记录明细" />
+
+    <fragment
+        android:id="@+id/weightRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.WeightRecordDetailFragment"
+        android:label="体重记录明细" />
+
+    <fragment
+        android:id="@+id/waterRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.WaterRecordDetailFragment"
+        android:label="喝水记录明细" />
+
+    <fragment
+        android:id="@+id/sleepRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.SleepRecordDetailFragment"
+        android:label="睡眠记录明细" />
+
+    <fragment
+        android:id="@+id/medicationRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.MedicationRecordDetailFragment"
+        android:label="用药记录明细" />
+
+    <fragment
+        android:id="@+id/habitRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.HabitRecordDetailFragment"
+        android:label="习惯明细" />
+
+    <fragment
+        android:id="@+id/customCategoryFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.CustomCategoryFragment"
+        android:label="自定义分类" />
+
+    <fragment
+        android:id="@+id/customCategoryDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.CustomCategoryDetailFragment"
+        android:label="分类明细" />
 </navigation>
+
