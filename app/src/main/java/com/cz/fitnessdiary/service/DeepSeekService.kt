@@ -8,7 +8,6 @@ import com.google.gson.JsonArray
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -99,7 +98,7 @@ object DeepSeekService {
                     val jsonResponse = gson.fromJson(responseBody, JsonObject::class.java)
                     val choice = jsonResponse.getAsJsonArray("choices")?.get(0)?.asJsonObject
                     val messageObj = choice?.getAsJsonObject("message")
-                    
+
                     val content = messageObj?.get("content")?.asString ?: ""
                     val reasoning = messageObj?.get("reasoning_content")?.asString
 

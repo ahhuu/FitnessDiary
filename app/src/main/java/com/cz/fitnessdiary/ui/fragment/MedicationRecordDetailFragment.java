@@ -1,6 +1,7 @@
 package com.cz.fitnessdiary.ui.fragment;
 
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,10 +22,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.MedicationRecord;
+import com.cz.fitnessdiary.database.entity.ReminderSchedule;
 import com.cz.fitnessdiary.ui.adapter.DetailRecordAdapter;
+import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.viewmodel.MedicationDetailViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -66,7 +70,9 @@ public class MedicationRecordDetailFragment extends Fragment {
         adapter = new DetailRecordAdapter(new DetailRecordAdapter.OnItemActionListener() {
             @Override
             public void onClick(DetailRecordAdapter.Item item) {
-                showEditDialog((MedicationRecord) item.payload);
+                // 需求5：单击直接快速切换已服/未服
+                MedicationRecord record = (MedicationRecord) item.payload;
+                viewModel.toggleTaken(record);
             }
 
             @Override
@@ -91,16 +97,31 @@ public class MedicationRecordDetailFragment extends Fragment {
         long selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
         viewModel.setSelectedDate(selectedDate);
 
+        ExtendedFloatingActionButton fabAdd = view.findViewById(R.id.fab_add);
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
         btnAdd.setOnClickListener(v -> showAddDialog());
-        btnOpenReminder.setOnClickListener(v -> Toast.makeText(getContext(), "提醒配置入口将在提醒页统一管理", Toast.LENGTH_SHORT).show());
+        fabAdd.setOnClickListener(v -> showAddDialog());
+        // 需求5：设置提醒弹窗（与训练提醒一致）
+        btnOpenReminder.setOnClickListener(v -> showReminderDialog());
 
-        viewModel.getTakenCount().observe(getViewLifecycleOwner(), count ->
-                tvSummary.setText("今日已服药 " + (count == null ? 0 : count) + " 次"));
-        viewModel.getUntakenCount().observe(getViewLifecycleOwner(), count ->
-                tvUntaken.setText("今日未服药 " + (count == null ? 0 : count) + " 次"));
+        viewModel.getTakenCount().observe(getViewLifecycleOwner(),
+                count -> updateSummary(count, viewModel.getTotalDosageGoal().getValue()));
+        viewModel.getTotalDosageGoal().observe(getViewLifecycleOwner(),
+                goal -> updateSummary(viewModel.getTakenCount().getValue(), goal));
 
         viewModel.getSelectedDateRecords().observe(getViewLifecycleOwner(), this::renderRecords);
+    }
+
+    private void updateSummary(Integer taken, Integer goal) {
+        int t = taken == null ? 0 : taken;
+        int g = goal == null ? 0 : goal;
+        tvSummary.setText(String.format(Locale.getDefault(), "今日已服药 %d / 共 %d 次", t, g));
+        if (g > 0 && t >= g) {
+            tvSummary.append(" (已完成)");
+            tvSummary.setTextColor(0xFF4CAF50); // Green
+        } else {
+            tvSummary.setTextColor(requireContext().getColor(R.color.cat_med_primary));
+        }
     }
 
     private void renderRecords(List<MedicationRecord> records) {
@@ -112,9 +133,12 @@ public class MedicationRecordDetailFragment extends Fragment {
                         record.getId(),
                         record.getName() == null ? "用药" : record.getName(),
                         format.format(new Date(record.getTimestamp())),
-                        record.getDosage() == null || record.getDosage().isEmpty() ? "--" : record.getDosage(),
-                        record.isTaken() ? "已服药" : "未服药",
-                        R.drawable.ic_hourglass,
+                        String.format(Locale.getDefault(), "%s (设为 %d 次)",
+                                (record.getDosage() == null || record.getDosage().isEmpty() ? "--"
+                                        : record.getDosage()),
+                                record.getDailyTotal()),
+                        record.isTaken() ? "已服药 (点击取消)" : "未服药 (点击标记已服)",
+                        record.isTaken() ? R.drawable.circle_checked : R.drawable.circle_unchecked,
                         record));
             }
         }
@@ -127,7 +151,7 @@ public class MedicationRecordDetailFragment extends Fragment {
         LinearLayout root = buildMedicationInput(null);
         EditText etName = (EditText) root.getChildAt(0);
         EditText etDose = (EditText) root.getChildAt(1);
-        CheckBox checkBox = (CheckBox) root.getChildAt(2);
+
         new MaterialAlertDialogBuilder(requireContext()).setTitle("新增用药").setView(root)
                 .setPositiveButton("保存", (d, w) -> {
                     String name = etName.getText() == null ? "" : etName.getText().toString().trim();
@@ -136,7 +160,14 @@ public class MedicationRecordDetailFragment extends Fragment {
                         return;
                     }
                     String dose = etDose.getText() == null ? "" : etDose.getText().toString().trim();
-                    viewModel.addMedication(name, dose, checkBox.isChecked(), null);
+                    EditText etTotal = (EditText) root.getChildAt(2);
+                    int total = 1;
+                    try {
+                        total = Integer.parseInt(etTotal.getText().toString());
+                    } catch (Exception ignored) {
+                    }
+                    CheckBox cb = (CheckBox) root.getChildAt(3);
+                    viewModel.addMedication(name, dose, total, cb.isChecked(), null);
                 }).setNegativeButton("取消", null).show();
     }
 
@@ -144,7 +175,7 @@ public class MedicationRecordDetailFragment extends Fragment {
         LinearLayout root = buildMedicationInput(record);
         EditText etName = (EditText) root.getChildAt(0);
         EditText etDose = (EditText) root.getChildAt(1);
-        CheckBox checkBox = (CheckBox) root.getChildAt(2);
+
         new MaterialAlertDialogBuilder(requireContext()).setTitle("编辑用药").setView(root)
                 .setPositiveButton("保存", (d, w) -> {
                     String name = etName.getText() == null ? "" : etName.getText().toString().trim();
@@ -153,9 +184,17 @@ public class MedicationRecordDetailFragment extends Fragment {
                         return;
                     }
                     String dose = etDose.getText() == null ? "" : etDose.getText().toString().trim();
+                    EditText etTotal = (EditText) root.getChildAt(2);
+                    int total = 1;
+                    try {
+                        total = Integer.parseInt(etTotal.getText().toString());
+                    } catch (Exception ignored) {
+                    }
+                    CheckBox cb = (CheckBox) root.getChildAt(3);
                     record.setName(name);
                     record.setDosage(dose);
-                    record.setTaken(checkBox.isChecked());
+                    record.setDailyTotal(total);
+                    record.setTaken(cb.isChecked());
                     viewModel.updateMedication(record);
                 }).setNegativeButton("取消", null).show();
     }
@@ -168,19 +207,71 @@ public class MedicationRecordDetailFragment extends Fragment {
 
         EditText etName = new EditText(requireContext());
         etName.setHint("药名");
-        if (record != null) etName.setText(record.getName());
+        if (record != null)
+            etName.setText(record.getName());
         root.addView(etName);
 
         EditText etDose = new EditText(requireContext());
         etDose.setHint("剂量(可选)");
-        if (record != null) etDose.setText(record.getDosage());
+        if (record != null)
+            etDose.setText(record.getDosage());
         root.addView(etDose);
 
-        CheckBox checkBox = new CheckBox(requireContext());
-        checkBox.setText("已服用");
-        checkBox.setChecked(record == null || record.isTaken());
-        root.addView(checkBox);
+        EditText etTotal = new EditText(requireContext());
+        etTotal.setHint("每日需服药次数(默认1)");
+        etTotal.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        if (record != null)
+            etTotal.setText(String.valueOf(record.getDailyTotal()));
+        else
+            etTotal.setText("1");
+        root.addView(etTotal);
+
+        CheckBox cbTaken = new CheckBox(requireContext());
+        cbTaken.setText("本次已服用");
+        cbTaken.setChecked(record != null && record.isTaken());
+        root.addView(cbTaken);
 
         return root;
+    }
+
+    private void showReminderDialog() {
+        com.google.android.material.timepicker.MaterialTimePicker timePicker = new com.google.android.material.timepicker.MaterialTimePicker.Builder()
+                .setTimeFormat(com.google.android.material.timepicker.TimeFormat.CLOCK_24H)
+                .setHour(8)
+                .setMinute(0)
+                .setTitleText("设置每日用药提醒时间")
+                .build();
+
+        timePicker.addOnPositiveButtonClickListener(v -> {
+            int hour = timePicker.getHour();
+            int minute = timePicker.getMinute();
+
+            // 构建 ReminderSchedule (module, targetId, h, m, days, enabled, title, text)
+            ReminderSchedule schedule = new ReminderSchedule(
+                    "medication",
+                    System.currentTimeMillis(), // 临时 targetId
+                    hour,
+                    minute,
+                    "1,2,3,4,5,6,7", // 每天
+                    true,
+                    "用药提醒",
+                    "该吃药了，请按时服药哦！");
+
+            // 存入数据库并在后台真正配置闹钟
+            new Thread(() -> {
+                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext())
+                        .reminderScheduleDao()
+                        .insert(schedule);
+
+                requireActivity().runOnUiThread(() -> {
+                    ReminderManager.schedule(requireContext(), schedule);
+                    Toast.makeText(requireContext(),
+                            "已设置每日 " + String.format(Locale.getDefault(), "%02d:%02d", hour, minute) + " 的用药提醒",
+                            Toast.LENGTH_SHORT).show();
+                });
+            }).start();
+        });
+
+        timePicker.show(getParentFragmentManager(), "MedicationTimePicker");
     }
 }

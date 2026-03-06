@@ -31,7 +31,7 @@
                 android:layout_height="48dp"
                 android:src="@android:drawable/ic_media_previous"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/fitnessdiary_primary"
+                app:tint="@color/diet_primary"
                 android:contentDescription="前一天" />
 
             <TextView
@@ -53,7 +53,7 @@
                 android:layout_height="48dp"
                 android:src="@android:drawable/ic_media_next"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/fitnessdiary_primary"
+                app:tint="@color/diet_primary"
                 android:contentDescription="后一天" />
         </LinearLayout>
 
@@ -64,7 +64,8 @@
             app:cardBackgroundColor="@color/fitnessdiary_surface"
             app:cardCornerRadius="24dp"
             app:cardElevation="0dp"
-            app:strokeWidth="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/diet_stroke"
             android:layout_marginBottom="16dp">
 
             <LinearLayout
@@ -95,15 +96,15 @@
                             android:layout_weight="1"
                             android:text="0"
                             android:textSize="56sp"
-                            android:textColor="@color/fitnessdiary_primary"
+                            android:textColor="@color/diet_primary"
                             android:textStyle="bold" />
 
                         <!-- 火焰图标 -->
                         <ImageView
                             android:layout_width="64dp"
                             android:layout_height="64dp"
-                            android:src="@drawable/ic_hero_fire"
-                            android:contentDescription="热量图标" />
+                            android:src="@drawable/ic_hero_diet"
+                            android:contentDescription="饮食图标" />
                     </LinearLayout>
 
                     <!-- 第二行：单位描述 + 进度条 -->
@@ -128,8 +129,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="6dp"
                             app:trackCornerRadius="3dp"
-                            app:indicatorColor="@color/color_success"
-                            app:trackColor="#E0E0E0"
+                            app:indicatorColor="@color/diet_primary"
+                            app:trackColor="@color/diet_track"
                             android:max="100"
                             android:progress="0"
                             android:layout_marginBottom="8dp" />
@@ -152,10 +153,10 @@
                                 <com.google.android.material.progressindicator.LinearProgressIndicator
                                     android:id="@+id/progress_protein"
                                     android:layout_width="match_parent"
-                                    android:layout_height="4dp"
-                                    app:trackCornerRadius="2dp"
-                                    app:indicatorColor="#64B5F6"
-                                    app:trackColor="#E3F2FD"
+                                    android:layout_height="6dp"
+                                    app:trackCornerRadius="3dp"
+                                    app:indicatorColor="@color/diet_protein_indicator"
+                                    app:trackColor="@color/diet_protein_track"
                                     android:max="100"
                                     android:progress="0"
                                     android:layout_marginBottom="2dp" />
@@ -166,7 +167,8 @@
                                     android:layout_height="wrap_content"
                                     android:text="蛋白质: 0/0"
                                     android:textSize="10sp"
-                                    android:textColor="@color/text_secondary" />
+                                    android:textColor="@color/text_secondary"
+                                    android:textStyle="bold" />
                             </LinearLayout>
 
                             <!-- 碳水进度 -->
@@ -180,10 +182,10 @@
                                 <com.google.android.material.progressindicator.LinearProgressIndicator
                                     android:id="@+id/progress_carbs"
                                     android:layout_width="match_parent"
-                                    android:layout_height="4dp"
-                                    app:trackCornerRadius="2dp"
-                                    app:indicatorColor="#FFD54F"
-                                    app:trackColor="#FFF8E1"
+                                    android:layout_height="6dp"
+                                    app:trackCornerRadius="3dp"
+                                    app:indicatorColor="@color/diet_carbs_indicator"
+                                    app:trackColor="@color/diet_carbs_track"
                                     android:max="100"
                                     android:progress="0"
                                     android:layout_marginBottom="2dp" />
@@ -194,7 +196,8 @@
                                     android:layout_height="wrap_content"
                                     android:text="碳水: 0/0"
                                     android:textSize="10sp"
-                                    android:textColor="@color/text_secondary" />
+                                    android:textColor="@color/text_secondary"
+                                    android:textStyle="bold" />
                             </LinearLayout>
 
                         </LinearLayout>
@@ -266,7 +269,8 @@
             app:cardBackgroundColor="@color/fitnessdiary_surface"
             app:cardCornerRadius="24dp"
             app:cardElevation="0dp"
-            app:strokeWidth="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/diet_stroke"
             android:clickable="true"
             android:focusable="true">
 
@@ -281,7 +285,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@android:drawable/ic_menu_search"
-                    app:tint="@color/text_secondary"
+                    app:tint="@color/diet_primary"
                     android:layout_marginEnd="12dp"
                     android:contentDescription="搜索图标" />
                     

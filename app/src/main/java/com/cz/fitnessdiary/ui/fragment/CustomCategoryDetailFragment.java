@@ -24,6 +24,7 @@ import com.cz.fitnessdiary.ui.adapter.DetailRecordAdapter;
 import com.cz.fitnessdiary.ui.widget.LineSparkView;
 import com.cz.fitnessdiary.viewmodel.CustomCategoryDetailViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -96,13 +97,15 @@ public class CustomCategoryDetailFragment extends Fragment {
         viewModel.setSelectedDate(selectedDate);
         viewModel.setSelectedTrackerId(targetId);
 
+        ExtendedFloatingActionButton fabAdd = view.findViewById(R.id.fab_add);
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
-        btnAdd.setOnClickListener(v -> showAddDialog());
+        btnAdd.setOnClickListener(v -> showAddDialog()); // btn_add 已 gone，保留兼容
+        fabAdd.setOnClickListener(v -> showAddDialog());
 
-        viewModel.getSelectedTrackerTodayCount().observe(getViewLifecycleOwner(), c ->
-                tvSummary.setText("今日 " + (c == null ? 0 : c) + " 条"));
-        viewModel.getSelectedTrackerTodaySum().observe(getViewLifecycleOwner(), s ->
-                tvSum.setText(String.format(Locale.getDefault(), "今日累计 %.1f", s == null ? 0 : s)));
+        viewModel.getSelectedTrackerTodayCount().observe(getViewLifecycleOwner(),
+                c -> tvSummary.setText("今日 " + (c == null ? 0 : c) + " 条"));
+        viewModel.getSelectedTrackerTodaySum().observe(getViewLifecycleOwner(),
+                s -> tvSum.setText(String.format(Locale.getDefault(), "今日累计 %.1f", s == null ? 0 : s)));
         viewModel.getTrendSeries().observe(getViewLifecycleOwner(), lineTrend::setValues);
         viewModel.getSelectedTrackerRecords().observe(getViewLifecycleOwner(), this::renderRecords);
     }

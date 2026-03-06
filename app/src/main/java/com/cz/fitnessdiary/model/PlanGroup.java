@@ -17,13 +17,13 @@ public class PlanGroup {
     public PlanGroup(String category) {
         this.category = category;
         this.plans = new ArrayList<>();
-        this.isExpanded = true; // 默认展开
+        this.isExpanded = false; // 默认收起
     }
 
     public PlanGroup(String category, List<TrainingPlan> plans) {
         this.category = category;
         this.plans = plans;
-        this.isExpanded = true;
+        this.isExpanded = false;
     }
 
     public String getCategory() {

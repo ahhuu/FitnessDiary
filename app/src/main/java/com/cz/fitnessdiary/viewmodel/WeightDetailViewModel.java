@@ -14,6 +14,7 @@ import com.cz.fitnessdiary.repository.WeightRecordRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,7 +24,9 @@ public class WeightDetailViewModel extends AndroidViewModel {
     private final WeightRecordRepository repository;
     private final UserRepository userRepository;
     private final MutableLiveData<Long> selectedDate = new MutableLiveData<>(DateUtils.getTodayStartTimestamp());
-    private final MutableLiveData<List<Float>> trendSeries = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Float>> weekSeries = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Float>> monthSeries = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Float>> yearSeries = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Float> bmi = new MutableLiveData<>(0f);
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -41,6 +44,10 @@ public class WeightDetailViewModel extends AndroidViewModel {
         refreshTrend();
     }
 
+    public LiveData<Long> getSelectedDate() {
+        return selectedDate;
+    }
+
     public LiveData<List<WeightRecord>> getRecentRecords() {
         return repository.getAllRecords();
     }
@@ -49,8 +56,16 @@ public class WeightDetailViewModel extends AndroidViewModel {
         return repository.getLatestRecord();
     }
 
-    public LiveData<List<Float>> getTrendSeries() {
-        return trendSeries;
+    public LiveData<List<Float>> getWeekSeries() {
+        return weekSeries;
+    }
+
+    public LiveData<List<Float>> getMonthSeries() {
+        return monthSeries;
+    }
+
+    public LiveData<List<Float>> getYearSeries() {
+        return yearSeries;
     }
 
     public LiveData<Float> getBmi() {
@@ -72,27 +87,107 @@ public class WeightDetailViewModel extends AndroidViewModel {
 
     public void refreshTrend() {
         Long selected = selectedDate.getValue();
-        if (selected == null) return;
+        if (selected == null)
+            return;
         long dayStart = DateUtils.getDayStartTimestamp(selected);
         executor.execute(() -> {
-            long from = dayStart - 6L * 24L * 60L * 60L * 1000L;
-            List<WeightRecord> list = repository.getRecordsByDateRangeSync(from, dayStart + 24L * 60L * 60L * 1000L);
-            List<Float> values = new ArrayList<>();
-            for (WeightRecord record : list) {
-                values.add(record.getWeight());
-            }
-            if (values.isEmpty()) {
-                WeightRecord latest = repository.getLatestRecordSync();
-                if (latest != null) {
-                    values.add(latest.getWeight());
-                } else {
-                    User user = userRepository.getUserSync();
-                    values.add(user == null ? 0f : user.getWeight());
-                }
-            }
-            trendSeries.postValue(values);
+            Calendar selectedCal = Calendar.getInstance();
+            selectedCal.setTimeInMillis(dayStart);
+
+            long weekStart = getWeekStart(dayStart);
+            weekSeries.postValue(buildDailySeries(weekStart, 7));
+
+            Calendar monthStartCal = (Calendar) selectedCal.clone();
+            monthStartCal.set(Calendar.DAY_OF_MONTH, 1);
+            monthStartCal.set(Calendar.HOUR_OF_DAY, 0);
+            monthStartCal.set(Calendar.MINUTE, 0);
+            monthStartCal.set(Calendar.SECOND, 0);
+            monthStartCal.set(Calendar.MILLISECOND, 0);
+            long monthStart = monthStartCal.getTimeInMillis();
+            int daysInMonth = monthStartCal.getActualMaximum(Calendar.DAY_OF_MONTH);
+            monthSeries.postValue(buildDailySeries(monthStart, daysInMonth));
+
+            Calendar yearStartCal = (Calendar) monthStartCal.clone();
+            yearStartCal.add(Calendar.MONTH, -11);
+            yearSeries.postValue(buildMonthlySeries(yearStartCal.getTimeInMillis(), 12));
+
             computeBmi();
         });
+    }
+
+    private long getWeekStart(long dayStart) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(dayStart);
+        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+        int offset = (dayOfWeek == Calendar.SUNDAY) ? -6 : (Calendar.MONDAY - dayOfWeek);
+        calendar.add(Calendar.DAY_OF_MONTH, offset);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTimeInMillis();
+    }
+
+    private List<Float> buildDailySeries(long startDay, int dayCount) {
+        List<Float> series = new ArrayList<>();
+        long rangeEnd = startDay + dayCount * 24L * 60L * 60L * 1000L;
+        float carryWeight = resolveInitialWeight(startDay, rangeEnd);
+
+        for (int i = 0; i < dayCount; i++) {
+            long start = startDay + i * 24L * 60L * 60L * 1000L;
+            long end = start + 24L * 60L * 60L * 1000L;
+            List<WeightRecord> list = repository.getRecordsByDateRangeSync(start, end);
+            if (!list.isEmpty()) {
+                carryWeight = list.get(list.size() - 1).getWeight();
+            }
+            series.add(carryWeight);
+        }
+        return series;
+    }
+
+    private List<Float> buildMonthlySeries(long startMonth, int monthCount) {
+        List<Float> series = new ArrayList<>();
+        Calendar rangeEndCalendar = Calendar.getInstance();
+        rangeEndCalendar.setTimeInMillis(startMonth);
+        rangeEndCalendar.add(Calendar.MONTH, monthCount);
+        float carryWeight = resolveInitialWeight(startMonth, rangeEndCalendar.getTimeInMillis());
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(startMonth);
+
+        for (int i = 0; i < monthCount; i++) {
+            long monthStart = calendar.getTimeInMillis();
+            calendar.add(Calendar.MONTH, 1);
+            long nextMonthStart = calendar.getTimeInMillis();
+
+            List<WeightRecord> list = repository.getRecordsByDateRangeSync(monthStart, nextMonthStart);
+            if (!list.isEmpty()) {
+                carryWeight = list.get(list.size() - 1).getWeight();
+            }
+            series.add(carryWeight);
+        }
+        return series;
+    }
+
+    private float resolveInitialWeight(long rangeStart, long rangeEnd) {
+        WeightRecord before = repository.getLatestRecordBeforeSync(rangeStart);
+        if (before != null && before.getWeight() > 0f) {
+            return before.getWeight();
+        }
+
+        List<WeightRecord> inRange = repository.getRecordsByDateRangeSync(rangeStart, rangeEnd);
+        if (!inRange.isEmpty()) {
+            WeightRecord firstInRange = inRange.get(0);
+            if (firstInRange.getWeight() > 0f) {
+                return firstInRange.getWeight();
+            }
+        }
+
+        User user = userRepository.getUserSync();
+        if (user != null && user.getWeight() > 0f) {
+            return user.getWeight();
+        }
+        return 0f;
     }
 
     private void computeBmi() {

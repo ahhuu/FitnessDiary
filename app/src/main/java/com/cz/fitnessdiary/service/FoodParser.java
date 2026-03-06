@@ -1,6 +1,7 @@
 package com.cz.fitnessdiary.service;
 
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
+import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,7 +60,7 @@ public class FoodParser {
 
         // 只有获取到热量才认为解析有效
         if (calories > 0) {
-            return new FoodLibrary(name, calories, protein, carbs, "g", 100, "AI识别");
+            return new FoodLibrary(name, calories, protein, carbs, "g", 100, FoodCategoryUtils.CAT_OTHER);
         }
         return null;
     }

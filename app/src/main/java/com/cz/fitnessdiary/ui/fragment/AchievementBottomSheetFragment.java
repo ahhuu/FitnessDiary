@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.cz.fitnessdiary.databinding.FragmentAchievementBottomSheetBinding;
 import com.cz.fitnessdiary.ui.adapter.AchievementAdapter;
-import com.cz.fitnessdiary.viewmodel.ProfileViewModel;
+import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 /**
@@ -21,7 +21,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 public class AchievementBottomSheetFragment extends BottomSheetDialogFragment {
 
     private FragmentAchievementBottomSheetBinding binding;
-    private ProfileViewModel viewModel;
+    private AchievementCenterViewModel viewModel;
     private AchievementAdapter adapter;
 
     @Nullable
@@ -36,7 +36,9 @@ public class AchievementBottomSheetFragment extends BottomSheetDialogFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        viewModel = new ViewModelProvider(requireParentFragment()).get(ProfileViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(AchievementCenterViewModel.class);
+        viewModel.markAchievementsViewed();
+        viewModel.refreshAll();
 
         setupRecyclerView();
         observeViewModel();

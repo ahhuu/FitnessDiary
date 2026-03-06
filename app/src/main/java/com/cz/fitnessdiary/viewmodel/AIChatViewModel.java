@@ -7,6 +7,7 @@ import com.cz.fitnessdiary.repository.ChatRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.service.AICallback;
 import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 
 import android.app.Application;
 import androidx.annotation.NonNull;
@@ -224,7 +225,8 @@ public class AIChatViewModel extends AndroidViewModel {
 
         new Thread(() -> {
             User user = userRepository.getUserSync();
-            String systemInstruction = buildSystemInstruction(user, search);
+            String searchContext = search ? com.cz.fitnessdiary.service.WebSearchService.searchSummary(content) : "";
+            String systemInstruction = buildSystemInstruction(user, search, searchContext);
 
             // 加载对话历史（取最近 N 条，不含刚发的那条，因为还未入库完成）
             List<ChatMessageEntity> allMessages = repository.getMessagesBySessionSync(finalSessionId);
@@ -257,11 +259,19 @@ public class AIChatViewModel extends AndroidViewModel {
         return new ArrayList<>(allMessages.subList(size - MAX_HISTORY_MESSAGES, size));
     }
 
-    private String buildSystemInstruction(User user, boolean searchEnabled) {
+    private String buildSystemInstruction(User user, boolean searchEnabled, String searchContext) {
         StringBuilder sb = new StringBuilder();
-        sb.append("你是 FitnessDiary 应用的 AI 私教。性格阳光、积极，像朋友一样。请多使用 Emoji 🏋️‍♂️🥗✨。\n");
+        sb.append("你是 FitnessDiary 应用的 AI 私教。语气亲和轻松但专业克制，避免夸张营销口吻。\n");
+        sb.append("输出规则：正文最多120个中文字符、最多4行；最多使用1个 emoji；避免使用“灵魂所在/太诱人/拉满”等表达。\n");
+        sb.append("饮食场景固定结构：1句结论 + 热量区间 + 1条可执行建议；禁止表格、长编号列表和大段科普。\n");
+        sb.append("重点：正文只保留用户决策需要的信息，不重复罗列会写入 <action> 的字段。\n");
         if (searchEnabled) {
-            sb.append("【联网搜索模式已开启】回答需要时效性的事实时，请优先给出可核验结论，并明确标注不确定项。\n");
+            sb.append("【联网搜索模式已开启】你已拿到实时检索摘要，请优先基于摘要回答，并在结尾用“来源：”给出 1-2 个链接。\n");
+            if (searchContext != null && !searchContext.trim().isEmpty()) {
+                sb.append("【实时检索摘要】\n").append(searchContext).append("\n");
+            } else {
+                sb.append("【实时检索摘要】未获取到有效结果。请明确说明“未检索到可靠来源”，避免编造。\n");
+            }
         }
         if (user != null) {
             sb.append("当前用户信息如下：\n");
@@ -276,11 +286,9 @@ public class AIChatViewModel extends AndroidViewModel {
                 "1. 当用户询问具体的食物、想知道热量、或者提到要记录餐饮时，务必在回复末尾附加标签：<action>{\"type\":\"FOOD\",\"items\":[{\"name\":\"食物名\",\"calories\":数值,\"protein\":数值,\"carbs\":数值,\"unit\":\"克\",\"category\":\"类别\"}, ...]}</action>\n");
         sb.append("   注意：哪怕是单一食物，也请放入 items 数组中。\n");
         sb.append("   分类必须严格匹配数据库已有分类（选最接近的）：\n");
-        sb.append("   - 主食类：主食: 精选米面、主食: 飘香汤面、主食: 面点包子、主食: 根茎薯类（如蒸红薯）\n");
-        sb.append("   - 菜肴类：菜肴: 精选荤菜、菜肴: 清爽素菜（注意：炒土豆丝、地三鲜等虽含淀粉但属于此类）\n");
-        sb.append("   - 蛋白类：蛋白: 蛋奶豆制品、蛋白: 肉类海鲜、蛋白: 健身补剂\n");
-        sb.append("   - 蔬果类：蔬菜: 新鲜时蔬、水果: 时令水果\n");
-        sb.append("   - 其它：零食: 包装小吃、饮料: 咖啡奶茶、调料/油脂 (Condiments)\n");
+        sb.append("   - 可选分类：")
+                .append(String.join("、", FoodCategoryUtils.getCanonicalCategories()))
+                .append("\n");
         sb.append(
                 "2. 当建议具体的动作、组数或制定训练方案时，务必附加：<action>{\"type\":\"PLAN\",\"name\":\"练习名\",\"sets\":4,\"reps\":12,\"desc\":\"动作描述\",\"category\":\"胸部/腿部/背部/有氧\"}</action>\n");
         sb.append("3. 哪怕用户只是随口问一句“这个热量高吗？”也要智能弹出入库按钮，不要吝啬。如果是多个食物，请在 items 列表中一次性列出。\n");
@@ -292,11 +300,18 @@ public class AIChatViewModel extends AndroidViewModel {
 
     private void sendToDeepSeek(final String content, final String systemInstruction, boolean thinking,
             List<ChatMessageEntity> history) {
-        currentThinkingModel.postValue("DeepSeek-V3");
+        currentThinkingModel.postValue(thinking ? "DeepSeek-R1" : "DeepSeek-V3");
         com.cz.fitnessdiary.service.DeepSeekService.sendMessage(content, systemInstruction, thinking, history,
                 new AICallback() {
                     @Override
                     public void onSuccess(String response, String reasoning) {
+                        String safeResponse = response == null ? "" : response.trim();
+                        String safeReasoning = reasoning == null ? "" : reasoning.trim();
+
+                        if (safeResponse.isEmpty() && safeReasoning.isEmpty()) {
+                            handleError("本次未返回有效内容，请重试");
+                            return;
+                        }
                         addAiMessage(response, reasoning);
                     }
 

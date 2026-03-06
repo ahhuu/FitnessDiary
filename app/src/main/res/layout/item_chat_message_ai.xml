@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="8dp"
+    android:padding="6dp"
     android:layout_marginBottom="12dp"
     android:gravity="center_vertical"
     xmlns:app="http://schemas.android.com/apk/res-auto">
@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         android:layout_marginEnd="4dp"
-        app:buttonTint="@color/fitnessdiary_primary" />
+        app:buttonTint="@color/ai_primary" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -43,7 +43,7 @@
             android:background="@drawable/bg_chat_bubble_ai_premium"
             android:backgroundTint="#F2F2F7"
             android:padding="8dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginBottom="6dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -78,7 +78,7 @@
                 android:id="@+id/tv_reasoning"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:maxWidth="280dp"
+                android:maxWidth="300dp"
                 android:padding="8dp"
                 android:text="Reasoning..."
                 android:textColor="@color/text_secondary"
@@ -91,12 +91,13 @@
             android:id="@+id/tv_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:maxWidth="280dp"
+            android:maxWidth="300dp"
             android:background="@drawable/bg_chat_bubble_ai_premium"
             android:padding="12dp"
             android:text="AI Response"
             android:textColor="@color/text_primary"
-            android:lineSpacingExtra="3dp"
+            android:lineSpacingExtra="4dp"
+            android:lineSpacingMultiplier="1.1"
             android:textSize="15sp" />
 
         <com.google.android.material.button.MaterialButton
@@ -111,8 +112,9 @@
             android:paddingHorizontal="12dp"
             android:paddingVertical="6dp"
             app:cornerRadius="8dp"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:backgroundTint="#F2F2F7"
-            android:textColor="@color/fitnessdiary_primary" />
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:backgroundTint="@android:color/transparent"
+            app:strokeColor="@color/ai_primary"
+            android:textColor="@color/ai_primary" />
     </LinearLayout>
 </LinearLayout>

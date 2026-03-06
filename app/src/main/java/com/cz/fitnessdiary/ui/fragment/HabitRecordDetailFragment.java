@@ -25,6 +25,7 @@ import com.cz.fitnessdiary.ui.adapter.DetailRecordAdapter;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.viewmodel.HabitDetailViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -91,16 +92,20 @@ public class HabitRecordDetailFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        selectedDate = DateUtils.getDayStartTimestamp(requireArguments().getLong("selectedDate", System.currentTimeMillis()));
+        selectedDate = DateUtils
+                .getDayStartTimestamp(requireArguments().getLong("selectedDate", System.currentTimeMillis()));
         viewModel = new ViewModelProvider(this).get(HabitDetailViewModel.class);
         viewModel.setSelectedDate(selectedDate);
 
+        ExtendedFloatingActionButton fabAdd = view.findViewById(R.id.fab_add);
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
         btnAdd.setOnClickListener(v -> showAddHabitDialog());
+        fabAdd.setOnClickListener(v -> showAddHabitDialog());
 
         viewModel.getEnabledItems().observe(getViewLifecycleOwner(), items -> {
             habitItems.clear();
-            if (items != null) habitItems.addAll(items);
+            if (items != null)
+                habitItems.addAll(items);
             render();
             viewModel.refreshStats();
         });
@@ -108,7 +113,8 @@ public class HabitRecordDetailFragment extends Fragment {
         viewModel.getSelectedDateRecords().observe(getViewLifecycleOwner(), records -> {
             recordMap.clear();
             if (records != null) {
-                for (HabitRecord record : records) recordMap.put(record.getHabitId(), record);
+                for (HabitRecord record : records)
+                    recordMap.put(record.getHabitId(), record);
             }
             render();
         });
@@ -127,22 +133,28 @@ public class HabitRecordDetailFragment extends Fragment {
         for (HabitItem item : habitItems) {
             HabitRecord record = recordMap.get(item.getId());
             boolean done = record != null && record.isCompleted();
-            if (done) completed++;
+            if (done)
+                completed++;
 
             HabitDetailViewModel.HabitStat stat = statMap.get(item.getId());
             int streak = stat == null ? 0 : stat.streak;
             int rate = stat == null ? 0 : stat.completionRate;
             rateSum += rate;
 
+            // 优先显示用户填写的 description，降级为 autoRule，再降级为空
+            String desc = item.getDescription();
+            if (desc == null || desc.trim().isEmpty()) {
+                desc = item.getAutoRule() != null ? "规则: " + item.getAutoRule() : "暂无描述";
+            }
+
             items.add(new DetailRecordAdapter.Item(
                     item.getId(),
                     item.getName(),
-                    done ? "今日已完成" : "今日未完成",
+                    done ? "✅ 今日已完成" : "⬜ 今日未完成",
                     "连续 " + streak + " 天",
-                    String.format(Locale.getDefault(), "完成率 %d%%，点击切换", rate),
+                    desc,
                     R.drawable.ic_ach_plan_starter,
-                    item
-            ));
+                    item));
         }
 
         adapter.submitList(items);
@@ -156,19 +168,32 @@ public class HabitRecordDetailFragment extends Fragment {
     }
 
     private void showAddHabitDialog() {
-        EditText et = new EditText(requireContext());
-        et.setHint("习惯名称");
-        et.setInputType(InputType.TYPE_CLASS_TEXT);
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 0);
+
+        EditText etName = new EditText(requireContext());
+        etName.setHint("习惯名称（必填）");
+        etName.setInputType(InputType.TYPE_CLASS_TEXT);
+        layout.addView(etName);
+
+        EditText etDesc = new EditText(requireContext());
+        etDesc.setHint("习惯描述（选填）");
+        etDesc.setInputType(InputType.TYPE_CLASS_TEXT);
+        etDesc.setPadding(0, 12, 0, 0);
+        layout.addView(etDesc);
+
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("添加习惯")
-                .setView(et)
+                .setView(layout)
                 .setPositiveButton("保存", (d, w) -> {
-                    String name = et.getText() == null ? "" : et.getText().toString().trim();
+                    String name = etName.getText() == null ? "" : etName.getText().toString().trim();
                     if (name.isEmpty()) {
                         Toast.makeText(getContext(), "请输入习惯名称", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    viewModel.addHabitItem(name);
+                    String desc = etDesc.getText() == null ? "" : etDesc.getText().toString().trim();
+                    viewModel.addHabitItem(name, desc);
                 })
                 .setNegativeButton("取消", null)
                 .show();

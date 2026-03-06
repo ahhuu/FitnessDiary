@@ -6,6 +6,7 @@
     android:orientation="vertical"
     android:background="@color/fitnessdiary_background">
 
+    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
@@ -27,18 +28,20 @@
             android:layout_weight="1"
             android:text="运动记录"
             android:textSize="20sp"
+            android:textStyle="bold"
             android:textColor="@color/text_primary" />
 
         <ImageButton
-            android:id="@+id/btn_add"
+            android:id="@+id/btn_manage"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@android:color/transparent"
-            android:src="@drawable/ic_add"
-            android:contentDescription="新增"
-            android:tint="@color/fitnessdiary_primary" />
+            android:src="@drawable/ic_nav_plan_outline"
+            android:contentDescription="管理计划"
+            app:tint="@color/fitnessdiary_primary" />
     </LinearLayout>
 
+    <!-- Date Navigator -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -51,7 +54,6 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@android:color/transparent"
-            android:contentDescription="前一天"
             android:src="@android:drawable/ic_media_previous"
             app:tint="@color/fitnessdiary_primary" />
 
@@ -64,6 +66,7 @@
             android:text="今日"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
+            android:textStyle="bold"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground" />
@@ -73,80 +76,191 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@android:color/transparent"
-            android:contentDescription="后一天"
             android:src="@android:drawable/ic_media_next"
             app:tint="@color/fitnessdiary_primary" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_consecutive_days"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginStart="16dp"
-        android:text="已连续坚持 0 天"
-        android:textColor="#FF9800"
-        android:textSize="14sp" />
-
-    <LinearLayout
-        android:id="@+id/week_calendar"
+    <!-- Dashboard Card -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        android:paddingHorizontal="8dp" />
+        android:layout_margin="16dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#1A607D8B"
+        app:cardBackgroundColor="@color/fitnessdiary_surface">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="8dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tv_weekly_stat"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="本周达成 0 天"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_daily_avg"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="每日平均 0"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
-    </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
+                <!-- Left: Circular Progress -->
+                <FrameLayout
+                    android:layout_width="100dp"
+                    android:layout_height="100dp">
+                    
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/progress_today_circle"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center"
+                        app:indicatorSize="90dp"
+                        app:trackThickness="8dp"
+                        app:trackCornerRadius="4dp"
+                        android:progress="0"
+                        app:trackColor="#1A607D8B"
+                        app:indicatorColor="@color/fitnessdiary_primary" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/tv_progress_percent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0%"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+                        <TextView
+                            android:id="@+id/tv_summary_small"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0/0"
+                            android:textSize="10sp"
+                            android:textColor="@color/text_secondary"/>
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- Right: Icons & Stats -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_hero_dumbbell"
+                            app:tint="#FF9800" />
+                        <TextView
+                            android:id="@+id/tv_consecutive_days"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="已坚持 0 天"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_edit"
+                            app:tint="#4CAF50" />
+                        <TextView
+                            android:id="@+id/tv_weekly_stat"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="本周达成 0 天"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_edit"
+                            app:tint="#2196F3" />
+                        <TextView
+                            android:id="@+id/tv_daily_avg"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="项/日 平均 0"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="#0D000000" />
+
+            <!-- Weekly Dots -->
+            <LinearLayout
+                android:id="@+id/week_calendar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Today's Tasks Summary -->
     <TextView
         android:id="@+id/tv_summary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="8dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        android:text="今日完成 0 / 0" />
+        android:paddingHorizontal="20dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:text="今日训练计划" />
 
+    <!-- List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_today_logs"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="12dp"
-        android:nestedScrollingEnabled="false" />
+        android:layout_height="match_parent"
+        android:paddingHorizontal="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="32dp" />
 
+    <!-- Empty State -->
     <TextView
         android:id="@+id/tv_no_logs"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:text="今天还没有训练记录"
+        android:layout_marginTop="48dp"
+        android:gravity="center"
+        android:text="今天还没有训练计划\n点击右上角按钮开始"
+        android:lineSpacingExtra="4dp"
         android:textColor="@color/text_secondary"
-        android:textSize="14sp" />
+        android:textSize="14sp"
+        android:visibility="gone" />
 
 </LinearLayout>

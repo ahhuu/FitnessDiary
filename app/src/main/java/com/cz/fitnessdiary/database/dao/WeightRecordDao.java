@@ -29,6 +29,9 @@ public interface WeightRecordDao {
     @Query("SELECT * FROM weight_record ORDER BY timestamp DESC LIMIT 1")
     WeightRecord getLatestRecordSync();
 
+    @Query("SELECT * FROM weight_record WHERE timestamp < :timestamp ORDER BY timestamp DESC LIMIT 1")
+    WeightRecord getLatestRecordBeforeSync(long timestamp);
+
     @Query("SELECT * FROM weight_record WHERE timestamp >= :startTs AND timestamp < :endTs ORDER BY timestamp DESC")
     LiveData<List<WeightRecord>> getRecordsByDateRange(long startTs, long endTs);
 

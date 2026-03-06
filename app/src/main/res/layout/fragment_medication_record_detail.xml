@@ -1,112 +1,197 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/fitnessdiary_background">
+    android:background="@drawable/bg_detail_header_med">
 
-    <LinearLayout
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="12dp">
+        android:layout_height="200dp"
+        android:background="@drawable/bg_detail_header_med"
+        app:elevation="0dp">
 
-        <ImageButton
-            android:id="@+id/btn_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/ic_arrow_back"
-            android:contentDescription="返回" />
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed"
+            app:titleEnabled="false">
 
-        <TextView
-            android:id="@+id/tv_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="用药记录"
-            android:textSize="20sp"
-            android:textColor="@color/text_primary" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="48dp"
+                android:paddingBottom="28dp">
 
-        <ImageButton
-            android:id="@+id/btn_add"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/ic_add"
-            android:contentDescription="新增"
-            android:tint="@color/fitnessdiary_primary" />
-    </LinearLayout>
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_hero_medication" />
 
-    <com.google.android.material.card.MaterialCardView
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="用药记录"
+                    android:textColor="@color/cat_med_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_summary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="今日已服药 0 次"
+                    android:textColor="@color/cat_med_primary"
+                    android:alpha="0.8"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:layout_collapseMode="pin"
+                android:background="@android:color/transparent">
+
+                <ImageButton
+                    android:id="@+id/btn_back"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/ic_arrow_back"
+                    android:contentDescription="返回"
+                    app:tint="@color/cat_med_primary" />
+
+                <ImageButton
+                    android:id="@+id/btn_add"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:visibility="gone"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/ic_add"
+                    android:contentDescription="新增" />
+            </androidx.appcompat.widget.Toolbar>
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="18dp"
-        app:cardElevation="0dp"
-        app:strokeColor="@color/divider"
-        app:strokeWidth="1dp">
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_content_round_top"
+        android:clipToPadding="false"
+        android:paddingBottom="96dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:paddingTop="8dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tv_title"
+                        android:visibility="gone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:id="@+id/tv_untaken"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="今日未服药 0 次"
+                        android:textColor="@color/cat_med_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_open_reminder"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/cat_med_bg"
+                        android:textColor="@color/cat_med_primary"
+                        android:text="💊 设置用药提醒" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
-                android:id="@+id/tv_summary"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="今日已服药 0 次"
-                android:textColor="@color/text_primary"
-                android:textStyle="bold" />
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="4dp"
+                android:text="记录历史"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
-            <TextView
-                android:id="@+id/tv_untaken"
-                android:layout_width="wrap_content"
+            <FrameLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="今日未服药 0 次"
-                android:textColor="@color/text_secondary" />
+                android:minHeight="200dp"
+                android:paddingHorizontal="16dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_open_reminder"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="提醒入口" />
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recycler_records"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:paddingBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/tv_empty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="40dp"
+                    android:text="暂无用药记录"
+                    android:textColor="@color/text_secondary"
+                    android:visibility="gone" />
+
+                <ProgressBar
+                    android:id="@+id/progress_loading"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="40dp" />
+            </FrameLayout>
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.core.widget.NestedScrollView>
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingHorizontal="12dp">
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_add"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:text="添加用药"
+        android:textColor="@android:color/white"
+        app:backgroundTint="@color/cat_med_primary"
+        app:icon="@drawable/ic_add"
+        app:iconTint="@android:color/white"
+        app:elevation="6dp" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_records"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:paddingBottom="12dp" />
-
-        <TextView
-            android:id="@+id/tv_empty"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="暂无用药记录"
-            android:textColor="@color/text_secondary"
-            android:visibility="gone" />
-
-        <ProgressBar
-            android:id="@+id/progress_loading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center" />
-    </FrameLayout>
-
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

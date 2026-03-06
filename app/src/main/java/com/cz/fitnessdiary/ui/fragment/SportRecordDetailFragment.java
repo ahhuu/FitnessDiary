@@ -41,6 +41,9 @@ public class SportRecordDetailFragment extends Fragment {
     private final List<DailyLog> logs = new ArrayList<>();
 
     private TextView tvSummary;
+    private TextView tvSummarySmall;
+    private TextView tvProgressPercent;
+    private com.google.android.material.progressindicator.CircularProgressIndicator progressCircle;
     private TextView tvSelectedDate;
     private TextView tvConsecutiveDays;
     private TextView tvNoLogs;
@@ -59,12 +62,15 @@ public class SportRecordDetailFragment extends Fragment {
         checkInViewModel = new ViewModelProvider(this).get(CheckInViewModel.class);
 
         ImageButton btnBack = view.findViewById(R.id.btn_back);
-        ImageButton btnAdd = view.findViewById(R.id.btn_add);
+        ImageButton btnManage = view.findViewById(R.id.btn_manage);
         ImageButton btnPrevDay = view.findViewById(R.id.btn_prev_day);
         ImageButton btnNextDay = view.findViewById(R.id.btn_next_day);
         tvSelectedDate = view.findViewById(R.id.tv_selected_date);
         tvConsecutiveDays = view.findViewById(R.id.tv_consecutive_days);
         tvSummary = view.findViewById(R.id.tv_summary);
+        tvSummarySmall = view.findViewById(R.id.tv_summary_small);
+        tvProgressPercent = view.findViewById(R.id.tv_progress_percent);
+        progressCircle = view.findViewById(R.id.progress_today_circle);
         tvNoLogs = view.findViewById(R.id.tv_no_logs);
         tvWeeklyStat = view.findViewById(R.id.tv_weekly_stat);
         tvDailyAvg = view.findViewById(R.id.tv_daily_avg);
@@ -92,12 +98,8 @@ public class SportRecordDetailFragment extends Fragment {
         rvTodayLogs.setAdapter(adapter);
 
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
-        btnAdd.setOnClickListener(v -> {
-            if (!plans.isEmpty()) {
-                rvTodayLogs.smoothScrollToPosition(0);
-            } else {
-                Toast.makeText(getContext(), "请先创建训练计划", Toast.LENGTH_SHORT).show();
-            }
+        btnManage.setOnClickListener(v -> {
+            androidx.navigation.Navigation.findNavController(v).navigate(R.id.planFragment);
         });
         btnPrevDay.setOnClickListener(v -> checkInViewModel.toPreviousDay());
         btnNextDay.setOnClickListener(v -> checkInViewModel.toNextDay());
@@ -118,7 +120,8 @@ public class SportRecordDetailFragment extends Fragment {
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("选择日期")
                 .setSelection(DateUtils.localToUtcDayStart(currentSelection))
-                .setCalendarConstraints(new CalendarConstraints.Builder().setValidator(DateValidatorPointBackward.now()).build())
+                .setCalendarConstraints(
+                        new CalendarConstraints.Builder().setValidator(DateValidatorPointBackward.now()).build())
                 .build();
         datePicker.addOnPositiveButtonClickListener(selection -> checkInViewModel.setSelectedDate(selection));
         datePicker.show(getParentFragmentManager(), "SPORT_DETAIL_DATE_PICKER");
@@ -165,8 +168,16 @@ public class SportRecordDetailFragment extends Fragment {
                 completed++;
             }
         }
-        tvSummary.setText("今日完成 " + completed + " / " + plans.size());
+        int total = plans.size();
+        tvSummary.setText("今日训练计划");
+        tvSummarySmall.setText(completed + " / " + total);
         tvDailyAvg.setText("每日平均 " + completed);
+
+        int percent = total > 0 ? (completed * 100 / total) : 0;
+        tvProgressPercent.setText(percent + "%");
+        if (progressCircle != null) {
+            progressCircle.setProgress(percent, true);
+        }
 
         boolean hasPlans = !plans.isEmpty();
         rvTodayLogs.setVisibility(hasPlans ? View.VISIBLE : View.GONE);
@@ -182,7 +193,8 @@ public class SportRecordDetailFragment extends Fragment {
                 LinearLayout dayContainer = new LinearLayout(getContext());
                 dayContainer.setOrientation(LinearLayout.VERTICAL);
                 dayContainer.setGravity(Gravity.CENTER);
-                dayContainer.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+                dayContainer
+                        .setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
                 TextView tvDay = new TextView(getContext());
                 tvDay.setText(weekDays[i]);

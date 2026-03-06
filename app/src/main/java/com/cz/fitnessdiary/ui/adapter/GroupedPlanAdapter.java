@@ -143,7 +143,9 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if (holder instanceof HeaderViewHolder) {
             ((HeaderViewHolder) holder).bind((PlanGroup) item);
         } else if (holder instanceof PlanViewHolder) {
-            ((PlanViewHolder) holder).bind((TrainingPlan) item);
+            boolean isFirstInGroup = position > 0 && displayList.get(position - 1) instanceof PlanGroup;
+            boolean isLastInGroup = position >= displayList.size() - 1 || displayList.get(position + 1) instanceof PlanGroup;
+            ((PlanViewHolder) holder).bind((TrainingPlan) item, isFirstInGroup, isLastInGroup);
         }
     }
 
@@ -164,7 +166,19 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         void bind(PlanGroup group) {
             binding.tvCategoryName.setText(group.getCategory());
             binding.tvPlanCount.setText(group.getPlanCount() + " 个动作");
-            binding.ivExpandIcon.setRotation(group.isExpanded() ? 90 : 0);
+
+            int headerCollapsed = ContextCompat.getColor(itemView.getContext(), R.color.plan_blue_header_collapsed);
+            int headerExpanded = ContextCompat.getColor(itemView.getContext(), R.color.plan_blue_container);
+            int primary = ContextCompat.getColor(itemView.getContext(), R.color.plan_blue_primary);
+            int divider = ContextCompat.getColor(itemView.getContext(), R.color.divider);
+
+            // 分组头底色进一步淡化，同时和白底条目保持层级区分
+            binding.getRoot().setCardBackgroundColor(group.isExpanded() ? headerExpanded : headerCollapsed);
+            binding.getRoot().setStrokeWidth(1);
+            binding.getRoot().setStrokeColor(divider);
+            binding.ivExpandIcon.setRotation(group.isExpanded() ? 90f : 0f);
+            binding.tvCategoryName.setTextColor(group.isExpanded() ? primary
+                    : ContextCompat.getColor(itemView.getContext(), R.color.text_primary));
 
             // 设置对应图标
             binding.ivHeaderIcon.setImageResource(getCategoryIcon(group.getCategory()));
@@ -172,6 +186,11 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             binding.getRoot().setOnClickListener(v -> {
                 group.toggleExpanded();
                 rebuildDisplayList();
+                // DiffUtil 对同对象引用可能不触发 header 重绑，这里显式刷新箭头方向
+                int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    notifyItemChanged(pos);
+                }
             });
 
             // Plan 28: 长按修改分类
@@ -241,7 +260,7 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             this.binding = binding;
         }
 
-        void bind(TrainingPlan plan) {
+        void bind(TrainingPlan plan, boolean isFirstInGroup, boolean isLastInGroup) {
             binding.tvPlanName.setText(plan.getName());
 
             // 显示组数和次数/时长 (v1.2: 针对 1次 + 有时长的计划优化显示)
@@ -290,13 +309,13 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                             .into(binding.ivMediaThumbnail);
                 } catch (Exception e) {
                     // 加载失败：恢复默认并着色
-                    int primaryColor = ContextCompat.getColor(itemView.getContext(), R.color.fitnessdiary_primary);
+                    int primaryColor = ContextCompat.getColor(itemView.getContext(), R.color.plan_blue_primary);
                     binding.ivMediaThumbnail.setColorFilter(primaryColor);
                     binding.ivMediaThumbnail.setImageResource(R.drawable.ic_placeholder_plan);
                 }
             } else {
                 // 无图：恢复默认并着色
-                int primaryColor = ContextCompat.getColor(itemView.getContext(), R.color.fitnessdiary_primary);
+                int primaryColor = ContextCompat.getColor(itemView.getContext(), R.color.plan_blue_primary);
                 binding.ivMediaThumbnail.setColorFilter(primaryColor);
                 binding.ivMediaThumbnail.setImageTintList(android.content.res.ColorStateList.valueOf(primaryColor));
                 binding.ivMediaThumbnail.setImageResource(R.drawable.ic_placeholder_plan);
@@ -307,6 +326,24 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 binding.ivMediaThumbnail.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
             }
             binding.ivMediaThumbnail.setVisibility(View.VISIBLE);
+
+            binding.btnDelete.setImageTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(itemView.getContext(), R.color.text_secondary)));
+            binding.btnDelete.setAlpha(0.7f);
+
+            if (isFirstInGroup && isLastInGroup) {
+                binding.layoutRow.setBackgroundResource(R.drawable.bg_plan_block_single);
+                binding.viewDivider.setVisibility(View.GONE);
+            } else if (isFirstInGroup) {
+                binding.layoutRow.setBackgroundResource(R.drawable.bg_plan_block_top);
+                binding.viewDivider.setVisibility(View.GONE);
+            } else if (isLastInGroup) {
+                binding.layoutRow.setBackgroundResource(R.drawable.bg_plan_block_bottom);
+                binding.viewDivider.setVisibility(View.VISIBLE);
+            } else {
+                binding.layoutRow.setBackgroundResource(R.drawable.bg_plan_block_middle);
+                binding.viewDivider.setVisibility(View.VISIBLE);
+            }
 
             binding.getRoot().setOnClickListener(v -> {
                 if (listener != null) {

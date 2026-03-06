@@ -38,6 +38,9 @@ public interface DailyLogDao {
     @Query("SELECT * FROM daily_log WHERE date = :date")
     LiveData<List<DailyLog>> getLogsByDate(long date);
 
+    @Query("SELECT * FROM daily_log WHERE date = :date")
+    List<DailyLog> getLogsByDateSync(long date);
+
     /**
      * 根据计划ID和日期查询打卡记录
      */

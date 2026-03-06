@@ -8,7 +8,8 @@
     app:cardBackgroundColor="@color/fitnessdiary_surface"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp"
-    app:strokeWidth="0dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/diet_stroke"
     android:clickable="true"
     android:focusable="true">
 
@@ -34,9 +35,9 @@
             android:id="@+id/btn_add_food"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:background="@drawable/date_circle_background"
+            android:background="@drawable/date_circle_background_diet"
             android:src="@android:drawable/ic_input_add"
-            android:tint="@color/fitnessdiary_primary"
+            android:tint="@color/diet_primary"
             android:padding="6dp"
             android:scaleType="fitCenter"
             android:contentDescription="添加食物"
@@ -71,7 +72,7 @@
             android:text="0 千卡"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:textColor="@color/fitnessdiary_primary"
+            android:textColor="@color/diet_primary"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 

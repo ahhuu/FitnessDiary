@@ -5,8 +5,10 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.model.MealSection;
@@ -39,8 +41,8 @@ public class DietViewModel extends AndroidViewModel {
     private LiveData<Double> todayTotalProtein; // 今日总蛋白质 (g)
     private LiveData<Double> todayTotalCarbs; // 今日总碳水 (g)
     private LiveData<User> currentUser;
-    private MutableLiveData<String> smartFeedback = new MutableLiveData<>("");
-    private MutableLiveData<Integer> progressColor = new MutableLiveData<>();
+    private MediatorLiveData<String> smartFeedback = new MediatorLiveData<>();
+    private MediatorLiveData<Integer> progressColor = new MediatorLiveData<>();
     private LiveData<java.util.Set<Long>> recordedDates; // 有记录的日期集合 (0点时间戳)
 
     // Plan 10 新增字段
@@ -130,6 +132,43 @@ public class DietViewModel extends AndroidViewModel {
                     }
                     return dates;
                 });
+
+        // 智能反馈与颜色联动 (MediatorLiveData 自动监听)
+        smartFeedback.addSource(todayTotalCalories, calories -> updateSmartFeedbackInternal());
+        smartFeedback.addSource(currentUser, user -> updateSmartFeedbackInternal());
+
+        progressColor.addSource(todayTotalCalories, calories -> updateSmartFeedbackInternal());
+        progressColor.addSource(currentUser, user -> updateSmartFeedbackInternal());
+    }
+
+    private void updateSmartFeedbackInternal() {
+        Integer consumed = todayTotalCalories.getValue();
+        User user = currentUser.getValue();
+        if (user == null) {
+            smartFeedback.setValue("暂无用户信息");
+            return;
+        }
+
+        int targetCalories = user.getDailyCalorieTarget();
+        if (targetCalories <= 0)
+            targetCalories = 2000;
+
+        int consumedVal = (consumed != null) ? consumed : 0;
+        // 1. 更新消息
+        smartFeedback.setValue(CalorieCalculatorUtils.getCalorieDifferenceMessage(
+                consumedVal, targetCalories, user.getGoalType()));
+
+        // 2. 更新颜色
+        float progress = CalorieCalculatorUtils.calculateProgress(consumedVal, targetCalories);
+        int color;
+        if (progress > 100f) {
+            color = R.color.diet_state_over;
+        } else if (progress < 75f) {
+            color = R.color.diet_state_low;
+        } else {
+            color = R.color.diet_state_ok;
+        }
+        progressColor.setValue(color);
     }
 
     /**
@@ -277,8 +316,7 @@ public class DietViewModel extends AndroidViewModel {
 
             foodRecordRepository.insert(record);
 
-            // 4. 更新智能反馈
-            updateSmartFeedback();
+            // 4. 反馈由 MediatorLiveData 自动更新，无需手动调用
         });
     }
 
@@ -295,54 +333,14 @@ public class DietViewModel extends AndroidViewModel {
      */
     public void deleteFoodRecord(FoodRecord record) {
         foodRecordRepository.delete(record);
-        updateSmartFeedback();
     }
 
     /**
-     * 更新智能反馈消息和进度条颜色
+     * @deprecated 已废弃，请使用 MediatorLiveData 自动更新逻辑
      */
+    @Deprecated
     private void updateSmartFeedback() {
-        executorService.execute(() -> {
-            // 获取用户目标信息
-            User user = userRepository.getUserSync();
-            if (user == null) {
-                smartFeedback.postValue("暂无用户信息");
-                return;
-            }
-
-            int targetCalories = user.getDailyCalorieTarget();
-            if (targetCalories <= 0) {
-                targetCalories = 2000; // 默认值
-            }
-
-            // 计算已摄入热量
-            Integer consumed = todayTotalCalories.getValue();
-            if (consumed == null)
-                consumed = 0;
-
-            // 生成智能反馈消息
-            int goalType = user.getGoalType();
-            String message = CalorieCalculatorUtils.getCalorieDifferenceMessage(
-                    consumed, targetCalories, goalType);
-            smartFeedback.postValue(message);
-
-            // 确定进度条颜色
-            int color;
-            float progress = CalorieCalculatorUtils.calculateProgress(consumed, targetCalories);
-
-            if (goalType == CalorieCalculatorUtils.GOAL_LOSE_FAT) {
-                // 减脂模式：超过目标变红
-                color = (progress > 100) ? android.R.color.holo_red_light : android.R.color.holo_green_light;
-            } else if (goalType == CalorieCalculatorUtils.GOAL_GAIN_MUSCLE) {
-                // 增肌模式：未达标变黄，达标变绿
-                color = (progress < 100) ? android.R.color.holo_orange_light : android.R.color.holo_green_light;
-            } else {
-                // 保持模式：绿色
-                color = android.R.color.holo_green_light;
-            }
-
-            progressColor.postValue(color);
-        });
+        updateSmartFeedbackInternal();
     }
 
     /**

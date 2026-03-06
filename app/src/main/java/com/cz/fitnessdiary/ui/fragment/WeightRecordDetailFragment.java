@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,13 +22,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.ui.adapter.DetailRecordAdapter;
-import com.cz.fitnessdiary.ui.widget.LineSparkView;
+import com.cz.fitnessdiary.ui.widget.WeightChartView;
+import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.viewmodel.WeightDetailViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -42,7 +46,11 @@ public class WeightRecordDetailFragment extends Fragment {
     private TextView tvBmi;
     private TextView tvEmpty;
     private ProgressBar progressLoading;
-    private LineSparkView lineWeight;
+    private WeightChartView lineWeight;
+    private MaterialButton btnTabWeek;
+    private MaterialButton btnTabMonth;
+    private MaterialButton btnTabYear;
+    private int selectedTab = 0; // 0:Week, 1:Month, 2:Year
 
     @Nullable
     @Override
@@ -60,6 +68,12 @@ public class WeightRecordDetailFragment extends Fragment {
         MaterialButton btnQuick03 = view.findViewById(R.id.btn_quick_03);
         MaterialButton btnQuick05 = view.findViewById(R.id.btn_quick_05);
         MaterialButton btnQuickCustom = view.findViewById(R.id.btn_quick_custom);
+        btnTabWeek = view.findViewById(R.id.btn_tab_week);
+        btnTabMonth = view.findViewById(R.id.btn_tab_month);
+        btnTabYear = view.findViewById(R.id.btn_tab_year);
+        btnTabWeek.setCheckable(true);
+        btnTabMonth.setCheckable(true);
+        btnTabYear.setCheckable(true);
         RecyclerView recyclerView = view.findViewById(R.id.recycler_records);
 
         tvLatest = view.findViewById(R.id.tv_latest);
@@ -93,18 +107,125 @@ public class WeightRecordDetailFragment extends Fragment {
         long selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
         viewModel.setSelectedDate(selectedDate);
 
+        ExtendedFloatingActionButton fabAdd = view.findViewById(R.id.fab_add);
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
         btnAdd.setOnClickListener(v -> showAddDialog());
+        fabAdd.setOnClickListener(v -> showAddDialog());
         btnQuick03.setOnClickListener(v -> quickAdd(0.3f));
         btnQuick05.setOnClickListener(v -> quickAdd(0.5f));
         btnQuickCustom.setOnClickListener(v -> showAddDialog());
 
-        viewModel.getRecentRecords().observe(getViewLifecycleOwner(), this::renderRecords);
-        viewModel.getTrendSeries().observe(getViewLifecycleOwner(), lineWeight::setValues);
-        viewModel.getBmi().observe(getViewLifecycleOwner(), bmi -> {
-            if (bmi == null || bmi <= 0f) tvBmi.setText("BMI --");
-            else tvBmi.setText(String.format(Locale.getDefault(), "BMI %.1f", bmi));
+        btnTabWeek.setOnClickListener(v -> switchTab(0));
+        btnTabMonth.setOnClickListener(v -> switchTab(1));
+        btnTabYear.setOnClickListener(v -> switchTab(2));
+        applyTabSelection();
+
+        viewModel.getWeekSeries().observe(getViewLifecycleOwner(), values -> {
+            if (selectedTab == 0)
+                updateWeightChart(values);
         });
+        viewModel.getMonthSeries().observe(getViewLifecycleOwner(), values -> {
+            if (selectedTab == 1)
+                updateWeightChart(values);
+        });
+        viewModel.getYearSeries().observe(getViewLifecycleOwner(), values -> {
+            if (selectedTab == 2)
+                updateWeightChart(values);
+        });
+
+        viewModel.getRecentRecords().observe(getViewLifecycleOwner(), this::renderRecords);
+        viewModel.getBmi().observe(getViewLifecycleOwner(), bmi -> {
+            if (bmi == null || bmi <= 0f)
+                tvBmi.setText("BMI --");
+            else
+                tvBmi.setText(String.format(Locale.getDefault(), "BMI %.1f", bmi));
+        });
+    }
+
+    private void updateWeightChart(List<Float> values) {
+        if (values == null)
+            return;
+        lineWeight.setXAxisLabelInterval(selectedTab == 2 ? 4 : 0);
+        lineWeight.setData(values, buildLabels(values.size()));
+    }
+
+    private void switchTab(int tab) {
+        selectedTab = tab;
+        applyTabSelection();
+        if (selectedTab == 0) {
+            updateWeightChart(viewModel.getWeekSeries().getValue());
+        } else if (selectedTab == 1) {
+            updateWeightChart(viewModel.getMonthSeries().getValue());
+        } else {
+            updateWeightChart(viewModel.getYearSeries().getValue());
+        }
+    }
+
+    private void applyTabSelection() {
+        if (btnTabWeek == null || btnTabMonth == null || btnTabYear == null) {
+            return;
+        }
+        styleTabButton(btnTabWeek, selectedTab == 0);
+        styleTabButton(btnTabMonth, selectedTab == 1);
+        styleTabButton(btnTabYear, selectedTab == 2);
+    }
+
+    private void styleTabButton(MaterialButton button, boolean selected) {
+        button.setChecked(selected);
+        if (selected) {
+            button.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.cat_weight_primary));
+            button.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white));
+        } else {
+            button.setBackgroundTintList(ContextCompat.getColorStateList(requireContext(), R.color.cat_weight_bg));
+            button.setTextColor(ContextCompat.getColor(requireContext(), R.color.cat_weight_primary));
+        }
+    }
+
+    private List<String> buildLabels(int size) {
+        List<String> labels = new ArrayList<>();
+        long dayStart = DateUtils
+                .getDayStartTimestamp(viewModel.getSelectedDate().getValue() == null ? System.currentTimeMillis()
+                        : viewModel.getSelectedDate().getValue());
+        SimpleDateFormat df = new SimpleDateFormat("MM-dd", Locale.getDefault());
+        SimpleDateFormat yf = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
+
+        if (selectedTab == 0) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(dayStart);
+            int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+            int offset = (dayOfWeek == Calendar.SUNDAY) ? -6 : (Calendar.MONDAY - dayOfWeek);
+            calendar.add(Calendar.DAY_OF_MONTH, offset);
+            for (int i = 0; i < size; i++) {
+                labels.add(df.format(new Date(calendar.getTimeInMillis())));
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
+            }
+        } else if (selectedTab == 1) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(dayStart);
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+            for (int i = 0; i < size; i++) {
+                labels.add(df.format(new Date(calendar.getTimeInMillis())));
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
+            }
+        } else {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(dayStart);
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+            calendar.add(Calendar.MONTH, -(size - 1));
+            for (int i = 0; i < size; i++) {
+                labels.add(yf.format(new Date(calendar.getTimeInMillis())));
+                calendar.add(Calendar.MONTH, 1);
+            }
+        }
+        return labels;
     }
 
     private void quickAdd(float delta) {

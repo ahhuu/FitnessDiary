@@ -2,7 +2,7 @@
     android:color="#40FFFFFF">
     <item>
         <shape android:shape="oval">
-            <solid android:color="@color/fitnessdiary_primary" />
+            <solid android:color="@color/ai_primary" />
         </shape>
     </item>
 </ripple>

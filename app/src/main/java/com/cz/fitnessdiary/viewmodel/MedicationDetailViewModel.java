@@ -43,8 +43,15 @@ public class MedicationDetailViewModel extends AndroidViewModel {
                 start -> repository.getUntakenCountByDateRange(start, start + 24L * 60L * 60L * 1000L));
     }
 
-    public void addMedication(String name, String dosage, boolean taken, String note) {
-        repository.insert(new MedicationRecord(name, dosage, taken, System.currentTimeMillis(), note));
+    public LiveData<Integer> getTotalDosageGoal() {
+        return Transformations.switchMap(selectedDate,
+                start -> repository.getTotalDosageByDateRange(start, start + 24L * 60L * 60L * 1000L));
+    }
+
+    public void addMedication(String name, String dosage, int dailyTotal, boolean taken, String note) {
+        MedicationRecord record = new MedicationRecord(name, dosage, taken, System.currentTimeMillis(), note);
+        record.setDailyTotal(dailyTotal);
+        repository.insert(record);
     }
 
     public void updateMedication(MedicationRecord record) {

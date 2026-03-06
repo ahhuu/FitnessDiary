@@ -48,6 +48,13 @@ public class HomeDashboardViewModel extends AndroidViewModel {
         return repository.getLatestWeight();
     }
 
+    public LiveData<WeightRecord> getSelectedDateLatestWeight() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> Transformations
+                        .map(repository.getWeightRecordsByDateRange(start, end),
+                                list -> (list == null || list.isEmpty()) ? null : list.get(0))));
+    }
+
     public LiveData<Integer> getTodayWaterTotal() {
         return Transformations.switchMap(dayStart,
                 start -> Transformations.switchMap(dayEnd, end -> repository.getTodayWaterTotal(start, end)));
@@ -57,6 +64,13 @@ public class HomeDashboardViewModel extends AndroidViewModel {
         return repository.getLatestWater();
     }
 
+    public LiveData<WaterRecord> getSelectedDateLatestWater() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> Transformations
+                        .map(repository.getWaterRecordsByDateRange(start, end),
+                                list -> (list == null || list.isEmpty()) ? null : list.get(0))));
+    }
+
     public LiveData<Integer> getTodayMedicationTakenCount() {
         return Transformations.switchMap(dayStart,
                 start -> Transformations.switchMap(dayEnd, end -> repository.getTodayMedicationTakenCount(start, end)));
@@ -64,6 +78,13 @@ public class HomeDashboardViewModel extends AndroidViewModel {
 
     public LiveData<MedicationRecord> getLatestMedication() {
         return repository.getLatestMedication();
+    }
+
+    public LiveData<MedicationRecord> getSelectedDateLatestMedication() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> Transformations
+                        .map(repository.getMedicationRecordsByDateRange(start, end),
+                                list -> (list == null || list.isEmpty()) ? null : list.get(0))));
     }
 
     public LiveData<List<CustomTracker>> getEnabledTrackers() {
@@ -88,6 +109,13 @@ public class HomeDashboardViewModel extends AndroidViewModel {
         return repository.getLatestCustomRecord(trackerId);
     }
 
+    public LiveData<CustomRecord> getSelectedDateLatestCustomRecord(long trackerId) {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> Transformations
+                        .map(repository.getCustomRecordsByTrackerAndDateRange(trackerId, start, end),
+                                list -> (list == null || list.isEmpty()) ? null : list.get(0))));
+    }
+
     public LiveData<List<HabitItem>> getEnabledHabits() {
         return repository.getEnabledHabits();
     }
@@ -97,8 +125,9 @@ public class HomeDashboardViewModel extends AndroidViewModel {
     }
 
     public void upsertHabitRecord(long habitId, long dayStart, boolean completed, String source) {
-        repository.upsertHabitRecord(new HabitRecord(habitId, DateUtils.getDayStartTimestamp(dayStart), completed, source,
-                System.currentTimeMillis()));
+        repository
+                .upsertHabitRecord(new HabitRecord(habitId, DateUtils.getDayStartTimestamp(dayStart), completed, source,
+                        System.currentTimeMillis()));
     }
 
     public void addWeight(float weight, String note) {
@@ -114,7 +143,7 @@ public class HomeDashboardViewModel extends AndroidViewModel {
     }
 
     public void addWater(int amountMl, String note) {
-        repository.addWater(new WaterRecord(amountMl, System.currentTimeMillis(), note));
+        repository.addWater(new WaterRecord(amountMl, buildRecordTimestampForSelectedDate(), note));
     }
 
     public void addMedication(String name, String dosage, boolean taken, String note) {
@@ -122,10 +151,20 @@ public class HomeDashboardViewModel extends AndroidViewModel {
     }
 
     public void addCustomRecord(long trackerId, Double value, String textValue) {
-        repository.addCustomRecord(new CustomRecord(trackerId, value, textValue, System.currentTimeMillis()));
+        repository.addCustomRecord(new CustomRecord(trackerId, value, textValue, buildRecordTimestampForSelectedDate()));
     }
 
     public void addCustomTracker(String name, String unit) {
         repository.addCustomTracker(new CustomTracker(name, unit, "#4CAF50", true, 0));
+    }
+
+    private long buildRecordTimestampForSelectedDate() {
+        Long selected = selectedDate.getValue();
+        long dayStart = selected == null ? DateUtils.getTodayStartTimestamp() : DateUtils.getDayStartTimestamp(selected);
+        long now = System.currentTimeMillis();
+        if (DateUtils.isToday(dayStart)) {
+            return now;
+        }
+        return dayStart + 12L * 60L * 60L * 1000L;
     }
 }

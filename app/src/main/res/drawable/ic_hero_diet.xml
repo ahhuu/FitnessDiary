@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- 蒸汽 -->
+    <path
+        android:fillColor="#FFB28A"
+        android:pathData="M24,16c2,2 2,4 0,6c-1.6,1.7 -1.6,3.3 0,5c0.5,0.6 0.5,1.5 -0.1,2c-0.6,0.5 -1.5,0.5 -2,-0.1c-2.6,-2.8 -2.6,-5.8 0,-8.5c0.8,-0.9 0.8,-1.8 0,-2.7c-0.6,-0.6 -0.6,-1.5 0,-2.1c0.6,-0.6 1.5,-0.6 2.1,-0.1z" />
+    <path
+        android:fillColor="#FFB28A"
+        android:pathData="M33,14c2.1,2.2 2.1,4.5 0,6.7c-1.2,1.3 -1.2,2.5 0,3.8c0.6,0.6 0.6,1.5 0,2.1c-0.6,0.6 -1.5,0.6 -2.1,0c-2.3,-2.5 -2.3,-5.5 0,-8c0.8,-0.9 0.8,-1.8 0,-2.7c-0.6,-0.6 -0.6,-1.5 0,-2.1c0.6,-0.6 1.5,-0.6 2.1,0.1z" />
+
+    <!-- 碗 -->
+    <path
+        android:fillColor="#EA8646"
+        android:pathData="M14,31h36c0,9.9 -8.1,18 -18,18s-18,-8.1 -18,-18z" />
+    <path
+        android:fillColor="#FFD9C4"
+        android:pathData="M11,29c0,-1.7 1.3,-3 3,-3h36c1.7,0 3,1.3 3,3s-1.3,3 -3,3h-36c-1.7,0 -3,-1.3 -3,-3z" />
+
+    <!-- 底托 -->
+    <path
+        android:fillColor="#C9733E"
+        android:pathData="M20,52c0,-1.7 1.3,-3 3,-3h18c1.7,0 3,1.3 3,3s-1.3,3 -3,3h-18c-1.7,0 -3,-1.3 -3,-3z" />
+</vector>

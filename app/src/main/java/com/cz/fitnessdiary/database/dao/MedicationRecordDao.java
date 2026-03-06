@@ -32,6 +32,9 @@ public interface MedicationRecordDao {
     @Query("SELECT COUNT(*) FROM medication_record WHERE timestamp >= :startTs AND timestamp < :endTs AND is_taken = 0")
     LiveData<Integer> getUntakenCountByDateRange(long startTs, long endTs);
 
+    @Query("SELECT SUM(daily_total) FROM medication_record WHERE timestamp >= :startTs AND timestamp < :endTs")
+    LiveData<Integer> getTotalDosageByDateRange(long startTs, long endTs);
+
     @Query("SELECT * FROM medication_record ORDER BY timestamp DESC LIMIT 1")
     LiveData<MedicationRecord> getLatestRecord();
 

@@ -24,6 +24,7 @@ import com.cz.fitnessdiary.ui.adapter.FoodAutoCompleteAdapter;
 import com.cz.fitnessdiary.viewmodel.DietViewModel;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.CompositeDateValidator;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
@@ -156,36 +157,6 @@ public class DietFragment extends Fragment {
     }
 
     /**
-     * 完整分类列表 (对齐官方库 + Emoji)
-     */
-    private static final String[] FOOD_CATEGORIES = {
-            "🍱 主食: 常用主食",
-            "🍚 主食: 基础米面",
-            "🥣 主食: 粥类",
-            "🍠 主食: 薯类",
-            "🥯 主食: 面点",
-            "🥟 主食: 饺子",
-            "🍜 主食: 汤粉面",
-            "🍔 主食: 快餐",
-            "🍱 家常菜: 荤菜",
-            "🥗 家常菜: 素菜",
-            "🍲 家常菜: 精选家常",
-            "🥛 蛋白质: 蛋奶豆制品",
-            "🥩 蛋白质: 肉类海鲜",
-            "💪 蛋白质: 补剂",
-            "🥦 蔬菜水果: 时蔬",
-            "🍎 蔬菜水果: 水果",
-            "🥗 蔬菜水果: 新鲜蔬果",
-            "🍿 零食饮料: 包装零食",
-            "🥤 零食饮料: 饮料",
-            "☕ 零食饮料: 咖啡奶茶",
-            "🍫 零食饮料: 休闲小食",
-            "🧂 调料油脂: 常用调味",
-            "🍷 酒精: 酒水明细",
-            "❓ 其他"
-    };
-
-    /**
      * 显示食物百科全屏搜索页
      */
     private void showFoodWikiDialog() {
@@ -313,7 +284,7 @@ public class DietFragment extends Fragment {
 
         // 设置分类适配器
         android.widget.ArrayAdapter<String> categoryAdapter = new android.widget.ArrayAdapter<>(
-                requireContext(), R.layout.item_dropdown_category, FOOD_CATEGORIES);
+                requireContext(), R.layout.item_dropdown_category, FoodCategoryUtils.getDisplayCategories());
         spinnerCategory.setAdapter(categoryAdapter);
 
         // 如果是编辑模式，预填数据
@@ -325,16 +296,9 @@ public class DietFragment extends Fragment {
             etServingUnit.setText(existingFood.getServingUnit());
             etWeightPerUnit.setText(String.valueOf(existingFood.getWeightPerUnit()));
 
-            // 尝试匹配分类
-            String targetCat = existingFood.getCategory();
-            for (String cat : FOOD_CATEGORIES) {
-                if (cat.contains(targetCat)) {
-                    spinnerCategory.setText(cat, false);
-                    break;
-                }
-            }
+            spinnerCategory.setText(FoodCategoryUtils.toDisplayCategory(existingFood.getCategory()), false);
         } else {
-            spinnerCategory.setText(FOOD_CATEGORIES[FOOD_CATEGORIES.length - 1], false); // 默认选择"其他"
+            spinnerCategory.setText(FoodCategoryUtils.toDisplayCategory(FoodCategoryUtils.CAT_OTHER), false);
         }
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder builder = new com.google.android.material.dialog.MaterialAlertDialogBuilder(
@@ -369,9 +333,7 @@ public class DietFragment extends Fragment {
                         double carbs = carbsStr.isEmpty() ? 0 : Double.parseDouble(carbsStr);
                         int weightPerUnit = weightStr.isEmpty() ? 100 : Integer.parseInt(weightStr);
                         String unit = servingUnit.isEmpty() ? "份" : servingUnit;
-                        String cat = categoryRaw.replaceAll("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+", "").trim();
-                        if (cat.contains(":"))
-                            cat = cat.split(":")[0].trim(); // 只要大类
+                        String cat = FoodCategoryUtils.normalizeCategory(categoryRaw);
 
                         if (isEditMode) {
                             existingFood.setName(name);
@@ -509,9 +471,7 @@ public class DietFragment extends Fragment {
 
         int calProgress = (int) ((currentCalories * 100.0) / targetCalories);
         binding.progressCalories.setProgress(Math.min(calProgress, 100));
-        binding.progressCalories
-                .setIndicatorColor(currentCalories > targetCalories ? getResources().getColor(R.color.error, null)
-                        : getResources().getColor(R.color.color_success, null));
+        binding.progressCalories.setIndicatorColor(getResources().getColor(R.color.diet_primary, null));
 
         // --- 2. 蛋白质刷新 ---
         int targetProtein = user.getTargetProtein();

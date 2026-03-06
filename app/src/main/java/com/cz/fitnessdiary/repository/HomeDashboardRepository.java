@@ -36,6 +36,10 @@ public class HomeDashboardRepository {
         return weightRecordRepository.getLatestRecord();
     }
 
+    public LiveData<List<WeightRecord>> getWeightRecordsByDateRange(long dayStart, long dayEnd) {
+        return weightRecordRepository.getRecordsByDateRange(dayStart, dayEnd);
+    }
+
     public LiveData<Integer> getTodayWaterTotal(long dayStart, long dayEnd) {
         return waterRecordRepository.getTotalAmountByDateRange(dayStart, dayEnd);
     }
@@ -44,12 +48,20 @@ public class HomeDashboardRepository {
         return waterRecordRepository.getLatestRecord();
     }
 
+    public LiveData<List<WaterRecord>> getWaterRecordsByDateRange(long dayStart, long dayEnd) {
+        return waterRecordRepository.getRecordsByDateRange(dayStart, dayEnd);
+    }
+
     public LiveData<Integer> getTodayMedicationTakenCount(long dayStart, long dayEnd) {
         return medicationRecordRepository.getTakenCountByDateRange(dayStart, dayEnd);
     }
 
     public LiveData<MedicationRecord> getLatestMedication() {
         return medicationRecordRepository.getLatestRecord();
+    }
+
+    public LiveData<List<MedicationRecord>> getMedicationRecordsByDateRange(long dayStart, long dayEnd) {
+        return medicationRecordRepository.getRecordsByDateRange(dayStart, dayEnd);
     }
 
     public LiveData<List<CustomTracker>> getEnabledTrackers() {
@@ -66,6 +78,10 @@ public class HomeDashboardRepository {
 
     public LiveData<CustomRecord> getLatestCustomRecord(long trackerId) {
         return customRecordRepository.getLatestRecordByTracker(trackerId);
+    }
+
+    public LiveData<List<CustomRecord>> getCustomRecordsByTrackerAndDateRange(long trackerId, long dayStart, long dayEnd) {
+        return customRecordRepository.getRecordsByTrackerAndDateRange(trackerId, dayStart, dayEnd);
     }
 
     public LiveData<Integer> getTodayCustomRecordCount(long dayStart, long dayEnd) {

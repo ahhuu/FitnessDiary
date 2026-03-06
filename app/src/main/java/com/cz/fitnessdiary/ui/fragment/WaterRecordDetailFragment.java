@@ -21,11 +21,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.ui.adapter.DetailRecordAdapter;
-import com.cz.fitnessdiary.ui.widget.BarSparkView;
 import com.cz.fitnessdiary.ui.widget.WaterCupProgressView;
 import com.cz.fitnessdiary.viewmodel.WaterDetailViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -46,7 +46,6 @@ public class WaterRecordDetailFragment extends Fragment {
     private TextView tvEmpty;
     private ProgressBar progressLoading;
     private WaterCupProgressView waterCup;
-    private BarSparkView barWeek;
 
     @Nullable
     @Override
@@ -73,7 +72,6 @@ public class WaterRecordDetailFragment extends Fragment {
         tvEmpty = view.findViewById(R.id.tv_empty);
         progressLoading = view.findViewById(R.id.progress_loading);
         waterCup = view.findViewById(R.id.water_cup);
-        barWeek = view.findViewById(R.id.bar_week);
 
         adapter = new DetailRecordAdapter(new DetailRecordAdapter.OnItemActionListener() {
             @Override
@@ -100,8 +98,19 @@ public class WaterRecordDetailFragment extends Fragment {
         long selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
         viewModel.setSelectedDate(selectedDate);
 
+        ExtendedFloatingActionButton fabAdd = view.findViewById(R.id.fab_add);
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
-        btnAdd.setOnClickListener(v -> showAddDialog());
+        btnAdd.setOnClickListener(v -> showAddDialog()); // btn_add 已 gone，保留兼容
+        fabAdd.setOnClickListener(v -> showAddDialog());
+        // 需求1：点击目标显示说明弹窗
+        tvTarget.setOnClickListener(
+                v -> new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("💧 每日饮水目标")
+                        .setMessage("当前目标：" + TARGET_WATER + " ml\n\n一般成人每日推荐饮水量为 1500\u20132000\u00a0ml。" +
+                                "运动量大、天气点高时建议适量增加。\n\n" +
+                                "如需修改目标，可在「我的 → 健康设置」中调整。")
+                        .setPositiveButton("知道了", null)
+                        .show());
         btnQuick100.setOnClickListener(v -> viewModel.addWater(100, "快捷"));
         btnQuick200.setOnClickListener(v -> viewModel.addWater(200, "快捷"));
         btnQuick400.setOnClickListener(v -> viewModel.addWater(400, "快捷"));
@@ -117,8 +126,6 @@ public class WaterRecordDetailFragment extends Fragment {
         });
 
         viewModel.getSelectedDateRecords().observe(getViewLifecycleOwner(), this::renderRecords);
-        viewModel.getWeekSeries().observe(getViewLifecycleOwner(), barWeek::setValues);
-        viewModel.refreshWeekSeries();
     }
 
     private void renderRecords(List<WaterRecord> records) {

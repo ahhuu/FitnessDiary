@@ -23,6 +23,7 @@ public class SleepDetailViewModel extends AndroidViewModel {
     private final MutableLiveData<Long> selectedDate = new MutableLiveData<>(DateUtils.getTodayStartTimestamp());
     private final MutableLiveData<List<Float>> weekSeries = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<Float>> monthSeries = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Float>> yearSeries = new MutableLiveData<>(new ArrayList<>());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public SleepDetailViewModel(@NonNull Application application) {
@@ -33,6 +34,10 @@ public class SleepDetailViewModel extends AndroidViewModel {
     public void setSelectedDate(long ts) {
         selectedDate.setValue(DateUtils.getDayStartTimestamp(ts));
         refreshStatsSeries();
+    }
+
+    public LiveData<Long> getSelectedDate() {
+        return selectedDate;
     }
 
     public LiveData<List<SleepRecord>> getSelectedDateRecords() {
@@ -48,9 +53,14 @@ public class SleepDetailViewModel extends AndroidViewModel {
         return monthSeries;
     }
 
+    public LiveData<List<Float>> getYearSeries() {
+        return yearSeries;
+    }
+
     public void refreshStatsSeries() {
         Long selected = selectedDate.getValue();
-        if (selected == null) return;
+        if (selected == null)
+            return;
         long dayStart = DateUtils.getDayStartTimestamp(selected);
         executor.execute(() -> {
             List<Float> week = new ArrayList<>();
@@ -59,7 +69,8 @@ public class SleepDetailViewModel extends AndroidViewModel {
                 long end = start + 24L * 60L * 60L * 1000L;
                 List<SleepRecord> list = repository.getSleepRecordsByDateRangeSync(start, end);
                 long total = 0;
-                for (SleepRecord record : list) total += record.getDuration();
+                for (SleepRecord record : list)
+                    total += record.getDuration();
                 week.add(total / 3600f);
             }
             weekSeries.postValue(week);
@@ -70,7 +81,8 @@ public class SleepDetailViewModel extends AndroidViewModel {
                 long end = start + 24L * 60L * 60L * 1000L;
                 List<SleepRecord> list = repository.getSleepRecordsByDateRangeSync(start, end);
                 long total = 0;
-                for (SleepRecord record : list) total += record.getDuration();
+                for (SleepRecord record : list)
+                    total += record.getDuration();
                 month.add(total / 3600f);
             }
             monthSeries.postValue(month);

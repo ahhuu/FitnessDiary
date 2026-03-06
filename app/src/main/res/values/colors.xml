@@ -11,6 +11,33 @@
     
     <!-- 深青色（用于文字或图标） -->
     <color name="fitnessdiary_primary">#006A6A</color>
+
+    <!-- 计划页/运动记录卡片蓝色主题（参考 Hero 哑铃图标） -->
+    <color name="plan_blue_primary">#1976D2</color>
+    <color name="plan_blue_secondary">#00BCD4</color>
+    <color name="plan_blue_container">#E3F2FD</color>
+    <color name="plan_blue_stroke">#BFD9F7</color>
+    <color name="plan_blue_header_collapsed">#F4FAFF</color>
+    <color name="plan_blue_header_expanded">#ECF6FF</color>
+
+    <!-- 饮食页暖食色主题 -->
+    <color name="diet_primary">#E87328</color>
+    <color name="diet_container">#FEEBDD</color>
+    <color name="diet_stroke">#FDF7F2</color>
+    <color name="diet_checkin_stroke">#F0D3C1</color>
+    <color name="diet_accent">#D88E59</color>
+    <color name="diet_track">#F5DFCF</color>
+    <color name="diet_state_low">#0EA5E9</color>
+    <color name="diet_state_ok">#F59E0B</color>
+    <color name="diet_state_over">#EF4444</color>
+    <color name="diet_protein_indicator">#8DB7D6</color>
+    <color name="diet_protein_track">#EAF2F8</color>
+    <color name="diet_carbs_indicator">#B9BEC6</color>
+    <color name="diet_carbs_track">#ECEFF3</color>
+
+    <!-- AI 教练专属主题色 -->
+    <color name="ai_primary">#3D79E6</color>
+    <color name="ai_container">#EAF1FF</color>
     
     <!-- 薄荷绿（用于FAB按钮背景） -->
     <color name="fitnessdiary_accent_container">#C4EED0</color>
@@ -50,4 +77,29 @@
     <color name="fitnessdiary_text_primary">#1F1F1F</color>
     <color name="fitnessdiary_text_secondary">#757575</color>
     <color name="fitnessdiary_error">#EA4335</color>
+
+    <!-- 分类专属色彩 (Vibrant Palette) -->
+    <!-- 水 - 蓝色 -->
+    <color name="cat_water_primary">#007BFF</color>
+    <color name="cat_water_bg">#E3F2FD</color>
+    
+    <!-- 睡眠 - 紫色 -->
+    <color name="cat_sleep_primary">#673AB7</color>
+    <color name="cat_sleep_bg">#EDE7F6</color>
+    
+    <!-- 用药 - 粉色/红色 -->
+    <color name="cat_med_primary">#E91E63</color>
+    <color name="cat_med_bg">#FCE4EC</color>
+    
+    <!-- 习惯 - 琥珀色/黄色 -->
+    <color name="cat_habit_primary">#FFB300</color>
+    <color name="cat_habit_bg">#FFF8E1</color>
+    
+    <!-- 体重 - 橙色 -->
+    <color name="cat_weight_primary">#FF5722</color>
+    <color name="cat_weight_bg">#FBE9E7</color>
+
+    <!-- 自定义 - 灰色/蓝灰色 -->
+    <color name="cat_custom_primary">#607D8B</color>
+    <color name="cat_custom_bg">#ECEFF1</color>
 </resources>

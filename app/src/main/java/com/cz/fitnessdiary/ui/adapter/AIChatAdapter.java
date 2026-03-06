@@ -18,21 +18,24 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.model.ChatMessage;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int TYPE_USER = 1;
     private static final int TYPE_AI = 2;
     private static final int TYPE_THINKING = 3;
+    private static final int COLLAPSE_LIMIT = 220;
 
     private List<ChatMessage> messages = new ArrayList<>();
     private OnMessageLongClickListener longClickListener;
     private OnActionClickListener actionClickListener;
+    private final Set<Long> expandedMessageKeys = new HashSet<>();
 
     // 多选相关
     private boolean isSelectionMode = false;
@@ -123,6 +126,13 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     public void setMessages(List<ChatMessage> newMessages) {
+        // 清理已不在消息列表中的展开状态，避免集合增长
+        Set<Long> validKeys = new HashSet<>();
+        for (ChatMessage message : newMessages) {
+            validKeys.add(getStableMessageKey(message));
+        }
+        expandedMessageKeys.retainAll(validKeys);
+
         DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
             @Override
             public int getOldListSize() {
@@ -155,6 +165,37 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         });
         this.messages = new ArrayList<>(newMessages);
         result.dispatchUpdatesTo(this);
+    }
+
+    private long getStableMessageKey(ChatMessage message) {
+        if (message == null) {
+            return Long.MIN_VALUE;
+        }
+        return message.getId() > 0 ? message.getId() : message.getTimestamp();
+    }
+
+    private String sanitizeAiDisplayContent(String rawContent) {
+        if (rawContent == null) {
+            return "";
+        }
+
+        String text = rawContent.replaceAll("<action>(?s:.*?)</action>", "");
+        text = text.replaceAll("(?m)^\\s{0,3}#{1,6}\\s*", "");
+        text = text.replaceAll("(?m)^\\s*\\|?\\s*:?-{3,}:?(\\s*\\|\\s*:?-{3,}:?)*\\s*\\|?\\s*$", "");
+        text = text.replaceAll("(?m)^\\s*\\|.*\\|\\s*$", "");
+        text = text.replaceAll("(?m)^\\s*[\\-*+]\\s{2,}", "- ");
+        text = text.replaceAll("(?m)^\\s*\\d+\\.\\s{2,}", "1. ");
+        text = text.replace("\r", "");
+        text = text.replaceAll("[ \\t]+", " ");
+        text = text.replaceAll("\\n{3,}", "\n\n");
+        return text.trim();
+    }
+
+    private String buildCollapsedText(String cleanContent) {
+        if (cleanContent == null || cleanContent.length() <= COLLAPSE_LIMIT) {
+            return cleanContent == null ? "" : cleanContent;
+        }
+        return cleanContent.substring(0, COLLAPSE_LIMIT).trim() + "...\n展开";
     }
 
     @Override
@@ -193,9 +234,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
         if (holder instanceof UserViewHolder) {
             UserViewHolder userHolder = (UserViewHolder) holder;
-            userHolder.tvContent.setText(message.getContent());
-
-            // 多模式内容预览 (图片)
+            userHolder.tvContent.setText(message.getContent() == null ? "" : message.getContent());
             if (message.getMediaPath() != null && !message.getMediaPath().isEmpty()) {
                 userHolder.ivMedia.setVisibility(View.VISIBLE);
                 Glide.with(userHolder.itemView.getContext())
@@ -206,7 +245,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             }
 
             // 多选逻辑
-            userHolder.cbSelect.setVisibility(isSelectionMode ? View.VISIBLE : View.GONE);
+            userHolder.cbSelect.setVisibility((isSelectionMode && message.getId() > 0) ? View.VISIBLE : View.GONE);
             userHolder.cbSelect.setChecked(isSelected);
             userHolder.itemView.setAlpha(isSelected ? 0.6f : 1.0f);
 
@@ -245,32 +284,42 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 aiHolder.ivMedia.setVisibility(View.GONE);
             }
 
-            // 多选逻辑
-
             String rawContent = message.getContent();
+            String safeRawContent = rawContent == null ? "" : rawContent;
             String reasoning = message.getReasoning();
+            long messageKey = getStableMessageKey(message);
 
-            // 处理思考过程显示
+            // 思考过程默认收起，仅在有内容时展示
             if (reasoning != null && !reasoning.trim().isEmpty()) {
                 aiHolder.layoutReasoning.setVisibility(View.VISIBLE);
                 aiHolder.tvReasoning.setText(reasoning);
-
-                // 非流式模式下，所有已收到的历史思考过程默认收起，保持页面整洁
-                aiHolder.tvReasoning.setVisibility(View.GONE);
-                aiHolder.ivReasoningArrow.setRotation(0);
-
+                boolean reasoningOnly = safeRawContent.trim().isEmpty();
+                aiHolder.tvReasoning.setVisibility(reasoningOnly ? View.VISIBLE : View.GONE);
+                aiHolder.ivReasoningArrow.setRotation(reasoningOnly ? 180f : 0f);
+                aiHolder.btnToggleReasoning.setClickable(true);
+                aiHolder.btnToggleReasoning.setFocusable(true);
                 aiHolder.btnToggleReasoning.setOnClickListener(v -> {
                     boolean isVisible = aiHolder.tvReasoning.getVisibility() == View.VISIBLE;
                     aiHolder.tvReasoning.setVisibility(isVisible ? View.GONE : View.VISIBLE);
-                    aiHolder.ivReasoningArrow.animate().rotation(isVisible ? 0 : 180).setDuration(200).start();
+                    aiHolder.ivReasoningArrow.animate().rotation(isVisible ? 0f : 180f).setDuration(200).start();
                 });
             } else {
                 aiHolder.layoutReasoning.setVisibility(View.GONE);
+                aiHolder.tvReasoning.setText("");
+                aiHolder.tvReasoning.setVisibility(View.GONE);
+                aiHolder.ivReasoningArrow.setRotation(0f);
+                aiHolder.btnToggleReasoning.setOnClickListener(null);
+                aiHolder.btnToggleReasoning.setClickable(false);
+                aiHolder.btnToggleReasoning.setFocusable(false);
             }
+
+            aiHolder.cbSelect.setVisibility((isSelectionMode && message.getId() > 0) ? View.VISIBLE : View.GONE);
+            aiHolder.cbSelect.setChecked(isSelected);
+            aiHolder.itemView.setAlpha(isSelected ? 0.6f : 1.0f);
 
             // 解析 <action> 标签 - 支持多个标签汇总
             Pattern actionPattern = Pattern.compile("<action>(.*?)</action>", Pattern.DOTALL);
-            Matcher matcher = actionPattern.matcher(rawContent);
+            Matcher matcher = actionPattern.matcher(safeRawContent);
 
             // 汇总所有识别到的食物
             org.json.JSONArray allFoodItems = new org.json.JSONArray();
@@ -327,30 +376,65 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 finalActionJson = planActionJson;
             }
 
-            // 彻底移除所有 <action> 标签及其内容，避免渲染到界面
-            String cleanContent = rawContent.replaceAll("<action>(?s:.*?)</action>", "").trim();
-            aiHolder.tvContent.setText(cleanContent);
+            // 轻清洗：移除 action、Markdown 表格/标题噪音，并做长度折叠
+            String cleanContent = sanitizeAiDisplayContent(safeRawContent);
+            boolean hasReasoning = reasoning != null && !reasoning.trim().isEmpty();
+            boolean reasoningOnly = cleanContent.isEmpty() && hasReasoning;
+            aiHolder.tvContent.setVisibility(reasoningOnly ? View.GONE : View.VISIBLE);
+            boolean canCollapse = cleanContent.length() > COLLAPSE_LIMIT;
+            boolean isExpanded = expandedMessageKeys.contains(messageKey);
+            if (!reasoningOnly && canCollapse) {
+                aiHolder.tvContent.setText(isExpanded ? cleanContent + "\n收起" : buildCollapsedText(cleanContent));
+                aiHolder.tvContent.setOnClickListener(v -> {
+                    if (isSelectionMode) {
+                        return;
+                    }
+                    if (expandedMessageKeys.contains(messageKey)) {
+                        expandedMessageKeys.remove(messageKey);
+                    } else {
+                        expandedMessageKeys.add(messageKey);
+                    }
+                    int positionToUpdate = holder.getBindingAdapterPosition();
+                    if (positionToUpdate != RecyclerView.NO_POSITION) {
+                        notifyItemChanged(positionToUpdate);
+                    }
+                });
+            } else if (!reasoningOnly) {
+                aiHolder.tvContent.setText(cleanContent);
+                aiHolder.tvContent.setOnClickListener(null);
+            }
 
-            if (finalActionJson != null) {
+            aiHolder.tvContent.setOnLongClickListener(v -> {
+                if (!isSelectionMode && longClickListener != null) {
+                    longClickListener.onMessageLongClick(message);
+                    return true;
+                }
+                return false;
+            });
+
+            aiHolder.layoutReasoning.setOnLongClickListener(v -> {
+                if (!isSelectionMode && longClickListener != null) {
+                    longClickListener.onMessageLongClick(message);
+                    return true;
+                }
+                return false;
+            });
+
+            if (!reasoningOnly && finalActionJson != null) {
                 aiHolder.btnAction.setVisibility(View.VISIBLE);
                 String type = finalActionJson.optString("type");
 
                 if ("MULTI".equals(type)) {
-                    aiHolder.btnAction.setText("⚡ 执行 2 项智能操作");
+                    aiHolder.btnAction.setText("执行2项");
                 } else if ("FOOD".equals(type)) {
                     org.json.JSONArray items = finalActionJson.optJSONArray("items");
                     if (items != null && items.length() > 0) {
-                        if (items.length() == 1) {
-                            aiHolder.btnAction.setText("🍽️ 一键录入：" + items.optJSONObject(0).optString("name"));
-                        } else {
-                            aiHolder.btnAction.setText("🍽️ 智能识别：" + items.length() + " 种食物");
-                        }
+                        aiHolder.btnAction.setText("记录这餐（" + items.length() + "项）");
                     } else {
-                        aiHolder.btnAction.setText("🍽️ 录入识别出的食物");
+                        aiHolder.btnAction.setText("记录这餐");
                     }
                 } else if ("PLAN".equals(type)) {
-                    String name = finalActionJson.optString("name");
-                    aiHolder.btnAction.setText("📅 添加到计划：" + name);
+                    aiHolder.btnAction.setText("添加计划");
                 }
 
                 final JSONObject finalAction = finalActionJson;

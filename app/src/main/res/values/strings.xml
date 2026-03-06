@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">健身日记</string>
+    <string name="app_name">健康日记</string>
     
     <!-- Welcome Screen -->
     <string name="welcome_title">欢迎使用健身日记</string>
@@ -57,5 +57,6 @@
     <string name="checkin_consecutive">已连续坚持 %d 天</string>
     <string name="plan_category">训练分类 (如: 胸肌, 有氧)</string>
     <string name="plan_schedule">计划排期 (默认每天)</string>
+    <string name="today_overview_label">今日总览</string>
 </resources>
 

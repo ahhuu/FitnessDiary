@@ -24,12 +24,16 @@ public class HabitItem {
     @ColumnInfo(name = "auto_rule")
     private String autoRule;
 
+    @ColumnInfo(name = "description")
+    private String description;
+
     public HabitItem(String name, boolean defaultItem, boolean enabled, int sortOrder, String autoRule) {
         this.name = name;
         this.defaultItem = defaultItem;
         this.enabled = enabled;
         this.sortOrder = sortOrder;
         this.autoRule = autoRule;
+        this.description = null;
     }
 
     public long getId() {
@@ -78,5 +82,13 @@ public class HabitItem {
 
     public void setAutoRule(String autoRule) {
         this.autoRule = autoRule;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

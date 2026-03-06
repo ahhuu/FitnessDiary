@@ -13,6 +13,85 @@
         app:layout_constraintBottom_toTopOf="@id/bottom_nav_container"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_global_notice"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="12dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/fitnessdiary_surface"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#1A3D79E6"
+        app:strokeWidth="1dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="12dp">
+
+            <TextView
+                android:id="@+id/tv_global_notice_emoji"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🏆"
+                android:textSize="18sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_global_notice_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="新成就解锁"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_global_notice_desc"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="点击查看详情"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btn_global_notice_action"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="8dp"
+                android:text="查看"
+                android:textColor="@color/ai_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_global_notice_close"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:paddingHorizontal="4dp"
+                android:text="关闭"
+                android:textColor="@color/text_hint"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- 底部导航容器 (从 MainActivity 迁移至此，更易同步) -->
     <FrameLayout
         android:id="@+id/bottom_nav_container"

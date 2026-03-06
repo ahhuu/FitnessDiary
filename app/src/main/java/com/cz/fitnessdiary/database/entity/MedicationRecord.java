@@ -25,12 +25,16 @@ public class MedicationRecord {
     @ColumnInfo(name = "note")
     private String note;
 
+    @ColumnInfo(name = "daily_total")
+    private int dailyTotal;
+
     public MedicationRecord(String name, String dosage, boolean isTaken, long timestamp, String note) {
         this.name = name;
         this.dosage = dosage;
         this.isTaken = isTaken;
         this.timestamp = timestamp;
         this.note = note;
+        this.dailyTotal = 1;
     }
 
     public long getId() {
@@ -79,5 +83,13 @@ public class MedicationRecord {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public int getDailyTotal() {
+        return dailyTotal <= 0 ? 1 : dailyTotal;
+    }
+
+    public void setDailyTotal(int dailyTotal) {
+        this.dailyTotal = dailyTotal;
     }
 }

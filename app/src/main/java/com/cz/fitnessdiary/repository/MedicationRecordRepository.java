@@ -46,6 +46,10 @@ public class MedicationRecordRepository {
         return dao.getUntakenCountByDateRange(startTs, endTs);
     }
 
+    public LiveData<Integer> getTotalDosageByDateRange(long startTs, long endTs) {
+        return dao.getTotalDosageByDateRange(startTs, endTs);
+    }
+
     public LiveData<MedicationRecord> getLatestRecord() {
         return dao.getLatestRecord();
     }

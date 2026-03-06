@@ -57,7 +57,8 @@ public class HabitDetailViewModel extends AndroidViewModel {
 
     public LiveData<List<HabitRecord>> getSelectedDateRecords() {
         Long date = selectedDate.getValue();
-        if (date == null) date = DateUtils.getTodayStartTimestamp();
+        if (date == null)
+            date = DateUtils.getTodayStartTimestamp();
         return repository.getRecordsByDate(date);
     }
 
@@ -67,28 +68,35 @@ public class HabitDetailViewModel extends AndroidViewModel {
 
     public void refreshStats() {
         Long selected = selectedDate.getValue();
-        if (selected == null) return;
+        if (selected == null)
+            return;
         long dayStart = DateUtils.getDayStartTimestamp(selected);
         executor.execute(() -> {
             Map<Long, HabitStat> map = new HashMap<>();
             List<HabitItem> items = repository.getAllItemsSync();
             long rangeStart = dayStart - 29L * 24L * 60L * 60L * 1000L;
             for (HabitItem item : items) {
-                if (!item.isEnabled()) continue;
-                int completed = repository.getCompletedCountByHabitAndDateRangeSync(item.getId(), rangeStart, dayStart + 24L * 60L * 60L * 1000L);
-                int total = repository.getRecordCountByHabitAndDateRangeSync(item.getId(), rangeStart, dayStart + 24L * 60L * 60L * 1000L);
+                if (!item.isEnabled())
+                    continue;
+                int completed = repository.getCompletedCountByHabitAndDateRangeSync(item.getId(), rangeStart,
+                        dayStart + 24L * 60L * 60L * 1000L);
+                int total = repository.getRecordCountByHabitAndDateRangeSync(item.getId(), rangeStart,
+                        dayStart + 24L * 60L * 60L * 1000L);
                 int rate = total == 0 ? 0 : Math.round(completed * 100f / total);
 
                 List<HabitRecord> recent = repository.getRecentByHabitSync(item.getId(), 60);
                 Set<Long> doneDays = new HashSet<>();
                 for (HabitRecord record : recent) {
-                    if (record.isCompleted()) doneDays.add(record.getRecordDate());
+                    if (record.isCompleted())
+                        doneDays.add(record.getRecordDate());
                 }
                 int streak = 0;
                 for (int i = 0; i < 60; i++) {
                     long day = dayStart - i * 24L * 60L * 60L * 1000L;
-                    if (doneDays.contains(day)) streak++;
-                    else break;
+                    if (doneDays.contains(day))
+                        streak++;
+                    else
+                        break;
                 }
                 map.put(item.getId(), new HabitStat(streak, rate));
             }
@@ -106,9 +114,11 @@ public class HabitDetailViewModel extends AndroidViewModel {
         refreshStats();
     }
 
-    public void addHabitItem(String name) {
+    public void addHabitItem(String name, String description) {
         int sort = repository.getAllItemsSync().size();
-        repository.insertItem(new HabitItem(name, false, true, sort, "MANUAL"));
+        HabitItem item = new HabitItem(name, false, true, sort, "MANUAL");
+        item.setDescription(description);
+        repository.insertItem(item);
         refreshStats();
     }
 }

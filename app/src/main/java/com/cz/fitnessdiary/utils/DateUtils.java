@@ -192,6 +192,15 @@ public class DateUtils {
     }
 
     /**
+     * 格式化完整日期 (yyyy年M月d日 · EEEE)
+     */
+    public static String formatFullDate(long timestamp) {
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy年M月d日 · EEEE",
+                java.util.Locale.getDefault());
+        return sdf.format(new java.util.Date(timestamp));
+    }
+
+    /**
      * 获取指定日期的“睡眠日”起始时间（凌晨 4 点）
      * 逻辑：凌晨 4 点之前的记录被视为上一天的延续
      *

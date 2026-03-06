@@ -29,6 +29,7 @@ import com.cz.fitnessdiary.repository.FoodRecordRepository;
 import com.cz.fitnessdiary.repository.TrainingPlanRepository;
 import com.cz.fitnessdiary.ui.adapter.AIChatAdapter;
 import com.cz.fitnessdiary.ui.adapter.ChatSessionAdapter;
+import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 import com.cz.fitnessdiary.viewmodel.AIChatViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -301,7 +302,8 @@ public class AIChatFragment extends Fragment {
         if (firstMessage.getId() > 0) {
             adapter.toggleSelection(firstMessage.getId());
         }
-        binding.toolbar.setVisibility(View.GONE);
+        // 用 INVISIBLE 保留顶部占位，避免消息列表顶上去遮挡多选操作栏
+        binding.toolbar.setVisibility(View.INVISIBLE);
         binding.selectionToolbar.setVisibility(View.VISIBLE);
         // 隐藏输入法和快捷键
         binding.inputContainer.setVisibility(View.GONE);
@@ -485,17 +487,15 @@ public class AIChatFragment extends Fragment {
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), loading -> binding.btnSend.setEnabled(!loading));
 
         viewModel.getIsDeepThinking().observe(getViewLifecycleOwner(), thinking -> {
-            int color = thinking ? getResources().getColor(R.color.fitnessdiary_primary)
-                    : getResources().getColor(R.color.fitnessdiary_text_secondary);
-            binding.btnDeepThinking.setTextColor(color);
-            binding.btnDeepThinking.setIconTint(android.content.res.ColorStateList.valueOf(color));
+            boolean enabled = Boolean.TRUE.equals(thinking);
+            binding.btnDeepThinking.setChecked(enabled);
+            updateAiModeToggleStyle(binding.btnDeepThinking, enabled);
         });
 
         viewModel.getIsSearchEnabled().observe(getViewLifecycleOwner(), search -> {
-            int color = search ? getResources().getColor(R.color.fitnessdiary_primary)
-                    : getResources().getColor(R.color.fitnessdiary_text_secondary);
-            binding.btnSearch.setTextColor(color);
-            binding.btnSearch.setIconTint(android.content.res.ColorStateList.valueOf(color));
+            boolean enabled = Boolean.TRUE.equals(search);
+            binding.btnSearch.setChecked(enabled);
+            updateAiModeToggleStyle(binding.btnSearch, enabled);
         });
 
         viewModel.getAttachedFileUri().observe(getViewLifecycleOwner(), uri -> {
@@ -518,6 +518,18 @@ public class AIChatFragment extends Fragment {
         viewModel.getUser().observe(getViewLifecycleOwner(), user -> {
             // 已删除全局头像显示，保持清洁
         });
+    }
+
+    private void updateAiModeToggleStyle(com.google.android.material.button.MaterialButton button, boolean enabled) {
+        int primary = getResources().getColor(R.color.ai_primary);
+        int secondary = getResources().getColor(R.color.fitnessdiary_text_secondary);
+        int white = getResources().getColor(R.color.white);
+
+        button.setTextColor(enabled ? white : secondary);
+        button.setIconTint(android.content.res.ColorStateList.valueOf(enabled ? white : secondary));
+        button.setStrokeColor(android.content.res.ColorStateList.valueOf(primary));
+        button.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(enabled ? primary : android.graphics.Color.TRANSPARENT));
     }
 
     private void handleSmartAction(JSONObject actionJson) {
@@ -700,7 +712,8 @@ public class AIChatFragment extends Fragment {
                                     name, calories,
                                     Math.max(0d, item.optDouble("protein", 0d)),
                                     Math.max(0d, item.optDouble("carbs", 0d)),
-                                    item.optString("unit", "克"), 100, item.optString("category", "其他"));
+                                    item.optString("unit", "克"), 100,
+                                    FoodCategoryUtils.normalizeCategory(item.optString("category", "其他")));
                             foodRepository.insert(food);
                             success++;
                         }

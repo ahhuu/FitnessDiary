@@ -22,10 +22,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.ui.adapter.DetailRecordAdapter;
-import com.cz.fitnessdiary.ui.widget.BarSparkView;
+import com.cz.fitnessdiary.ui.widget.SleepChartView;
+import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.viewmodel.SleepDetailViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -43,8 +45,8 @@ public class SleepRecordDetailFragment extends Fragment {
     private TextView tvWindow;
     private TextView tvEmpty;
     private ProgressBar progressLoading;
-    private BarSparkView barSleep;
-    private boolean showingMonth = false;
+    private SleepChartView barSleep;
+    private int selectedTab = 0; // 0:Week, 1:Month, 2:Year
 
     @Nullable
     @Override
@@ -61,6 +63,7 @@ public class SleepRecordDetailFragment extends Fragment {
         ImageButton btnAdd = view.findViewById(R.id.btn_add);
         MaterialButton btnTabWeek = view.findViewById(R.id.btn_tab_week);
         MaterialButton btnTabMonth = view.findViewById(R.id.btn_tab_month);
+        MaterialButton btnTabYear = view.findViewById(R.id.btn_tab_year);
         RecyclerView recyclerView = view.findViewById(R.id.recycler_records);
 
         tvSummary = view.findViewById(R.id.tv_summary);
@@ -93,27 +96,70 @@ public class SleepRecordDetailFragment extends Fragment {
         long selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
         viewModel.setSelectedDate(selectedDate);
 
+        ExtendedFloatingActionButton fabAdd = view.findViewById(R.id.fab_add);
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
         btnAdd.setOnClickListener(v -> showSleepDialog(null));
+        fabAdd.setOnClickListener(v -> showSleepDialog(null));
 
         btnTabWeek.setOnClickListener(v -> {
-            showingMonth = false;
-            viewModel.getWeekSeries().observe(getViewLifecycleOwner(), barSleep::setValues);
+            selectedTab = 0;
+            updateSleepChart(viewModel.getWeekSeries().getValue());
         });
         btnTabMonth.setOnClickListener(v -> {
-            showingMonth = true;
-            viewModel.getMonthSeries().observe(getViewLifecycleOwner(), barSleep::setValues);
+            selectedTab = 1;
+            updateSleepChart(viewModel.getMonthSeries().getValue());
+        });
+        btnTabYear.setOnClickListener(v -> {
+            selectedTab = 2;
+            updateSleepChart(viewModel.getYearSeries().getValue());
         });
 
         viewModel.getWeekSeries().observe(getViewLifecycleOwner(), values -> {
-            if (!showingMonth) barSleep.setValues(values);
+            if (selectedTab == 0)
+                updateSleepChart(values);
         });
         viewModel.getMonthSeries().observe(getViewLifecycleOwner(), values -> {
-            if (showingMonth) barSleep.setValues(values);
+            if (selectedTab == 1)
+                updateSleepChart(values);
+        });
+        viewModel.getYearSeries().observe(getViewLifecycleOwner(), values -> {
+            if (selectedTab == 2)
+                updateSleepChart(values);
         });
 
         viewModel.getSelectedDateRecords().observe(getViewLifecycleOwner(), this::renderRecords);
         viewModel.refreshStatsSeries();
+    }
+
+    private void updateSleepChart(List<Float> values) {
+        if (values == null)
+            return;
+        List<String> labels = new ArrayList<>();
+        long dayStart = DateUtils
+                .getDayStartTimestamp(viewModel.getSelectedDate().getValue() == null ? System.currentTimeMillis()
+                        : viewModel.getSelectedDate().getValue());
+        SimpleDateFormat df = new SimpleDateFormat("MM-dd", Locale.getDefault());
+        SimpleDateFormat yf = new SimpleDateFormat("yyyy-MM", Locale.getDefault());
+        float sum = 0f;
+        int count = 0;
+
+        for (int i = values.size() - 1; i >= 0; i--) { // Reverse index for display
+            if (selectedTab == 0) { // Week
+                labels.add(df.format(new Date(dayStart - i * 24L * 60L * 60L * 1000L)));
+            } else if (selectedTab == 1) { // Month
+                labels.add(df.format(new Date(dayStart - i * 24L * 60L * 60L * 1000L)));
+            } else { // Year
+                labels.add(yf.format(new Date(dayStart - i * 30L * 24L * 60L * 60L * 1000L)));
+            }
+        }
+        for (Float v : values) {
+            if (v != null && v > 0) {
+                sum += v;
+                count++;
+            }
+        }
+        float avg = count > 0 ? sum / count : 0f;
+        barSleep.setData(values, labels, avg);
     }
 
     private void renderRecords(List<SleepRecord> records) {
@@ -147,7 +193,8 @@ public class SleepRecordDetailFragment extends Fragment {
         long avg = total / items.size();
         tvSummary.setText("平均睡眠 " + (avg / 3600) + "h " + ((avg % 3600) / 60) + "m");
         SleepRecord latest = (SleepRecord) items.get(0).payload;
-        tvWindow.setText("最近 " + tf.format(new Date(latest.getStartTime())) + " - " + tf.format(new Date(latest.getEndTime())));
+        tvWindow.setText(
+                "最近 " + tf.format(new Date(latest.getStartTime())) + " - " + tf.format(new Date(latest.getEndTime())));
     }
 
     private void showSleepDialog(@Nullable SleepRecord existing) {
@@ -180,8 +227,10 @@ public class SleepRecordDetailFragment extends Fragment {
             sc.setTimeInMillis(existing.getStartTime());
             Calendar ec = Calendar.getInstance();
             ec.setTimeInMillis(existing.getEndTime());
-            etStart.setText(String.format(Locale.getDefault(), "%02d:%02d", sc.get(Calendar.HOUR_OF_DAY), sc.get(Calendar.MINUTE)));
-            etEnd.setText(String.format(Locale.getDefault(), "%02d:%02d", ec.get(Calendar.HOUR_OF_DAY), ec.get(Calendar.MINUTE)));
+            etStart.setText(String.format(Locale.getDefault(), "%02d:%02d", sc.get(Calendar.HOUR_OF_DAY),
+                    sc.get(Calendar.MINUTE)));
+            etEnd.setText(String.format(Locale.getDefault(), "%02d:%02d", ec.get(Calendar.HOUR_OF_DAY),
+                    ec.get(Calendar.MINUTE)));
             etQuality.setText(String.valueOf(existing.getQuality()));
             etNote.setText(existing.getNotes());
         } else {
@@ -215,7 +264,8 @@ public class SleepRecordDetailFragment extends Fragment {
                         Calendar start = (Calendar) end.clone();
                         start.set(Calendar.HOUR_OF_DAY, sh);
                         start.set(Calendar.MINUTE, sm);
-                        if (start.getTimeInMillis() >= end.getTimeInMillis()) start.add(Calendar.DAY_OF_YEAR, -1);
+                        if (start.getTimeInMillis() >= end.getTimeInMillis())
+                            start.add(Calendar.DAY_OF_YEAR, -1);
 
                         if (existing == null) {
                             viewModel.addSleepRecord(start.getTimeInMillis(), end.getTimeInMillis(), quality, note);

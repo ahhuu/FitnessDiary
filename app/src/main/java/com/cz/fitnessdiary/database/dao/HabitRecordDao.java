@@ -31,6 +31,9 @@ public interface HabitRecordDao {
     @Query("SELECT COUNT(*) FROM habit_record WHERE record_date = :recordDate AND is_completed = 1")
     LiveData<Integer> getCompletedCountByDate(long recordDate);
 
+    @Query("SELECT COUNT(*) FROM habit_record WHERE record_date = :recordDate AND is_completed = 1")
+    int getCompletedCountByDateSync(long recordDate);
+
     @Query("SELECT COUNT(*) FROM habit_record WHERE habit_id = :habitId AND record_date >= :startTs AND record_date < :endTs AND is_completed = 1")
     int getCompletedCountByHabitAndDateRangeSync(long habitId, long startTs, long endTs);
 

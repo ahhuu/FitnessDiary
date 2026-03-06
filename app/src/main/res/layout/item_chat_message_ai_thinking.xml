@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="8dp"
-    android:layout_marginBottom="12dp">
+    android:layout_marginBottom="16dp">
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -20,7 +20,7 @@
             android:layout_width="16dp"
             android:layout_height="16dp"
             android:indeterminate="true"
-            android:indeterminateTint="@color/fitnessdiary_primary"
+            android:indeterminateTint="@color/ai_primary"
             style="@android:style/Widget.Material.ProgressBar.Small"
             android:layout_marginEnd="12dp"/>
 
@@ -35,7 +35,7 @@
                 android:layout_height="wrap_content"
                 android:text="AI"
                 android:textSize="11sp"
-                android:textColor="@color/fitnessdiary_primary"
+                android:textColor="@color/ai_primary"
                 android:alpha="0.8"
                 android:textStyle="bold" />
 

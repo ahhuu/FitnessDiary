@@ -72,6 +72,10 @@ public interface FoodRecordDao {
 
     @Query("SELECT SUM(calories) FROM food_record WHERE record_date >= :startDate AND record_date < :endDate")
     Integer getTotalCaloriesByDateRangeSync(long startDate, long endDate);
+
     @Query("SELECT COUNT(*) FROM food_record WHERE record_date >= :startDate AND record_date < :endDate AND meal_type = :mealType")
     int getMealCountByDateRangeAndTypeSync(long startDate, long endDate, int mealType);
+
+    @Query("SELECT COUNT(*) FROM food_record WHERE record_date >= :startDate AND record_date < :endDate")
+    int getRecordCountByDateRangeSync(long startDate, long endDate);
 }

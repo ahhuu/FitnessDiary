@@ -22,8 +22,8 @@ import androidx.lifecycle.ViewModelProvider;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.databinding.FragmentProfileBinding;
 import com.cz.fitnessdiary.ui.MainActivity;
-import com.cz.fitnessdiary.ui.adapter.AchievementAdapter;
 import com.cz.fitnessdiary.utils.ReminderManager;
+import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.cz.fitnessdiary.viewmodel.ProfileViewModel;
 import com.cz.fitnessdiary.ui.fragment.AchievementBottomSheetFragment;
 
@@ -35,6 +35,7 @@ public class ProfileFragment extends Fragment {
 
     private FragmentProfileBinding binding;
     private ProfileViewModel viewModel;
+    private AchievementCenterViewModel achievementCenterViewModel;
     private ActivityResultLauncher<Intent> pickImageLauncher;
 
     // SAF Launchers for Backup/Restore
@@ -115,6 +116,7 @@ public class ProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+        achievementCenterViewModel = new ViewModelProvider(requireActivity()).get(AchievementCenterViewModel.class);
 
         setupAchievementEntry(); // v1.2
         setupReportEntry(); // Plan 11
@@ -203,6 +205,9 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        if (achievementCenterViewModel != null) {
+            achievementCenterViewModel.refreshAll();
+        }
     }
 
     // Plan 1.2: 成就系统已移至 AchievementBottomSheetFragment
@@ -258,10 +263,28 @@ public class ProfileFragment extends Fragment {
             }
         });
 
-        // 观察 BMI
+        // 观察 BMI，实时同步颜色与详情页面保持一致
         viewModel.getBmi().observe(getViewLifecycleOwner(), bmiValue -> {
             if (bmiValue != null) {
                 binding.tvBmi.setText(String.valueOf(bmiValue));
+
+                // 根据数值计算分类颜色 (与 showBMIDetailDialog 中逻辑保持一致)
+                int categoryColor;
+                if (bmiValue < 18.5) {
+                    categoryColor = android.graphics.Color.parseColor("#4FC3F7");
+                } else if (bmiValue < 24.0) {
+                    categoryColor = android.graphics.Color.parseColor("#4CAF50");
+                } else if (bmiValue < 28.0) {
+                    categoryColor = android.graphics.Color.parseColor("#FF9800");
+                } else {
+                    categoryColor = android.graphics.Color.parseColor("#F44336");
+                }
+
+                binding.tvBmi.setTextColor(categoryColor);
+                // 同步让卡片边框／波纹也带上分类色
+                if (binding.layoutBmi.getBackground() != null) {
+                    binding.layoutBmi.getBackground().setTint(categoryColor);
+                }
             }
         });
 
@@ -279,15 +302,32 @@ public class ProfileFragment extends Fragment {
             }
         });
 
-        // Plan 1.2: 观察成就数据并更新概览文字
-        viewModel.getAchievements().observe(getViewLifecycleOwner(), achievements -> {
+        achievementCenterViewModel.getAchievements().observe(getViewLifecycleOwner(), achievements -> {
+            int unlockedCount = 0;
             if (achievements != null) {
-                int unlockedCount = 0;
                 for (com.cz.fitnessdiary.model.Achievement a : achievements) {
-                    if (a.isUnlocked())
+                    if (a.isUnlocked()) {
                         unlockedCount++;
+                    }
                 }
+            }
+            Integer unreadCount = achievementCenterViewModel.getUnreadUnlockCount().getValue();
+            if (unreadCount != null && unreadCount > 0) {
+                binding.tvAchievementSummary.setText("新解锁 " + unreadCount + " 枚");
+                binding.tvAchievementSummary.setTextColor(
+                        androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ai_primary));
+            } else {
                 binding.tvAchievementSummary.setText("已获得 " + unlockedCount + " 枚");
+                binding.tvAchievementSummary.setTextColor(
+                        androidx.core.content.ContextCompat.getColor(requireContext(), R.color.text_secondary));
+            }
+        });
+
+        achievementCenterViewModel.getUnreadUnlockCount().observe(getViewLifecycleOwner(), unreadCount -> {
+            if (unreadCount != null && unreadCount > 0) {
+                binding.tvAchievementSummary.setText("新解锁 " + unreadCount + " 枚");
+                binding.tvAchievementSummary.setTextColor(
+                        androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ai_primary));
             }
         });
 

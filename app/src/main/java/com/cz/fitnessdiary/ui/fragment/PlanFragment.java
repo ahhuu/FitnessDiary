@@ -29,14 +29,13 @@ import com.cz.fitnessdiary.databinding.FragmentPlanBinding;
 import com.cz.fitnessdiary.ui.adapter.GroupedPlanAdapter;
 import com.cz.fitnessdiary.utils.PermissionHelper;
 import com.cz.fitnessdiary.viewmodel.PlanViewModel;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.textfield.TextInputEditText;
 
 /**
  * 训练计划页面 - 2.0 升级版
  * 添加组数、次数和媒体支持
  */
 public class PlanFragment extends Fragment {
+    private static final int MAX_VISIBLE_CATEGORY_CHIPS = 6;
 
     private FragmentPlanBinding binding;
     private PlanViewModel viewModel;
@@ -185,9 +184,13 @@ public class PlanFragment extends Fragment {
                 adapter.setGroupList(groupedPlans);
                 binding.layoutEmptyState.setVisibility(View.GONE);
                 binding.rvPlans.setVisibility(View.VISIBLE);
+                updateHeroMetrics(groupedPlans);
             } else {
                 binding.layoutEmptyState.setVisibility(View.VISIBLE);
                 binding.rvPlans.setVisibility(View.GONE);
+                binding.tvWeeklyFrequency.setText("0 次/周");
+                binding.tvBodyPartCount.setText("0 类");
+                binding.tvActionCount.setText("0 个");
             }
         });
 
@@ -212,29 +215,99 @@ public class PlanFragment extends Fragment {
         });
     }
 
+    private void updateHeroMetrics(List<com.cz.fitnessdiary.model.PlanGroup> groupedPlans) {
+        if (groupedPlans == null || groupedPlans.isEmpty()) {
+            binding.tvWeeklyFrequency.setText("0 次/周");
+            binding.tvBodyPartCount.setText("0 类");
+            binding.tvActionCount.setText("0 个");
+            return;
+        }
+
+        int bodyPartCount = groupedPlans.size();
+        int actionCount = 0;
+        int weeklyFrequency = 0;
+
+        for (com.cz.fitnessdiary.model.PlanGroup group : groupedPlans) {
+            if (group == null || group.getPlans() == null) {
+                continue;
+            }
+            actionCount += group.getPlans().size();
+
+            for (TrainingPlan plan : group.getPlans()) {
+                if (plan == null) {
+                    continue;
+                }
+                String days = plan.getScheduledDays();
+                if (days == null || days.trim().isEmpty() || "0".equals(days.trim())) {
+                    weeklyFrequency += 7;
+                    continue;
+                }
+                java.util.Set<String> uniqueDays = new java.util.HashSet<>();
+                for (String day : days.split(",")) {
+                    String d = day == null ? "" : day.trim();
+                    if (d.matches("[1-7]")) {
+                        uniqueDays.add(d);
+                    }
+                }
+                weeklyFrequency += uniqueDays.isEmpty() ? 7 : uniqueDays.size();
+            }
+        }
+
+        binding.tvWeeklyFrequency.setText(weeklyFrequency + " 次/周");
+        binding.tvBodyPartCount.setText(bodyPartCount + " 类");
+        binding.tvActionCount.setText(actionCount + " 个");
+    }
+
     /**
      * Plan 35: 动态生成部位标签 (Chips)
      */
     private void updateCategoryChips(String categoriesStr) {
         binding.cgCategories.removeAllViews();
+        if (categoriesStr == null || categoriesStr.trim().isEmpty()) {
+            return;
+        }
+
         String[] parts = categoriesStr.split("、");
+        int shown = 0;
         for (String part : parts) {
             if (part.trim().isEmpty())
                 continue;
+            if (shown >= MAX_VISIBLE_CATEGORY_CHIPS) {
+                break;
+            }
 
             com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(requireContext());
             chip.setText(part.trim());
-            chip.setChipMinHeight(0);
-            chip.setChipStartPadding(12f);
-            chip.setChipEndPadding(12f);
+            chip.setEnsureMinTouchTargetSize(false);
+            chip.setChipMinHeight(28f);
+            chip.setChipStartPadding(10f);
+            chip.setChipEndPadding(10f);
             chip.setTextAppearance(R.style.TextAppearance_App_LabelSmall);
-            // 绿底白字适配经典布局
-            int primaryColor = androidx.core.content.ContextCompat.getColor(requireContext(),
-                    R.color.fitnessdiary_primary);
-            chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(primaryColor));
-            chip.setTextColor(android.graphics.Color.WHITE);
-            chip.setChipStrokeWidth(0);
+            int bg = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.fitnessdiary_surface_variant);
+            int text = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.text_primary);
+            int stroke = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.plan_blue_primary);
+            chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(bg));
+            chip.setTextColor(text);
+            chip.setChipStrokeWidth(1f);
+            chip.setChipStrokeColor(android.content.res.ColorStateList.valueOf(stroke));
+            chip.setClickable(false);
             binding.cgCategories.addView(chip);
+            shown++;
+        }
+
+        int hidden = parts.length - shown;
+        if (hidden > 0) {
+            com.google.android.material.chip.Chip moreChip = new com.google.android.material.chip.Chip(requireContext());
+            moreChip.setText("+" + hidden);
+            moreChip.setEnsureMinTouchTargetSize(false);
+            moreChip.setChipMinHeight(28f);
+            moreChip.setChipStartPadding(10f);
+            moreChip.setChipEndPadding(10f);
+            int bg = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.plan_blue_primary);
+            moreChip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(bg));
+            moreChip.setTextColor(android.graphics.Color.WHITE);
+            moreChip.setClickable(false);
+            binding.cgCategories.addView(moreChip);
         }
     }
 

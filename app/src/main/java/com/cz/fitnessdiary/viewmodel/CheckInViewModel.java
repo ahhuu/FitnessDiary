@@ -9,8 +9,10 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.cz.fitnessdiary.database.entity.DailyLog;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
+import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.repository.DailyLogRepository;
 import com.cz.fitnessdiary.repository.SleepRecordRepository;
+import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
 
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ public class CheckInViewModel extends AndroidViewModel {
     private DailyLogRepository dailyLogRepository;
     private com.cz.fitnessdiary.repository.TrainingPlanRepository trainingPlanRepository;
     private SleepRecordRepository sleepRecordRepository;
+    private UserRepository userRepository;
     private LiveData<List<DailyLog>> allLogs;
     private MutableLiveData<Integer> consecutiveDays = new MutableLiveData<>(0);
     private MutableLiveData<Long> selectedDate = new MutableLiveData<>(DateUtils.getTodayStartTimestamp());
@@ -38,6 +41,7 @@ public class CheckInViewModel extends AndroidViewModel {
         dailyLogRepository = new DailyLogRepository(application);
         sleepRecordRepository = new SleepRecordRepository(application);
         trainingPlanRepository = new com.cz.fitnessdiary.repository.TrainingPlanRepository(application);
+        userRepository = new UserRepository(application);
         allLogs = dailyLogRepository.getAllLogs();
         executorService = Executors.newSingleThreadExecutor();
 
@@ -71,6 +75,10 @@ public class CheckInViewModel extends AndroidViewModel {
 
     public LiveData<Long> getSelectedDate() {
         return selectedDate;
+    }
+
+    public LiveData<User> getUser() {
+        return userRepository.getUser();
     }
 
     public void setSelectedDate(long timestamp) {
@@ -292,7 +300,7 @@ public class CheckInViewModel extends AndroidViewModel {
         }
 
         if (targetPlanIds.isEmpty())
-            return false;
+            return true;
 
         // 2. 检查当天日志
         // 必须所有 targetPlanIds 都有对应的 log 且 completed=true
@@ -346,7 +354,7 @@ public class CheckInViewModel extends AndroidViewModel {
         }
 
         if (targetPlanIds.isEmpty())
-            return false;
+            return true;
 
         // 2. 检查当天日志
         int completedCount = 0;

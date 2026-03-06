@@ -4,11 +4,16 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- 放大版极简叶片 - Outline -->
     <path
+        android:fillColor="#00000000"
         android:strokeColor="#000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="1.9"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M20,6c-3.5-0.5-7.5,2.5-9.5,6.5s-2.5,8.5-2.5,8.5s4.5-1.5,8.5-3.5s6.5-6.5,5.5-9C21.8,7.5,21,6.5,20,6z" />
+        android:pathData="M18.8,5.6c-3.7,-0.4 -7.7,2.2 -9.8,6.1c-2.1,3.8 -2.5,8.1 -2.5,8.1s4.2,-1.3 8.2,-3.3c4,-2 6.5,-5.8 5.9,-9.3c-0.2,-0.9 -0.8,-1.5 -1.8,-1.6z" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round"
+        android:pathData="M9.2,17.4c2,-2.1 3.8,-4.3 6,-6.8" />
 </vector>

@@ -42,6 +42,10 @@ public class WeightRecordRepository {
         return dao.getLatestRecordSync();
     }
 
+    public WeightRecord getLatestRecordBeforeSync(long timestamp) {
+        return dao.getLatestRecordBeforeSync(timestamp);
+    }
+
     public LiveData<List<WeightRecord>> getRecordsByDateRange(long startTs, long endTs) {
         return dao.getRecordsByDateRange(startTs, endTs);
     }
