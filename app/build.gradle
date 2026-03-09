@@ -115,6 +115,10 @@ dependencies {
     // Alibaba DashScope SDK (for Qwen)
     implementation 'com.alibaba:dashscope-sdk-java:2.16.3'
 
+    // Lottie (for rich scan flow animations)
+    implementation 'com.airbnb.android:lottie:6.4.1'
+
     // Grid Layout Support
     implementation 'androidx.gridlayout:gridlayout:1.0.0'
 }
+

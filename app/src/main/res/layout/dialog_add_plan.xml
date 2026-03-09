@@ -12,6 +12,7 @@
 
         <!-- 计划名称 -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout.Outlined.Plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/plan_name"
@@ -32,6 +33,7 @@
 
         <!-- 计划描述 -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout.Outlined.Plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/plan_description"
@@ -53,6 +55,7 @@
 
         <!-- 训练分类 -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout.Outlined.Plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/plan_category"
@@ -153,6 +156,7 @@
 
         <!-- 组数 -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout.Outlined.Plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/plan_sets"
@@ -174,6 +178,7 @@
 
         <!-- 次数/时长 -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout.Outlined.Plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/plan_reps"
@@ -196,10 +201,10 @@
         <!-- 添加演示媒体 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_add_media"
+            style="@style/Widget.App.Button.Outlined.Plan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/plan_add_media"
-            style="@style/Widget.Material3.Button.OutlinedButton"
             app:icon="@android:drawable/ic_menu_gallery"
             android:layout_marginBottom="12dp" />
 

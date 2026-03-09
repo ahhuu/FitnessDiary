@@ -22,6 +22,7 @@ import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.ui.adapter.DailyLogAdapter;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
 import com.google.android.material.datepicker.MaterialDatePicker;
@@ -29,7 +30,6 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -51,6 +51,7 @@ public class SportRecordDetailFragment extends Fragment {
     private TextView tvDailyAvg;
     private LinearLayout weekCalendar;
     private RecyclerView rvTodayLogs;
+    private MaterialButton btnQuickCheckinAll;
 
     public SportRecordDetailFragment() {
         super(R.layout.fragment_sport_record_detail);
@@ -64,6 +65,7 @@ public class SportRecordDetailFragment extends Fragment {
         ImageButton btnBack = view.findViewById(R.id.btn_back);
         ImageButton btnManage = view.findViewById(R.id.btn_manage);
         ImageButton btnPrevDay = view.findViewById(R.id.btn_prev_day);
+        btnQuickCheckinAll = view.findViewById(R.id.btn_quick_checkin_all);
         ImageButton btnNextDay = view.findViewById(R.id.btn_next_day);
         tvSelectedDate = view.findViewById(R.id.tv_selected_date);
         tvConsecutiveDays = view.findViewById(R.id.tv_consecutive_days);
@@ -98,12 +100,31 @@ public class SportRecordDetailFragment extends Fragment {
         rvTodayLogs.setAdapter(adapter);
 
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
-        btnManage.setOnClickListener(v -> {
-            androidx.navigation.Navigation.findNavController(v).navigate(R.id.planFragment);
-        });
+        btnManage.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(R.id.planFragment));
         btnPrevDay.setOnClickListener(v -> checkInViewModel.toPreviousDay());
         btnNextDay.setOnClickListener(v -> checkInViewModel.toNextDay());
         tvSelectedDate.setOnClickListener(v -> showDatePicker());
+
+        btnQuickCheckinAll.setOnClickListener(v -> checkInViewModel.quickCompleteAllForSelectedDate((affected, total, revoked) -> {
+            if (!isAdded()) {
+                return;
+            }
+            requireActivity().runOnUiThread(() -> {
+                if (total <= 0) {
+                    Toast.makeText(getContext(), "当日无训练计划，无需打卡", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (revoked) {
+                    Toast.makeText(getContext(), "已撤销 " + affected + " / " + total + " 项训练", Toast.LENGTH_SHORT).show();
+                } else if (affected > 0) {
+                    Toast.makeText(getContext(), "已完成 " + affected + " / " + total + " 项训练", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getContext(), "当日训练已全部完成", Toast.LENGTH_SHORT).show();
+                }
+                refreshWeekCalendar();
+                updateQuickCheckinButtonState();
+            });
+        }));
 
         long selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
         checkInViewModel.setSelectedDate(selectedDate);
@@ -120,8 +141,7 @@ public class SportRecordDetailFragment extends Fragment {
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("选择日期")
                 .setSelection(DateUtils.localToUtcDayStart(currentSelection))
-                .setCalendarConstraints(
-                        new CalendarConstraints.Builder().setValidator(DateValidatorPointBackward.now()).build())
+                .setCalendarConstraints(new CalendarConstraints.Builder().setValidator(DateValidatorPointBackward.now()).build())
                 .build();
         datePicker.addOnPositiveButtonClickListener(selection -> checkInViewModel.setSelectedDate(selection));
         datePicker.show(getParentFragmentManager(), "SPORT_DETAIL_DATE_PICKER");
@@ -144,6 +164,7 @@ public class SportRecordDetailFragment extends Fragment {
                 plans.addAll(p);
             }
             updateAdapter();
+            updateQuickCheckinButtonState();
         });
 
         checkInViewModel.getSelectedDateLogs().observe(getViewLifecycleOwner(), l -> {
@@ -152,12 +173,33 @@ public class SportRecordDetailFragment extends Fragment {
                 logs.addAll(l);
             }
             updateAdapter();
+            updateQuickCheckinButtonState();
         });
 
         checkInViewModel.getConsecutiveDays().observe(getViewLifecycleOwner(), days -> {
             int value = days == null ? 0 : days;
             tvConsecutiveDays.setText("已连续坚持 " + value + " 天");
         });
+    }
+
+    private void updateQuickCheckinButtonState() {
+        if (btnQuickCheckinAll == null) {
+            return;
+        }
+        if (plans.isEmpty()) {
+            btnQuickCheckinAll.setEnabled(false);
+            btnQuickCheckinAll.setText("无计划");
+            return;
+        }
+        int completed = 0;
+        for (DailyLog log : logs) {
+            if (log.isCompleted()) {
+                completed++;
+            }
+        }
+        boolean allCompleted = completed >= plans.size();
+        btnQuickCheckinAll.setEnabled(true);
+        btnQuickCheckinAll.setText(allCompleted ? "全部撤销" : "全部完成");
     }
 
     private void updateAdapter() {
@@ -193,8 +235,7 @@ public class SportRecordDetailFragment extends Fragment {
                 LinearLayout dayContainer = new LinearLayout(getContext());
                 dayContainer.setOrientation(LinearLayout.VERTICAL);
                 dayContainer.setGravity(Gravity.CENTER);
-                dayContainer
-                        .setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+                dayContainer.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
                 TextView tvDay = new TextView(getContext());
                 tvDay.setText(weekDays[i]);

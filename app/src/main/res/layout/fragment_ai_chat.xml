@@ -172,7 +172,7 @@
                     style="@style/Widget.MaterialComponents.Chip.Action"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📅 制定训练计划"
+                    android:text="📅 智能制定训练"
                     android:textSize="12sp" />
 
                 <com.google.android.material.chip.Chip
@@ -180,7 +180,7 @@
                     style="@style/Widget.MaterialComponents.Chip.Action"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🍱 分析饮食热量"
+                    android:text="🍱 智能饮食分析"
                     android:textSize="12sp" />
 
                 <com.google.android.material.chip.Chip
@@ -188,7 +188,7 @@
                     style="@style/Widget.MaterialComponents.Chip.Action"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💪 评估我的进度"
+                    android:text="💪 智能评估进度"
                     android:textSize="12sp" />
 
                 <com.google.android.material.chip.Chip
@@ -342,3 +342,4 @@
     </com.google.android.material.navigation.NavigationView>
 
 </androidx.drawerlayout.widget.DrawerLayout>
+

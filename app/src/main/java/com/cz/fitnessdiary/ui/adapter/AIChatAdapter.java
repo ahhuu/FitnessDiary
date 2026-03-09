@@ -323,6 +323,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
             // 汇总所有识别到的食物
             org.json.JSONArray allFoodItems = new org.json.JSONArray();
+            String detectedMealName = null;
             JSONObject finalActionJson = null;
             JSONObject planActionJson = null;
 
@@ -333,6 +334,10 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                     String type = actionJson.optString("type");
 
                     if ("FOOD".equals(type)) {
+                        String mealName = actionJson.optString("meal_name", "").trim();
+                        if (detectedMealName == null && !mealName.isEmpty()) {
+                            detectedMealName = mealName;
+                        }
                         org.json.JSONArray items = actionJson.optJSONArray("items");
                         if (items != null) {
                             for (int i = 0; i < items.length(); i++) {
@@ -357,6 +362,9 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                     JSONObject foodActionJson = new JSONObject();
                     foodActionJson.put("type", "FOOD");
                     foodActionJson.put("items", allFoodItems);
+                    if (detectedMealName != null && !detectedMealName.isEmpty()) {
+                        foodActionJson.put("meal_name", detectedMealName);
+                    }
 
                     if (planActionJson != null) {
                         // 同一条回复里允许同时保留计划+饮食动作
@@ -429,9 +437,9 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 } else if ("FOOD".equals(type)) {
                     org.json.JSONArray items = finalActionJson.optJSONArray("items");
                     if (items != null && items.length() > 0) {
-                        aiHolder.btnAction.setText("记录这餐（" + items.length() + "项）");
+                        aiHolder.btnAction.setText("一键记录整餐（" + items.length() + "项）");
                     } else {
-                        aiHolder.btnAction.setText("记录这餐");
+                        aiHolder.btnAction.setText("一键记录整餐");
                     }
                 } else if ("PLAN".equals(type)) {
                     aiHolder.btnAction.setText("添加计划");
@@ -519,3 +527,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         }
     }
 }
+
+
+
+

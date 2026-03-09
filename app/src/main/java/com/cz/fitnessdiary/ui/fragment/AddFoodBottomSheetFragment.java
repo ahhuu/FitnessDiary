@@ -20,6 +20,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 
 /**
@@ -151,22 +152,45 @@ public class AddFoodBottomSheetFragment extends BottomSheetDialogFragment {
     }
 
     private void updateCaloriePreview() {
-        if (selectedFood == null)
+        if (selectedFood == null) {
+            binding.tvAutoCalories.setText("预估摄入: 0 千卡");
+            binding.tvMacroPreview.setText("蛋白质: 0.0g · 碳水: 0.0g · 1份约0g");
             return;
+        }
 
         String servingsStr = binding.etServings.getText().toString().trim();
         if (servingsStr.isEmpty()) {
             binding.tvAutoCalories.setText("预估摄入: 0 千卡");
+            String unit = selectedFood.getServingUnit() == null || selectedFood.getServingUnit().trim().isEmpty()
+                    ? "份"
+                    : selectedFood.getServingUnit().trim();
+            binding.tvMacroPreview
+                    .setText(String.format(Locale.getDefault(), "蛋白质: 0.0g · 碳水: 0.0g · 1%s约%dg", unit,
+                            selectedFood.getWeightPerUnit()));
             return;
         }
 
         try {
             float servings = Float.parseFloat(servingsStr);
             double totalWeight = servings * selectedFood.getWeightPerUnit();
-            int calories = (int) (selectedFood.getCaloriesPer100g() * (totalWeight / 100.0));
+            int calories = (int) Math.round(selectedFood.getCaloriesPer100g() * (totalWeight / 100.0));
+            double protein = selectedFood.getProteinPer100g() * (totalWeight / 100.0);
+            double carbs = selectedFood.getCarbsPer100g() * (totalWeight / 100.0);
+            String unit = selectedFood.getServingUnit() == null || selectedFood.getServingUnit().trim().isEmpty()
+                    ? "份"
+                    : selectedFood.getServingUnit().trim();
+
             binding.tvAutoCalories.setText("预估摄入: " + calories + " 千卡");
+            binding.tvMacroPreview.setText(String.format(Locale.getDefault(),
+                    "蛋白质: %.1fg · 碳水: %.1fg · 1%s约%dg", protein, carbs, unit, selectedFood.getWeightPerUnit()));
         } catch (NumberFormatException e) {
             binding.tvAutoCalories.setText("预估摄入: 0 千卡");
+            String unit = selectedFood.getServingUnit() == null || selectedFood.getServingUnit().trim().isEmpty()
+                    ? "份"
+                    : selectedFood.getServingUnit().trim();
+            binding.tvMacroPreview
+                    .setText(String.format(Locale.getDefault(), "蛋白质: 0.0g · 碳水: 0.0g · 1%s约%dg", unit,
+                            selectedFood.getWeightPerUnit()));
         }
     }
 

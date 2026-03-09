@@ -81,6 +81,73 @@
         <item name="rippleColor">@color/primary_variant</item>
     </style>
 
+    <!-- Module-scoped input styles -->
+    <style name="Widget.App.TextInputLayout.Outlined.Diet" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/diet_primary</item>
+        <item name="hintTextColor">@color/diet_primary</item>
+    </style>
+
+    <style name="Widget.App.TextInputLayout.Outlined.Diet.ExposedDropdown"
+        parent="Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+        <item name="boxStrokeColor">@color/diet_primary</item>
+        <item name="hintTextColor">@color/diet_primary</item>
+    </style>
+
+    <style name="Widget.App.TextInputLayout.Outlined.Plan" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/plan_blue_primary</item>
+        <item name="hintTextColor">@color/plan_blue_primary</item>
+    </style>
+
+    <!-- Module-scoped button styles -->
+    <style name="Widget.App.Button.Filled.Diet" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/diet_primary</item>
+        <item name="rippleColor">@color/diet_container</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="Widget.App.Button.Filled.Plan" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/plan_blue_primary</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="Widget.App.Button.Filled.Ai" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/ai_primary</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="Widget.App.Button.Outlined.Plan" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/plan_blue_primary</item>
+        <item name="iconTint">@color/plan_blue_primary</item>
+        <item name="android:textColor">@color/plan_blue_primary</item>
+    </style>
+
+    <style name="Widget.App.Button.Outlined.Diet" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/diet_primary</item>
+        <item name="iconTint">@color/diet_primary</item>
+        <item name="android:textColor">@color/diet_primary</item>
+    </style>
+
+    <style name="Widget.App.Button.Outlined.Ai" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/ai_primary</item>
+        <item name="android:textColor">@color/ai_primary</item>
+    </style>
+
+    <style name="Widget.App.Button.Text.Ai" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/ai_primary</item>
+    </style>
+
+    <style name="Widget.App.Button.TextButton.Diet" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/diet_primary</item>
+        <item name="rippleColor">@color/diet_container</item>
+    </style>
+
+    <style name="ThemeOverlay.App.MaterialAlertDialog.Diet" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="alertDialogStyle">@style/MaterialAlertDialog.App</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.App.Button.TextButton.Diet</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.App.Button.TextButton.Diet</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.App.Button.TextButton.Diet</item>
+    </style>
+
     <!-- BottomSheet Style -->
     <style name="ThemeOverlay.App.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/Widget.App.BottomSheet</item>

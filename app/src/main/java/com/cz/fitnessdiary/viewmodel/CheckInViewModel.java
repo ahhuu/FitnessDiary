@@ -172,6 +172,106 @@ public class CheckInViewModel extends AndroidViewModel {
         dailyLogRepository.insert(log);
         calculateConsecutiveDays();
     }
+    public interface QuickCheckInCallback {
+        void onResult(int affectedCount, int totalPlanCount, boolean revoked);
+    }
+
+    /**
+     * 一键切换选定日期的全部训练计划：未完成->全部完成，已全完成->全部撤销
+     */
+    public void quickCompleteAllForSelectedDate(QuickCheckInCallback callback) {
+        executorService.execute(() -> {
+            Long selected = selectedDate.getValue();
+            long targetDate = selected == null ? DateUtils.getTodayStartTimestamp() : DateUtils.getDayStartTimestamp(selected);
+
+            List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans = trainingPlanRepository.getAllPlansSync();
+            List<com.cz.fitnessdiary.database.entity.TrainingPlan> targetPlans = new ArrayList<>();
+            if (allPlans != null) {
+                String mode = getCurrentPlanMode();
+                java.util.Calendar calendar = java.util.Calendar.getInstance();
+                calendar.setTimeInMillis(targetDate);
+                int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
+                int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
+
+                for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
+                    String cat = plan.getCategory();
+                    if (cat == null || !cat.startsWith(mode + "-")) {
+                        continue;
+                    }
+
+                    String scheduledDays = plan.getScheduledDays();
+                    boolean isScheduled = false;
+                    if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+                        isScheduled = true;
+                    } else {
+                        String[] days = scheduledDays.split(",");
+                        for (String day : days) {
+                            if (day.trim().equals(String.valueOf(dayIndex))) {
+                                isScheduled = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isScheduled) {
+                        targetPlans.add(plan);
+                    }
+                }
+            }
+
+            if (targetPlans.isEmpty()) {
+                if (callback != null) {
+                    callback.onResult(0, 0, false);
+                }
+                return;
+            }
+
+            List<DailyLog> existingLogs = dailyLogRepository.getLogsByDateSync(targetDate);
+            java.util.Map<Integer, DailyLog> logMap = new java.util.HashMap<>();
+            if (existingLogs != null) {
+                for (DailyLog log : existingLogs) {
+                    logMap.put(log.getPlanId(), log);
+                }
+            }
+
+            boolean allCompleted = true;
+            for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : targetPlans) {
+                DailyLog log = logMap.get(plan.getPlanId());
+                if (log == null || !log.isCompleted()) {
+                    allCompleted = false;
+                    break;
+                }
+            }
+
+            int affected = 0;
+            if (allCompleted) {
+                for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : targetPlans) {
+                    DailyLog existing = logMap.get(plan.getPlanId());
+                    if (existing != null && existing.isCompleted()) {
+                        existing.setCompleted(false);
+                        dailyLogRepository.updateSync(existing);
+                        affected++;
+                    }
+                }
+            } else {
+                for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : targetPlans) {
+                    DailyLog existing = logMap.get(plan.getPlanId());
+                    if (existing == null) {
+                        dailyLogRepository.insertSync(new DailyLog(plan.getPlanId(), targetDate, true));
+                        affected++;
+                    } else if (!existing.isCompleted()) {
+                        existing.setCompleted(true);
+                        dailyLogRepository.updateSync(existing);
+                        affected++;
+                    }
+                }
+            }
+
+            calculateConsecutiveDays();
+            if (callback != null) {
+                callback.onResult(affected, targetPlans.size(), allCompleted);
+            }
+        });
+    }
 
     /**
      * [v1.2] 强制刷新数据 (当计划模式可能改变时调用)

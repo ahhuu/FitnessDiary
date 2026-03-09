@@ -293,8 +293,8 @@ public class AIChatViewModel extends AndroidViewModel {
                 "2. 当建议具体的动作、组数或制定训练方案时，务必附加：<action>{\"type\":\"PLAN\",\"name\":\"练习名\",\"sets\":4,\"reps\":12,\"desc\":\"动作描述\",\"category\":\"胸部/腿部/背部/有氧\"}</action>\n");
         sb.append("3. 哪怕用户只是随口问一句“这个热量高吗？”也要智能弹出入库按钮，不要吝啬。如果是多个食物，请在 items 列表中一次性列出。\n");
         sb.append(
-                "4. 【核心指令：图片主动识别】如果用户上传了图片，你必须**优先识别**图片中的所有食物，并**主动**提供 <action> 标签进行记录，即便用户没有在文字中明确要求识别。识别要全面且专业，给出预估热量和营养素。\n");
-        sb.append("5. 不要向用户解释这些标签的存在。");
+                "4. 如果是盖饭、套餐、便当、拼盘等整餐场景，请优先给出 meal_name（如“鸡腿盖饭”），并保持 items 为该餐组成。\n5. 【核心指令：图片主动识别】如果用户上传了图片，你必须**优先识别**图片中的所有食物，并**主动**提供 <action> 标签进行记录，即便用户没有在文字中明确要求识别。识别要全面且专业，给出预估热量和营养素。\n");
+        sb.append("6. 不要向用户解释这些标签的存在。");
         return sb.toString();
     }
 
@@ -321,7 +321,7 @@ public class AIChatViewModel extends AndroidViewModel {
 
                     @Override
                     public void onError(String error) {
-                        handleError("教练连接中断: " + error);
+                        handleError("私教连接中断: " + error);
                     }
                 });
     }
@@ -342,7 +342,7 @@ public class AIChatViewModel extends AndroidViewModel {
 
                     @Override
                     public void onError(String error) {
-                        handleError("千问教练连线失败: " + error);
+                        handleError("千问私教连线失败: " + error);
                     }
                 });
     }
@@ -355,10 +355,12 @@ public class AIChatViewModel extends AndroidViewModel {
     }
 
     private void handleError(String error) {
-        String userFriendlyError = "⚠️ 教练正在整理器材: " + error;
+        String userFriendlyError = "⚠️ 私教正在整理器材: " + error;
         repository.insert(new ChatMessageEntity(userFriendlyError, false, System.currentTimeMillis(),
                 currentSessionId.getValue()));
         currentThinkingModel.setValue(null);
         isLoading.setValue(false);
     }
 }
+
+

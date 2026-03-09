@@ -1,5 +1,17 @@
 package com.cz.fitnessdiary.ui.fragment;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageDecoder;
+import android.net.Uri;
+import android.os.Build;
+import androidx.core.content.FileProvider;
+import com.cz.fitnessdiary.model.FoodScanFlowState;
+import com.cz.fitnessdiary.model.ImageMealDraft;
+import java.io.File;
+import java.io.InputStream;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -56,6 +68,40 @@ public class DietFragment extends Fragment {
     private FragmentDietBinding binding;
     private DietViewModel viewModel;
     private ExecutorService executorService;
+    private ExecutorService imageExecutorService;
+
+
+    private Uri photoUri;
+    private Uri lastImageUri;
+    private Bitmap lastScanBitmap;
+
+    private final androidx.activity.result.ActivityResultLauncher<Uri> cameraLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+            success -> {
+                if (success && photoUri != null) {
+                    lastImageUri = photoUri;
+                    startAnalyzeFromUri(photoUri);
+                }
+            });
+
+    private final androidx.activity.result.ActivityResultLauncher<String> mediaPickerLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    lastImageUri = uri;
+                    startAnalyzeFromUri(uri);
+                }
+            });
+
+    private final androidx.activity.result.ActivityResultLauncher<String> requestCameraPermissionLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    launchCamera();
+                } else if (isAdded()) {
+                    Toast.makeText(requireContext(), "需要相机权限才能拍照识别", Toast.LENGTH_SHORT).show();
+                }
+            });
 
     @Nullable
     @Override
@@ -63,6 +109,7 @@ public class DietFragment extends Fragment {
             @Nullable Bundle savedInstanceState) {
         binding = FragmentDietBinding.inflate(inflater, container, false);
         executorService = Executors.newSingleThreadExecutor();
+        imageExecutorService = Executors.newSingleThreadExecutor();
         return binding.getRoot();
     }
 
@@ -72,7 +119,9 @@ public class DietFragment extends Fragment {
 
         viewModel = new ViewModelProvider(requireActivity()).get(DietViewModel.class);
 
+        setupFoodImageResultListener();
         setupViews();
+        setupFoodScanFlowView();
         observeViewModel();
     }
 
@@ -84,6 +133,7 @@ public class DietFragment extends Fragment {
 
         // 设置搜索卡片点击
         binding.cardFoodWiki.setOnClickListener(v -> showFoodWikiDialog());
+        binding.btnFoodScan.setOnClickListener(v -> showImageSourcePicker());
 
         // 绑定卡片添加按钮监听
         setupCardListeners();
@@ -178,13 +228,14 @@ public class DietFragment extends Fragment {
         // 设置点击添加监听
         adapter.setOnItemClickListener(food -> {
             String[] mealOptions = { "早餐", "午餐", "晚餐", "加餐" };
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            AlertDialog chooseMealDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                     .setTitle("将 " + food.getName() + " 添加到...")
                     .setItems(mealOptions, (dialogInterface, which) -> {
                         dialog.dismiss();
                         showSmartAddFoodDialog(which, food);
                     })
                     .show();
+            tintDialogButtons(chooseMealDialog);
         });
 
         // 设置点击编辑监听
@@ -192,7 +243,7 @@ public class DietFragment extends Fragment {
             showAddOrEditFoodDialog(dialog, adapter, food);
         });
 
-        executorService.execute(() -> {
+        imageExecutorService.execute(() -> {
             List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
             requireActivity().runOnUiThread(() -> adapter.setFoodList(allFoods));
         });
@@ -201,7 +252,7 @@ public class DietFragment extends Fragment {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String query = s.toString();
-                executorService.execute(() -> {
+                imageExecutorService.execute(() -> {
                     List<FoodLibrary> results = viewModel.searchFoods(query);
                     requireActivity().runOnUiThread(() -> adapter.setFoodList(results));
                 });
@@ -302,7 +353,7 @@ public class DietFragment extends Fragment {
         }
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder builder = new com.google.android.material.dialog.MaterialAlertDialogBuilder(
-                requireContext())
+            requireContext())
                 .setTitle(isEditMode ? "编辑食物信息" : "添加自定义食物")
                 .setView(dialogView)
                 .setNeutralButton("取消", null)
@@ -353,7 +404,7 @@ public class DietFragment extends Fragment {
                         }
 
                         // 刷新列表
-                        executorService.execute(() -> {
+                        imageExecutorService.execute(() -> {
                             List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
                             requireActivity().runOnUiThread(() -> adapter.setFoodList(allFoods));
                         });
@@ -364,7 +415,7 @@ public class DietFragment extends Fragment {
 
         if (isEditMode) {
             builder.setNegativeButton("删除", (dialogInterface, i) -> {
-                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                AlertDialog deleteDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                         .setTitle("确认删除")
                         .setMessage("确定要从食物库中删除“" + existingFood.getName() + "”吗？此操作不可撤销。")
                         .setPositiveButton("删除", (d, w) -> {
@@ -372,17 +423,38 @@ public class DietFragment extends Fragment {
                             Toast.makeText(requireContext(), "🗑️ 已从库中移除: " + existingFood.getName(),
                                     Toast.LENGTH_SHORT).show();
                             // 刷新列表
-                            executorService.execute(() -> {
+                            imageExecutorService.execute(() -> {
                                 List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
                                 requireActivity().runOnUiThread(() -> adapter.setFoodList(allFoods));
                             });
                         })
                         .setNegativeButton("取消", null)
                         .show();
+                tintDialogButtons(deleteDialog);
             });
         }
 
-        builder.show();
+        AlertDialog addOrEditDialog = builder.show();
+        tintDialogButtons(addOrEditDialog);
+    }
+
+    private void tintDialogButtons(@Nullable AlertDialog dialog) {
+        if (dialog == null || !isAdded()) {
+            return;
+        }
+        int color = ContextCompat.getColor(requireContext(), R.color.diet_primary);
+        android.widget.Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        android.widget.Button negative = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        android.widget.Button neutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+        if (positive != null) {
+            positive.setTextColor(color);
+        }
+        if (negative != null) {
+            negative.setTextColor(color);
+        }
+        if (neutral != null) {
+            neutral.setTextColor(color);
+        }
     }
 
     private void setupCardListeners() {
@@ -449,6 +521,16 @@ public class DietFragment extends Fragment {
                 total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
         viewModel.getTodayTotalCarbs().observe(getViewLifecycleOwner(),
                 total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
+
+        viewModel.getFoodScanState().observe(getViewLifecycleOwner(), this::renderFoodScanState);
+        viewModel.getFoodScanDraft().observe(getViewLifecycleOwner(), draft -> {
+            if (draft == null || !isAdded()) {
+                return;
+            }
+            viewModel.clearFoodScanDraft();
+            viewModel.resetFoodScanState();
+            showFoodConfirmSheet(draft);
+        });
     }
 
     /**
@@ -593,12 +675,206 @@ public class DietFragment extends Fragment {
                 .show(getChildFragmentManager(), "AddFoodBottomSheet");
     }
 
+    private void setupFoodImageResultListener() {
+        getChildFragmentManager().setFragmentResultListener(
+                FoodImageConfirmBottomSheet.REQUEST_KEY,
+                getViewLifecycleOwner(),
+                (requestKey, bundle) -> {
+                    String action = bundle.getString(FoodImageConfirmBottomSheet.RESULT_ACTION, "");
+                    if (FoodImageConfirmBottomSheet.ACTION_CONFIRM.equals(action)) {
+                        Object raw = bundle.getSerializable(FoodImageConfirmBottomSheet.RESULT_DRAFT);
+                        if (raw instanceof ImageMealDraft) {
+                            boolean syncLibrary = bundle.getBoolean(FoodImageConfirmBottomSheet.RESULT_SYNC_LIBRARY, false);
+                            viewModel.saveImageMealDraft((ImageMealDraft) raw, syncLibrary);
+                            Toast.makeText(requireContext(), "已记录整餐", Toast.LENGTH_SHORT).show();
+                        }
+                    } else if (FoodImageConfirmBottomSheet.ACTION_RETRY.equals(action)) {
+                        retryAnalyzeLastImage();
+                    }
+                });
+    }
+
+    private void setupFoodScanFlowView() {
+        binding.viewFoodScanFlow.bringToFront();
+        binding.viewFoodScanFlow.setTranslationZ(100f);
+        binding.viewFoodScanFlow.setActionListener(new com.cz.fitnessdiary.ui.widget.FoodScanFlowView.ActionListener() {
+            @Override
+            public void onRetry() {
+                retryAnalyzeLastImage();
+            }
+
+            @Override
+            public void onCancel() {
+                viewModel.resetFoodScanState();
+            }
+        });
+    }
+
+    private void showImageSourcePicker() {
+        String[] options = { "拍照识别", "从相册选择" };
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("识别食物")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
+                                == PackageManager.PERMISSION_GRANTED) {
+                            launchCamera();
+                        } else {
+                            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+                        }
+                    } else {
+                        mediaPickerLauncher.launch("image/*");
+                    }
+                })
+                .show();
+    }
+
+    private void launchCamera() {
+        try {
+            File dir = new File(requireContext().getCacheDir(), "food_scan");
+            if (!dir.exists() && !dir.mkdirs()) {
+                Toast.makeText(requireContext(), "无法创建图片缓存目录", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            File photoFile = File.createTempFile("food_", ".jpg", dir);
+            photoUri = FileProvider.getUriForFile(requireContext(),
+                    requireContext().getPackageName() + ".fileprovider", photoFile);
+            cameraLauncher.launch(photoUri);
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "拍照启动失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void startAnalyzeFromUri(Uri uri) {
+        if (uri == null) {
+            return;
+        }
+        imageExecutorService.execute(() -> {
+            try {
+                Bitmap bitmap = decodeScaledBitmap(uri, 1280);
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(() -> startAnalyze(bitmap));
+            } catch (Exception e) {
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(() -> {
+                    if (binding != null) {
+                        binding.viewFoodScanFlow.show();
+                        binding.viewFoodScanFlow.render(FoodScanFlowState.error("图片解析失败，请重试", true));
+                    }
+                    Toast.makeText(requireContext(), "图片解析失败，请重试", Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void startAnalyze(Bitmap bitmap) {
+        if (bitmap == null) {
+            Toast.makeText(requireContext(), "图片为空，请重试", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        lastScanBitmap = bitmap;
+        binding.viewFoodScanFlow.setPreviewBitmap(bitmap);
+        binding.viewFoodScanFlow.show();
+        viewModel.analyzeMealImage(bitmap);
+    }
+
+    private void retryAnalyzeLastImage() {
+        if (lastScanBitmap != null) {
+            binding.viewFoodScanFlow.show();
+            viewModel.analyzeMealImage(lastScanBitmap);
+            return;
+        }
+        if (lastImageUri != null) {
+            startAnalyzeFromUri(lastImageUri);
+            return;
+        }
+        Toast.makeText(requireContext(), "没有可重试的图片", Toast.LENGTH_SHORT).show();
+    }
+
+    private void renderFoodScanState(FoodScanFlowState state) {
+        if (state == null || binding == null) {
+            return;
+        }
+        if (state.getStage() == FoodScanFlowState.Stage.IDLE) {
+            binding.viewFoodScanFlow.hide();
+            return;
+        }
+        binding.viewFoodScanFlow.show();
+        binding.viewFoodScanFlow.render(state);
+        if (state.getStage() == FoodScanFlowState.Stage.SUCCESS) {
+            binding.viewFoodScanFlow.postDelayed(() -> {
+                if (binding != null) {
+                    binding.viewFoodScanFlow.hide();
+                    binding.viewFoodScanFlow.setPreviewBitmap(null);
+                }
+            }, 1100);
+        }
+    }
+
+    private void showFoodConfirmSheet(ImageMealDraft draft) {
+        if (getChildFragmentManager().findFragmentByTag(FoodImageConfirmBottomSheet.TAG) != null) {
+            return;
+        }
+        FoodImageConfirmBottomSheet.newInstance(draft)
+                .show(getChildFragmentManager(), FoodImageConfirmBottomSheet.TAG);
+    }
+
+    private Bitmap decodeScaledBitmap(Uri uri, int maxSide) throws Exception {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ImageDecoder.Source source = ImageDecoder.createSource(requireContext().getContentResolver(), uri);
+            return ImageDecoder.decodeBitmap(source, (decoder, info, src) -> {
+                int width = info.getSize().getWidth();
+                int height = info.getSize().getHeight();
+                int maxDim = Math.max(width, height);
+                if (maxDim > maxSide) {
+                    float scale = (float) maxSide / (float) maxDim;
+                    decoder.setTargetSize(Math.max(1, (int) (width * scale)), Math.max(1, (int) (height * scale)));
+                }
+            });
+        }
+
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+            BitmapFactory.decodeStream(is, null, bounds);
+        }
+        int inSampleSize = 1;
+        int maxDim = Math.max(bounds.outWidth, bounds.outHeight);
+        while (maxDim / inSampleSize > maxSide) {
+            inSampleSize *= 2;
+        }
+
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = Math.max(1, inSampleSize);
+        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+            Bitmap bitmap = BitmapFactory.decodeStream(is, null, opts);
+            if (bitmap == null) {
+                throw new IllegalStateException("无法解析图片");
+            }
+            return bitmap;
+        }
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         if (executorService != null) {
             executorService.shutdown();
         }
+        if (imageExecutorService != null) {
+            imageExecutorService.shutdown();
+        }
         binding = null;
     }
 }
+
+
+
+
+
+
+

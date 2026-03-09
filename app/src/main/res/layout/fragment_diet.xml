@@ -300,6 +300,18 @@
             
         </com.google.android.material.card.MaterialCardView>
 
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_food_scan"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:text="AI识食"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/diet_primary" />
     </LinearLayout>
     
     </androidx.core.widget.NestedScrollView>
@@ -317,4 +329,11 @@
         app:backgroundTint="@color/fitnessdiary_primary"
         android:visibility="gone" />
 
+
+    <com.cz.fitnessdiary.ui.widget.FoodScanFlowView
+        android:id="@+id/view_food_scan_flow"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+

@@ -109,6 +109,7 @@ public class AIChatFragment extends Fragment {
         setupHistorySidebar();
         setupListeners();
         observeViewModel();
+        consumePresetPromptArg();
     }
 
     private long selectedRecordDate = System.currentTimeMillis();
@@ -361,10 +362,10 @@ public class AIChatFragment extends Fragment {
                     .show();
         });
 
-        // 快捷键监听
-        binding.chipPlan.setOnClickListener(v -> sendChatMessage("请帮我制定一份训练计划"));
-        binding.chipDiet.setOnClickListener(v -> sendChatMessage("帮我分析一下这顿饭的热量"));
-        binding.chipEvaluate.setOnClickListener(v -> sendChatMessage("根据最近的打卡评估我的进度"));
+        // 快捷键监听：进入智能页并接入真实数据
+        binding.chipPlan.setOnClickListener(v -> openSmartEntry(R.id.aiPlanSmartFragment));
+        binding.chipDiet.setOnClickListener(v -> openSmartEntry(R.id.aiDietSmartFragment));
+        binding.chipEvaluate.setOnClickListener(v -> openSmartEntry(R.id.aiProgressSmartFragment));
         binding.chipAdvice.setOnClickListener(v -> sendChatMessage("给我一些今日运动建议"));
 
         binding.btnHistory.setOnClickListener(v -> binding.drawerLayout.openDrawer(GravityCompat.START));
@@ -385,6 +386,22 @@ public class AIChatFragment extends Fragment {
                     .setNegativeButton("取消", null)
                     .show();
         });
+    }
+
+    private void openSmartEntry(int destinationId) {
+        androidx.navigation.Navigation.findNavController(requireView()).navigate(destinationId);
+    }
+
+    private void consumePresetPromptArg() {
+        Bundle args = getArguments();
+        if (args == null) {
+            return;
+        }
+        String presetPrompt = args.getString("preset_prompt", "").trim();
+        if (!presetPrompt.isEmpty()) {
+            sendChatMessage(presetPrompt);
+            args.remove("preset_prompt");
+        }
     }
 
     private void showAttachmentMenu() {
@@ -563,7 +580,7 @@ public class AIChatFragment extends Fragment {
                             if (finalFoodAction != null) {
                                 org.json.JSONArray items = finalFoodAction.optJSONArray("items");
                                 if (items != null && items.length() > 0) {
-                                    handleMultiFoodLogging(items);
+                                    handleMultiFoodLogging(items, finalFoodAction.optString("meal_name", ""));
                                 }
                             }
                         }
@@ -578,7 +595,7 @@ public class AIChatFragment extends Fragment {
             org.json.JSONArray items = actionJson.optJSONArray("items");
             if (items == null || items.length() == 0)
                 return;
-            handleMultiFoodLogging(items);
+            handleMultiFoodLogging(items, actionJson.optString("meal_name", ""));
         } else if ("PLAN".equals(type)) {
             handlePlanAction(actionJson);
         }
@@ -678,7 +695,7 @@ public class AIChatFragment extends Fragment {
         }
     }
 
-    private void handleMultiFoodLogging(org.json.JSONArray items) {
+    private void handleMultiFoodLogging(org.json.JSONArray items, String preferredMealName) {
         int count = items.length();
         String[] foodNames = new String[count];
         boolean[] checkedItems = new boolean[count];
@@ -688,7 +705,7 @@ public class AIChatFragment extends Fragment {
         }
 
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("智能识别：" + count + " 种食物")
+                .setTitle("智能识别：" + count + " 项食材")
                 .setMultiChoiceItems(foodNames, checkedItems, (dialog, which, isChecked) -> {
                     checkedItems[which] = isChecked;
                 })
@@ -722,15 +739,15 @@ public class AIChatFragment extends Fragment {
                             "入库完成：成功 " + success + " 条，跳过 " + skipped + " 条",
                             Toast.LENGTH_SHORT).show();
                 })
-                .setPositiveButton("一键记录", (dialog, which) -> {
+                .setPositiveButton("一键整餐记录", (dialog, which) -> {
                     selectedRecordDate = System.currentTimeMillis(); // 重置为当前时间
-                    showMealTypeAndDatePickerDialog(items, checkedItems);
+                    showMealTypeAndDatePickerDialog(items, checkedItems, preferredMealName);
                 })
                 .setNegativeButton("取消", null)
                 .show();
     }
 
-    private void showMealTypeAndDatePickerDialog(org.json.JSONArray items, boolean[] checkedItems) {
+    private void showMealTypeAndDatePickerDialog(org.json.JSONArray items, boolean[] checkedItems, String preferredMealName) {
         String[] types = { "早餐", "午餐", "晚餐", "加餐" };
         final int[] selectedType = { 1 }; // 默认午餐
 
@@ -770,48 +787,88 @@ public class AIChatFragment extends Fragment {
                     else if (id == R.id.radio_snack)
                         mealType = 3;
 
-                    saveFoodRecords(items, checkedItems, mealType, selectedRecordDate);
+                    saveAggregatedFoodRecord(items, checkedItems, preferredMealName, mealType, selectedRecordDate);
                 })
                 .setNegativeButton("取消", null)
                 .show();
     }
 
-    private void saveFoodRecords(org.json.JSONArray items, boolean[] checkedItems, int mealType, long timestamp) {
+    private void saveAggregatedFoodRecord(org.json.JSONArray items, boolean[] checkedItems, String preferredMealName,
+            int mealType, long timestamp) {
         String[] types = { "早餐", "午餐", "晚餐", "加餐" };
-        int success = 0;
-        int skipped = 0;
-        for (int i = 0; i < items.length(); i++) {
-            if (checkedItems[i]) {
-                JSONObject item = items.optJSONObject(i);
-                if (item == null) {
-                    skipped++;
-                    continue;
-                }
-                String name = item.optString("name", "").trim();
-                int calories = Math.max(0, item.optInt("calories", 0));
-                if (name.isEmpty() || calories <= 0) {
-                    skipped++;
-                    continue;
-                }
+        int totalCalories = 0;
+        double totalProtein = 0d;
+        double totalCarbs = 0d;
+        int validCount = 0;
 
-                // 创建记录，使用用户选择的时间戳
-                com.cz.fitnessdiary.database.entity.FoodRecord record = new com.cz.fitnessdiary.database.entity.FoodRecord(
-                        name, calories, timestamp);
-                record.setProtein(Math.max(0d, item.optDouble("protein", 0d)));
-                record.setCarbs(Math.max(0d, item.optDouble("carbs", 0d)));
-                record.setMealType(mealType);
-                record.setServings(1.0f);
-                record.setServingUnit(item.optString("unit", "份"));
-                foodRecordRepository.insert(record);
-                success++;
+        for (int i = 0; i < items.length(); i++) {
+            if (checkedItems != null && i < checkedItems.length && !checkedItems[i]) {
+                continue;
             }
+            JSONObject item = items.optJSONObject(i);
+            if (item == null) {
+                continue;
+            }
+            String name = item.optString("name", "").trim();
+            int calories = Math.max(0, item.optInt("calories", 0));
+            if (name.isEmpty() || calories <= 0) {
+                continue;
+            }
+            totalCalories += calories;
+            totalProtein += Math.max(0d, item.optDouble("protein", 0d));
+            totalCarbs += Math.max(0d, item.optDouble("carbs", 0d));
+            validCount++;
         }
+
+        if (validCount <= 0 || totalCalories <= 0) {
+            Toast.makeText(getContext(), "未识别到可记录的有效食材", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String mealName = buildAggregatedMealName(items, checkedItems, preferredMealName);
+
+        FoodRecord record = new FoodRecord(mealName, totalCalories, timestamp);
+        record.setProtein(totalProtein);
+        record.setCarbs(totalCarbs);
+        record.setMealType(mealType);
+        record.setServings(1.0f);
+        record.setServingUnit("份");
+        foodRecordRepository.insert(record);
+
         Toast.makeText(getContext(),
-                "记录完成：成功 " + success + " 条（" + types[mealType] + "），日期："
+                "整餐记录完成：" + mealName + "（" + types[mealType] + "） 日期："
                         + com.cz.fitnessdiary.utils.DateUtils.formatDate(timestamp),
                 Toast.LENGTH_SHORT).show();
     }
 
+    private String buildAggregatedMealName(org.json.JSONArray items, boolean[] checkedItems, String preferredMealName) {
+        if (preferredMealName != null && !preferredMealName.trim().isEmpty()) {
+            return preferredMealName.trim();
+        }
+
+        List<String> names = new ArrayList<>();
+        for (int i = 0; i < items.length(); i++) {
+            if (checkedItems != null && i < checkedItems.length && !checkedItems[i]) {
+                continue;
+            }
+            JSONObject item = items.optJSONObject(i);
+            if (item == null) {
+                continue;
+            }
+            String name = item.optString("name", "").trim();
+            if (!name.isEmpty()) {
+                names.add(name);
+            }
+        }
+
+        if (names.isEmpty()) {
+            return "混合餐";
+        }
+        if (names.size() == 1) {
+            return names.get(0);
+        }
+        return names.get(0) + "等";
+    }
     private android.graphics.Bitmap decodeScaledBitmap(android.net.Uri uri, int maxSide) throws Exception {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             android.graphics.ImageDecoder.Source source = android.graphics.ImageDecoder
@@ -854,3 +911,12 @@ public class AIChatFragment extends Fragment {
         binding = null;
     }
 }
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph">
@@ -36,8 +36,27 @@
     <fragment
         android:id="@+id/aiChatFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.AIChatFragment"
-        android:label="AI 教练" />
+        android:label="AI私教">
+        <argument
+            android:name="preset_prompt"
+            app:argType="string"
+            android:defaultValue="" />
+    </fragment>
 
+    <fragment
+        android:id="@+id/aiPlanSmartFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.AiPlanSmartFragment"
+        android:label="智能制定训练计划" />
+
+    <fragment
+        android:id="@+id/aiDietSmartFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.AiDietSmartFragment"
+        android:label="智能饮食分析" />
+
+    <fragment
+        android:id="@+id/aiProgressSmartFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.AiProgressSmartFragment"
+        android:label="智能进度评估" />
 
     <fragment
         android:id="@+id/sportRecordDetailFragment"
@@ -79,4 +98,3 @@
         android:name="com.cz.fitnessdiary.ui.fragment.CustomCategoryDetailFragment"
         android:label="分类明细" />
 </navigation>
-

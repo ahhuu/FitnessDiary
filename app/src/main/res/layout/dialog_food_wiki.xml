@@ -48,7 +48,7 @@
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_search"
-                app:tint="@color/fitnessdiary_primary" />
+                app:tint="@color/diet_primary" />
 
         </LinearLayout>
 

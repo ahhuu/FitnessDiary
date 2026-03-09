@@ -39,7 +39,7 @@
             android:layout_height="wrap_content"
             android:text="蛋白质: 2g · 碳水: 20g"
             android:textSize="11sp"
-            android:textColor="@color/fitnessdiary_primary"
+            android:textColor="@color/diet_primary"
             android:layout_marginTop="4dp"
             android:alpha="0.8" />
             
@@ -62,7 +62,7 @@
         android:layout_width="22dp"
         android:layout_height="22dp"
         android:src="@drawable/ic_input_add"
-        app:tint="@color/fitnessdiary_primary"
+        app:tint="@color/diet_primary"
         android:alpha="0.6" />
 
 </LinearLayout>

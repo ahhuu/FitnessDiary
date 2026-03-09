@@ -42,10 +42,24 @@ public class DailyLogRepository {
     }
 
     /**
+     * 同步插入打卡记录（供 ViewModel 后台线程批量处理）
+     */
+    public void insertSync(DailyLog log) {
+        dailyLogDao.insert(log);
+    }
+
+    /**
      * 更新打卡记录
      */
     public void update(DailyLog log) {
         executorService.execute(() -> dailyLogDao.update(log));
+    }
+
+    /**
+     * 同步更新打卡记录（供 ViewModel 后台线程批量处理）
+     */
+    public void updateSync(DailyLog log) {
+        dailyLogDao.update(log);
     }
 
     /**
@@ -65,6 +79,13 @@ public class DailyLogRepository {
             e.printStackTrace();
             return null;
         }
+    }
+
+    /**
+     * 同步获取指定日期的打卡记录（供批量逻辑使用）
+     */
+    public List<DailyLog> getLogsByDateSync(long date) {
+        return dailyLogDao.getLogsByDateSync(date);
     }
 
     /**

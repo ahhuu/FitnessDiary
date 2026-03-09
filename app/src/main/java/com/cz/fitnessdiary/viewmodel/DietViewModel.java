@@ -1,6 +1,9 @@
 package com.cz.fitnessdiary.viewmodel;
 
 import android.app.Application;
+import android.graphics.Bitmap;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -11,11 +14,15 @@ import androidx.lifecycle.MutableLiveData;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
+import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.model.FoodScanFlowState;
+import com.cz.fitnessdiary.model.ImageFoodItemDraft;
+import com.cz.fitnessdiary.model.ImageMealDraft;
 import com.cz.fitnessdiary.model.MealSection;
 import com.cz.fitnessdiary.repository.FoodLibraryRepository;
 import com.cz.fitnessdiary.repository.FoodRecordRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
-import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.service.FoodImageAnalyzer;
 import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
 import com.cz.fitnessdiary.utils.DateUtils;
 
@@ -29,24 +36,32 @@ import java.util.concurrent.Executors;
  */
 public class DietViewModel extends AndroidViewModel {
 
-    private FoodRecordRepository foodRecordRepository;
-    private FoodLibraryRepository foodLibraryRepository;
-    private UserRepository userRepository;
-    private ExecutorService executorService;
+    private final FoodRecordRepository foodRecordRepository;
+    private final FoodLibraryRepository foodLibraryRepository;
+    private final UserRepository userRepository;
+    private final ExecutorService executorService;
 
     // LiveData
-    private MutableLiveData<Long> selectedDate = new MutableLiveData<>();
-    private LiveData<Integer> todayTotalCalories;
-    private LiveData<List<FoodRecord>> todayFoodRecords;
-    private LiveData<Double> todayTotalProtein; // 今日总蛋白质 (g)
-    private LiveData<Double> todayTotalCarbs; // 今日总碳水 (g)
-    private LiveData<User> currentUser;
-    private MediatorLiveData<String> smartFeedback = new MediatorLiveData<>();
-    private MediatorLiveData<Integer> progressColor = new MediatorLiveData<>();
-    private LiveData<java.util.Set<Long>> recordedDates; // 有记录的日期集合 (0点时间戳)
+    private final MutableLiveData<Long> selectedDate = new MutableLiveData<>();
+    private final LiveData<Integer> todayTotalCalories;
+    private final LiveData<List<FoodRecord>> todayFoodRecords;
+    private final LiveData<Double> todayTotalProtein; // 今日总蛋白质 (g)
+    private final LiveData<Double> todayTotalCarbs; // 今日总碳水 (g)
+    private final LiveData<User> currentUser;
+    private final MediatorLiveData<String> smartFeedback = new MediatorLiveData<>();
+    private final MediatorLiveData<Integer> progressColor = new MediatorLiveData<>();
+    private final LiveData<java.util.Set<Long>> recordedDates; // 有记录的日期集合 (0点时间戳)
 
     // Plan 10 新增字段
-    private LiveData<List<MealSection>> mealSections; // 固定4个餐段
+    private final LiveData<List<MealSection>> mealSections; // 固定4个餐段
+
+    // 图片识别流程状态
+    private final MutableLiveData<FoodScanFlowState> foodScanState = new MutableLiveData<>(
+            new FoodScanFlowState(FoodScanFlowState.Stage.IDLE, 0, "", ""));
+    private final MutableLiveData<ImageMealDraft> foodScanDraft = new MutableLiveData<>();
+    private final FoodImageAnalyzer foodImageAnalyzer = new FoodImageAnalyzer();
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private int foodAnalyzeToken = 0;
 
     public DietViewModel(@NonNull Application application) {
         super(application);
@@ -120,6 +135,7 @@ public class DietViewModel extends AndroidViewModel {
             }
             return sections;
         });
+
         // 初始化记录日期集合 (Plan 13: 高亮日历)
         recordedDates = androidx.lifecycle.Transformations.map(
                 foodRecordRepository.getAllRecordTimestamps(),
@@ -150,8 +166,9 @@ public class DietViewModel extends AndroidViewModel {
         }
 
         int targetCalories = user.getDailyCalorieTarget();
-        if (targetCalories <= 0)
+        if (targetCalories <= 0) {
             targetCalories = 2000;
+        }
 
         int consumedVal = (consumed != null) ? consumed : 0;
         // 1. 更新消息
@@ -258,6 +275,155 @@ public class DietViewModel extends AndroidViewModel {
      */
     public LiveData<Integer> getProgressColor() {
         return progressColor;
+    }
+
+    public LiveData<FoodScanFlowState> getFoodScanState() {
+        return foodScanState;
+    }
+
+    public LiveData<ImageMealDraft> getFoodScanDraft() {
+        return foodScanDraft;
+    }
+
+    public void resetFoodScanState() {
+        foodAnalyzeToken++;
+        foodScanState.setValue(new FoodScanFlowState(FoodScanFlowState.Stage.IDLE, 0, "", ""));
+    }
+
+
+    public void clearFoodScanDraft() {
+        foodScanDraft.setValue(null);
+    }
+
+    public void analyzeMealImage(Bitmap image) {
+        int token = ++foodAnalyzeToken;
+        foodScanDraft.setValue(null);
+        postStage(token, new FoodScanFlowState(FoodScanFlowState.Stage.UPLOAD, 15, "上传图片中", "正在准备识别图片，请稍候..."), 260);
+        postStage(token, new FoodScanFlowState(FoodScanFlowState.Stage.RECOGNIZE, 42, "AI识别食物中", "正在识别食物名称与分量..."), 900);
+
+        foodImageAnalyzer.analyze(image, new FoodImageAnalyzer.AnalyzeCallback() {
+            @Override
+            public void onSuccess(ImageMealDraft draft, String rawResponse, String reasoning) {
+                if (token != foodAnalyzeToken) {
+                    return;
+                }
+                mainHandler.postDelayed(() -> {
+                    if (token != foodAnalyzeToken) {
+                        return;
+                    }
+                    ImageMealDraft finalDraft = draft;
+                    if (finalDraft == null) {
+                        finalDraft = new ImageMealDraft();
+                        finalDraft.getItems().add(new ImageFoodItemDraft("请手动补充食物", 0, 0, 0, "份", "其他"));
+                        finalDraft.setSuggestion("未能可靠识别，请手动编辑后保存。");
+                    }
+                    finalDraft.recomputeTotals();
+                    ImageMealDraft finalDraftResult = finalDraft;
+                    foodScanState.setValue(new FoodScanFlowState(
+                            FoodScanFlowState.Stage.NUTRITION,
+                            72,
+                            "营养估算中",
+                            "正在计算热量、蛋白质与碳水..."));
+                    mainHandler.postDelayed(() -> {
+                        if (token != foodAnalyzeToken) {
+                            return;
+                        }
+                        foodScanState.setValue(new FoodScanFlowState(
+                                FoodScanFlowState.Stage.SUGGESTION,
+                                90,
+                                "生成可执行建议",
+                                "正在整理建议与记录草稿..."));
+                    }, 1200);
+                    mainHandler.postDelayed(() -> {
+                        if (token != foodAnalyzeToken) {
+                            return;
+                        }
+                        foodScanState.setValue(new FoodScanFlowState(
+                                FoodScanFlowState.Stage.SUCCESS,
+                                100,
+                                "识别完成",
+                                "请确认识别结果后记录本餐"));
+                    }, 2400);
+                    mainHandler.postDelayed(() -> {
+                        if (token != foodAnalyzeToken) {
+                            return;
+                        }
+                        foodScanDraft.setValue(finalDraftResult);
+                    }, 3800);
+                }, 700);
+            }
+
+            @Override
+            public void onError(String error) {
+                if (token != foodAnalyzeToken) {
+                    return;
+                }
+                String finalError = (error == null || error.trim().isEmpty()) ? "识别失败，请稍后重试" : error;
+                foodScanState.setValue(FoodScanFlowState.error(finalError, true));
+            }
+        });
+    }
+    private void postStage(int token, FoodScanFlowState stage, long delayMs) {
+        if (delayMs <= 0) {
+            if (token == foodAnalyzeToken) {
+                foodScanState.setValue(stage);
+            }
+            return;
+        }
+        mainHandler.postDelayed(() -> {
+            if (token == foodAnalyzeToken) {
+                foodScanState.setValue(stage);
+            }
+        }, delayMs);
+    }
+
+    public void saveImageMealDraft(ImageMealDraft draft, boolean syncToLibrary) {
+        if (draft == null) {
+            return;
+        }
+        executorService.execute(() -> {
+            draft.recomputeTotals();
+            long baseDate = selectedDate.getValue() != null ? selectedDate.getValue() : DateUtils.getTodayStartTimestamp();
+            long finalRecordDate = DateUtils.isToday(baseDate) ? System.currentTimeMillis() : baseDate;
+
+            String mealName = draft.getMealName();
+            if (mealName == null || mealName.trim().isEmpty()) {
+                mealName = "识别餐";
+            }
+
+            FoodRecord record = new FoodRecord(mealName.trim(), Math.max(0, draft.getTotalCalories()), finalRecordDate);
+            record.setProtein(Math.max(0d, draft.getTotalProtein()));
+            record.setCarbs(Math.max(0d, draft.getTotalCarbs()));
+            record.setMealType(Math.max(0, Math.min(3, draft.getMealType())));
+            record.setServings(draft.getServings() <= 0 ? 1f : draft.getServings());
+            String unit = draft.getServingUnit();
+            record.setServingUnit((unit == null || unit.trim().isEmpty()) ? "份" : unit.trim());
+            foodRecordRepository.insert(record);
+
+            if (!syncToLibrary || draft.getItems() == null) {
+                return;
+            }
+            for (ImageFoodItemDraft item : draft.getItems()) {
+                if (item == null || item.getName() == null || item.getName().trim().isEmpty()) {
+                    continue;
+                }
+                String itemName = item.getName().trim();
+                FoodLibrary existing = foodLibraryRepository.getFoodByName(itemName);
+                if (existing != null) {
+                    continue;
+                }
+                int caloriesPer100g = item.getCalories() > 0 ? item.getCalories() : 100;
+                FoodLibrary food = new FoodLibrary(
+                        itemName,
+                        caloriesPer100g,
+                        Math.max(0d, item.getProtein()),
+                        Math.max(0d, item.getCarbs()),
+                        (item.getUnit() == null || item.getUnit().trim().isEmpty()) ? "份" : item.getUnit().trim(),
+                        100,
+                        (item.getCategory() == null || item.getCategory().trim().isEmpty()) ? "其他" : item.getCategory().trim());
+                foodLibraryRepository.insert(food);
+            }
+        });
     }
 
     /**
@@ -375,3 +541,5 @@ public class DietViewModel extends AndroidViewModel {
         foodLibraryRepository.delete(food);
     }
 }
+
+

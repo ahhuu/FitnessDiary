@@ -3,7 +3,7 @@
     android:color="?android:attr/colorControlHighlight">
     <item>
         <shape android:shape="oval">
-            <solid android:color="@color/fitnessdiary_primary" />
+            <solid android:color="@color/diet_primary" />
             <size android:width="48dp" android:height="48dp" />
         </shape>
     </item>

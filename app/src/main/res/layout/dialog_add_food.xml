@@ -7,6 +7,7 @@
     android:padding="24dp">
 
     <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.App.TextInputLayout.Outlined.Diet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="搜索食物 (如: 鸡蛋)"
@@ -34,6 +35,7 @@
         android:layout_marginBottom="16dp">
 
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout.Outlined.Diet"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -122,7 +124,7 @@
         android:layout_height="wrap_content"
         android:text="热量: 0 千卡"
         android:textSize="14sp"
-        android:textColor="@color/fitnessdiary_primary"
+        android:textColor="@color/diet_primary"
         android:fontFamily="sans-serif-medium"
         android:visibility="gone" />
 

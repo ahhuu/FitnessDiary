@@ -20,7 +20,7 @@
                 android:layout_height="4dp"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginBottom="16dp"
-                android:background="@color/divider" />
+                android:background="@color/plan_blue_stroke" />
 
             <TextView
                 android:id="@+id/tv_title"
@@ -30,12 +30,12 @@
                 android:layout_marginBottom="24dp"
                 android:fontFamily="sans-serif-medium"
                 android:text="训练计划"
-                android:textColor="@color/black"
+                android:textColor="@color/text_primary"
                 android:textSize="20sp" />
 
             <!-- 计划名称 -->
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
@@ -55,7 +55,7 @@
 
             <!-- 计划描述 -->
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
@@ -81,7 +81,7 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -104,7 +104,7 @@
                     android:layout_height="1dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -125,7 +125,7 @@
 
             <!-- 分类：恢复标准高度并优化填充 -->
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
@@ -148,7 +148,7 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -240,7 +240,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_add_media"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
@@ -259,6 +259,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_save"
+                style="@style/Widget.App.Button.Filled.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:text="保存计划"

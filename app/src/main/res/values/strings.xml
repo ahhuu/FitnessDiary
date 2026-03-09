@@ -14,7 +14,7 @@
     <string name="nav_checkin">记录</string>
     <string name="nav_plan">计划</string>
     <string name="nav_diet">饮食</string>
-    <string name="nav_ai">AI教练</string>
+    <string name="nav_ai">AI私教</string>
     
     <!-- Check-in Screen -->
     <string name="checkin_title">记录</string>
@@ -59,4 +59,5 @@
     <string name="plan_schedule">计划排期 (默认每天)</string>
     <string name="today_overview_label">今日总览</string>
 </resources>
+
 
