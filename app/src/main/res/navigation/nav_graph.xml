@@ -9,6 +9,11 @@
         android:label="欢迎" />
 
     <fragment
+        android:id="@+id/onboardingFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.OnboardingFragment"
+        android:label="新手引导" />
+
+    <fragment
         android:id="@+id/mainHomeFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.MainHomeFragment"
         android:label="主页" />

@@ -24,8 +24,6 @@ import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.databinding.ActivityMainBinding;
 import com.cz.fitnessdiary.utils.ReminderManager;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
@@ -42,7 +40,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         captureReminderRoute(getIntent());
-        checkAndRequestPermissions();
         setupDynamicNavigation();
 
         Executors.newSingleThreadExecutor().execute(() -> AppDatabase.updateOfficialFoodLibrary(getApplicationContext()));
@@ -89,33 +86,23 @@ public class MainActivity extends AppCompatActivity {
         pendingReminderTargetId = 0L;
     }
 
-    private final ActivityResultLauncher<String[]> requestPermissionLauncher = registerForActivityResult(
-            new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                Boolean postNotifications = result.getOrDefault(Manifest.permission.POST_NOTIFICATIONS, false);
-                if (!Boolean.TRUE.equals(postNotifications) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    Toast.makeText(this, "未开启通知，您将无法收到训练提醒", Toast.LENGTH_LONG).show();
+    private final ActivityResultLauncher<String> requestNotificationPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(), granted -> {
+                if (!Boolean.TRUE.equals(granted) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(this, "未开启通知，您将无法收到提醒", Toast.LENGTH_LONG).show();
                 }
             });
 
-    private void checkAndRequestPermissions() {
-        List<String> permissionsNeeded = new ArrayList<>();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
-            }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.READ_MEDIA_IMAGES);
-            }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
-                permissionsNeeded.add(Manifest.permission.READ_MEDIA_VIDEO);
-            }
-        } else if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+    public boolean requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return false;
         }
-
-        if (!permissionsNeeded.isEmpty()) {
-            requestPermissionLauncher.launch(permissionsNeeded.toArray(new String[0]));
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return false;
         }
+        requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+        return true;
     }
 
     public boolean checkExactAlarmPermission() {

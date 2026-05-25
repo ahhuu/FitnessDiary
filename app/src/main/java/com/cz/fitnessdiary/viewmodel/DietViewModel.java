@@ -206,7 +206,9 @@ public class DietViewModel extends AndroidViewModel {
      * 设置选中日期
      */
     public void setSelectedDate(long timestamp) {
-        selectedDate.setValue(DateUtils.getDayStartTimestamp(timestamp));
+        long dayStart = DateUtils.getDayStartTimestamp(timestamp);
+        long today = DateUtils.getTodayStartTimestamp();
+        selectedDate.setValue(Math.min(dayStart, today));
     }
 
     /**
@@ -225,7 +227,11 @@ public class DietViewModel extends AndroidViewModel {
     public void toNextDay() {
         Long current = selectedDate.getValue();
         if (current != null) {
-            selectedDate.setValue(current + 24 * 60 * 60 * 1000L);
+            long next = current + 24 * 60 * 60 * 1000L;
+            long today = DateUtils.getTodayStartTimestamp();
+            if (next <= today) {
+                selectedDate.setValue(next);
+            }
         }
     }
 

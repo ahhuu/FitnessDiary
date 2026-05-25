@@ -58,6 +58,26 @@
     <string name="plan_category">训练分类 (如: 胸肌, 有氧)</string>
     <string name="plan_schedule">计划排期 (默认每天)</string>
     <string name="today_overview_label">今日总览</string>
+
+    <!-- 1.6 新增 -->
+    <string name="onboarding_screen1_title">全方位健康追踪</string>
+    <string name="onboarding_screen1_desc">记录运动、饮食、饮水、睡眠、用药和习惯\n一站式管理你的健康数据</string>
+    <string name="onboarding_screen2_title">AI 智能教练</string>
+    <string name="onboarding_screen2_desc">拍照识别食物热量，AI 为你定制训练计划\n智能分析饮食和进度，让健身更科学</string>
+    <string name="onboarding_screen3_title">坚持，成为更好的自己</string>
+    <string name="onboarding_screen3_desc">每日任务、成就解锁、连续打卡激励\n从今天开始，和健康日记一起蜕变</string>
+    <string name="btn_next">下一步</string>
+    <string name="btn_prev">上一步</string>
+    <string name="btn_get_started">开始使用</string>
+    <string name="barcode_scan">扫码识别</string>
+    <string name="barcode_scanning">正在扫描条形码…</string>
+    <string name="barcode_not_found">未在食物数据库中找到此条码</string>
+    <string name="rest_timer_label">组间休息</string>
+    <string name="summary_calorie_balance">热量平衡</string>
+    <string name="summary_water_progress">饮水进度</string>
+    <string name="summary_habit_progress">习惯完成</string>
+    <string name="summary_remaining">剩余</string>
+    <string name="summary_over_target">超标</string>
 </resources>
 
 

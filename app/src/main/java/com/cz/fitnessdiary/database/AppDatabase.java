@@ -53,7 +53,7 @@ import java.util.concurrent.Executors;
         FoodLibrary.class, SleepRecord.class, ChatMessageEntity.class,
         ChatSessionEntity.class, WeightRecord.class, WaterRecord.class, MedicationRecord.class, CustomTracker.class,
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
-        HabitRecord.class }, version = 17, exportSchema = false)
+        HabitRecord.class }, version = 17, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -394,7 +394,6 @@ public abstract class AppDatabase extends RoomDatabase {
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
                             // 即使恢复了旧版本的备份数据库，Room 也会自动检测版本并执行这些迁移脚本，
                             // 从而确保数据结构的实时统一。
-                            .fallbackToDestructiveMigration()
                             .addCallback(new RoomDatabase.Callback() {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {

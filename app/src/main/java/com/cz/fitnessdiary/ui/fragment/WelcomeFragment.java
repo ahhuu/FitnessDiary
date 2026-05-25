@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.databinding.FragmentWelcomeBinding;
@@ -254,14 +255,20 @@ public class WelcomeFragment extends Fragment {
     }
 
     /**
-     * 导航到主页
+     * 导航到主页 (经过新手引导)
      */
     private void navigateToMain() {
         binding.getRoot().postDelayed(() -> {
-            if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).onRegistrationComplete();
+            if (!(getActivity() instanceof MainActivity)) {
+                return;
             }
-        }, 500);
+            boolean onboardingDone = OnboardingFragment.isDone(requireContext());
+            if (onboardingDone) {
+                ((MainActivity) getActivity()).onRegistrationComplete();
+            } else {
+                NavHostFragment.findNavController(this).navigate(R.id.onboardingFragment);
+            }
+        }, 200);
     }
 
     @Override

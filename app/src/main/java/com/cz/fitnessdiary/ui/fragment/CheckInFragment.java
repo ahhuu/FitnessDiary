@@ -34,6 +34,8 @@ import com.cz.fitnessdiary.databinding.FragmentCheckinBinding;
 import com.cz.fitnessdiary.model.DailyMission;
 import com.cz.fitnessdiary.ui.adapter.EditCardsAdapter;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.ErrorHandler;
+import com.cz.fitnessdiary.utils.RestTimerManager;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.cz.fitnessdiary.viewmodel.DietViewModel;
@@ -84,6 +86,8 @@ public class CheckInFragment extends Fragment {
     private com.cz.fitnessdiary.ui.adapter.DateNavigatorAdapter dateNavAdapter;
     private boolean isHeaderExpanded = false;
     private int currentWaterTotal = 0;
+    private RestTimerManager restTimerManager;
+    private int timerSelectedSeconds = 60;
 
     public CheckInFragment() {
         super();
@@ -104,13 +108,16 @@ public class CheckInFragment extends Fragment {
         homeDashboardViewModel = new ViewModelProvider(this).get(HomeDashboardViewModel.class);
         dietViewModel = new ViewModelProvider(this).get(DietViewModel.class);
         achievementCenterViewModel = new ViewModelProvider(requireActivity()).get(AchievementCenterViewModel.class);
+        restTimerManager = new RestTimerManager();
         setupActions();
+        setupRestTimer();
         cacheCards();
         setupDateNavigation();
         observeData();
         loadCardConfig();
         applyCardConfig();
         updateDateHeader();
+        updateSummaryCard();
         achievementCenterViewModel.refreshAll();
     }
 
@@ -262,6 +269,19 @@ public class CheckInFragment extends Fragment {
         v(R.id.card_weight_small).setOnClickListener(v -> openDetail(R.id.weightRecordDetailFragment));
 
         binding.btnAddSport.setOnClickListener(v -> openDetail(R.id.sportRecordDetailFragment));
+
+        // 组间休息计时器切换
+        View timerToggle = v(R.id.btn_rest_timer_toggle);
+        if (timerToggle != null) {
+            timerToggle.setOnClickListener(v -> {
+                boolean visible = binding.cardRestTimer.getVisibility() == View.VISIBLE;
+                binding.cardRestTimer.setVisibility(visible ? View.GONE : View.VISIBLE);
+                if (!visible) {
+                    binding.nestedScroll.smoothScrollTo(0, binding.cardRestTimer.getTop());
+                }
+            });
+        }
+
         v(R.id.btn_add_water).setOnClickListener(
                 v -> quickNumberInput("记录喝水(ml)", value -> homeDashboardViewModel.addWater(value.intValue(), null)));
         v(R.id.btn_add_weight).setOnClickListener(
@@ -555,6 +575,7 @@ public class CheckInFragment extends Fragment {
                 (sportProgress * 0.3f + waterProgress * 0.2f + habitProgress * 0.2f + dietProgress * 0.3f) * 100);
         binding.progressTotalCircle.setProgress(totalScore);
         binding.tvProgressPercent.setText(totalScore + "%");
+        updateSummaryCard();
     }
 
     private void showOverallProgressDetails() {
@@ -615,6 +636,102 @@ public class CheckInFragment extends Fragment {
                 .setMessage(msg)
                 .setPositiveButton("知道了", null)
                 .show();
+    }
+
+    private void setupRestTimer() {
+        binding.cardRestTimer.setVisibility(View.GONE);
+
+        com.google.android.material.chip.ChipGroup chipGroup = binding.cardRestTimer.findViewById(R.id.chip_timer_presets);
+        chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.contains(R.id.chip_30s))
+                timerSelectedSeconds = 30;
+            else if (checkedIds.contains(R.id.chip_60s))
+                timerSelectedSeconds = 60;
+            else if (checkedIds.contains(R.id.chip_90s))
+                timerSelectedSeconds = 90;
+            else if (checkedIds.contains(R.id.chip_120s))
+                timerSelectedSeconds = 120;
+        });
+
+        com.google.android.material.button.MaterialButton btnAction = binding.cardRestTimer.findViewById(R.id.btn_timer_action);
+        com.google.android.material.button.MaterialButton btnReset = binding.cardRestTimer.findViewById(R.id.btn_timer_reset);
+        android.widget.TextView tvCountdown = binding.cardRestTimer.findViewById(R.id.tv_timer_countdown);
+
+        btnAction.setOnClickListener(v -> {
+            if (restTimerManager.isRunning()) {
+                restTimerManager.pause();
+                btnAction.setIconResource(android.R.drawable.ic_media_play);
+            } else if (restTimerManager.isPaused()) {
+                restTimerManager.resume();
+                btnAction.setIconResource(android.R.drawable.ic_media_pause);
+            } else {
+                restTimerManager.start(timerSelectedSeconds);
+                btnAction.setIconResource(android.R.drawable.ic_media_pause);
+            }
+        });
+
+        btnReset.setOnClickListener(v -> {
+            restTimerManager.cancel();
+            tvCountdown.setText(String.valueOf(timerSelectedSeconds));
+            btnAction.setIconResource(android.R.drawable.ic_media_play);
+        });
+
+        restTimerManager.setCallback(new RestTimerManager.TimerCallback() {
+            @Override
+            public void onTick(long remainingSeconds) {
+                android.widget.TextView tv = binding.cardRestTimer.findViewById(R.id.tv_timer_countdown);
+                if (tv != null) {
+                    tv.setText(String.valueOf(remainingSeconds));
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                android.widget.TextView tv = binding.cardRestTimer.findViewById(R.id.tv_timer_countdown);
+                if (tv != null)
+                    tv.setText("✓");
+                com.google.android.material.button.MaterialButton btn = binding.cardRestTimer
+                        .findViewById(R.id.btn_timer_action);
+                if (btn != null)
+                    btn.setIconResource(android.R.drawable.ic_media_play);
+                if (getContext() != null)
+                    restTimerManager.vibrate(getContext());
+                ErrorHandler.showInfo(CheckInFragment.this, "休息时间到，准备下一组！");
+            }
+        });
+    }
+
+    private void updateSummaryCard() {
+        Integer consumed = dietViewModel.getTodayTotalCalories().getValue();
+        User user = dietViewModel.getCurrentUser().getValue();
+        int target = (user != null && user.getDailyCalorieTarget() > 0) ? user.getDailyCalorieTarget() : 2000;
+        int calValue = consumed != null ? consumed : 0;
+        int balance = target - calValue;
+        String calText = balance >= 0 ? "剩" + balance : "超" + (-balance);
+
+        TextView tvCal = binding.getRoot().findViewById(R.id.tv_mission_cal_balance);
+        if (tvCal != null) {
+            tvCal.setText(calText + "千卡");
+            tvCal.setTextColor(getResources().getColor(
+                    balance >= 0 ? R.color.diet_primary : R.color.error, null));
+        }
+
+        TextView tvWater = binding.getRoot().findViewById(R.id.tv_mission_water);
+        if (tvWater != null) {
+            tvWater.setText("水" + currentWaterTotal + "ml");
+        }
+
+        int habitTotal = habitItems.size();
+        int habitDone = 0;
+        for (HabitItem item : habitItems) {
+            HabitRecord r = habitRecords.get(item.getId());
+            if (r != null && r.isCompleted())
+                habitDone++;
+        }
+        TextView tvHabit = binding.getRoot().findViewById(R.id.tv_mission_habit);
+        if (tvHabit != null) {
+            tvHabit.setText("习惯" + habitDone + "/" + habitTotal);
+        }
     }
 
     private void refreshSportCard() {
@@ -978,6 +1095,9 @@ public class CheckInFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (restTimerManager != null) {
+            restTimerManager.cancel();
+        }
         lastEnabledCardIds.clear();
         cachedCards.clear();
         customTrackerViews.clear();

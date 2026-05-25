@@ -131,7 +131,7 @@ public class HomeDashboardViewModel extends AndroidViewModel {
     }
 
     public void addWeight(float weight, String note) {
-        repository.addWeight(new WeightRecord(weight, System.currentTimeMillis(), note));
+        repository.addWeight(new WeightRecord(weight, buildRecordTimestampForSelectedDate(), note));
         UserRepository userRepository = new UserRepository(getApplication());
         UserRepository ur = userRepository;
         var userLive = ur.getUser();
@@ -147,7 +147,7 @@ public class HomeDashboardViewModel extends AndroidViewModel {
     }
 
     public void addMedication(String name, String dosage, boolean taken, String note) {
-        repository.addMedication(new MedicationRecord(name, dosage, taken, System.currentTimeMillis(), note));
+        repository.addMedication(new MedicationRecord(name, dosage, taken, buildRecordTimestampForSelectedDate(), note));
     }
 
     public void addCustomRecord(long trackerId, Double value, String textValue) {

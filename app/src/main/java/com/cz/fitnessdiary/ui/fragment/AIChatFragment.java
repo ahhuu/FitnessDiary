@@ -29,6 +29,7 @@ import com.cz.fitnessdiary.repository.FoodRecordRepository;
 import com.cz.fitnessdiary.repository.TrainingPlanRepository;
 import com.cz.fitnessdiary.ui.adapter.AIChatAdapter;
 import com.cz.fitnessdiary.ui.adapter.ChatSessionAdapter;
+import com.cz.fitnessdiary.utils.ErrorHandler;
 import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 import com.cz.fitnessdiary.viewmodel.AIChatViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -85,7 +86,7 @@ public class AIChatFragment extends Fragment {
                 if (isGranted) {
                     launchCamera();
                 } else {
-                    Toast.makeText(requireContext(), "📷 需要相机权限才能拍照", Toast.LENGTH_SHORT).show();
+                    ErrorHandler.showError(AIChatFragment.this, "需要相机权限才能拍照", null);
                 }
             });
 
@@ -453,7 +454,7 @@ public class AIChatFragment extends Fragment {
             cameraLauncher.launch(photoUri);
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(requireContext(), "相机启动失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            ErrorHandler.showError(AIChatFragment.this, "相机启动失败: " + e.getMessage(), null);
         }
     }
 
@@ -467,7 +468,7 @@ public class AIChatFragment extends Fragment {
                 android.graphics.Bitmap bitmap = decodeScaledBitmap(android.net.Uri.parse(uriStr), 1280);
                 viewModel.sendMessageWithAttachment(text, uriStr, bitmap);
             } catch (Exception e) {
-                Toast.makeText(requireContext(), "图片读取失败，已按文本发送", Toast.LENGTH_SHORT).show();
+                ErrorHandler.showError(AIChatFragment.this, "图片读取失败，已按文本发送", null);
                 viewModel.sendMessage(text);
             }
         } else {
@@ -554,7 +555,7 @@ public class AIChatFragment extends Fragment {
         if ("MULTI".equals(type)) {
             org.json.JSONArray actions = actionJson.optJSONArray("actions");
             if (actions == null || actions.length() == 0) {
-                Toast.makeText(getContext(), "未识别到可执行操作", Toast.LENGTH_SHORT).show();
+                ErrorHandler.showInfo(AIChatFragment.this, "未识别到可执行操作");
                 return;
             }
             JSONObject foodAction = null;

@@ -36,7 +36,10 @@ import com.cz.fitnessdiary.ui.adapter.FoodAutoCompleteAdapter;
 import com.cz.fitnessdiary.viewmodel.DietViewModel;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.ErrorHandler;
 import com.cz.fitnessdiary.utils.FoodCategoryUtils;
+import com.cz.fitnessdiary.utils.PinyinUtils;
+import com.cz.fitnessdiary.service.OpenFoodFactsService;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.CompositeDateValidator;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
@@ -99,7 +102,49 @@ public class DietFragment extends Fragment {
                 if (isGranted) {
                     launchCamera();
                 } else if (isAdded()) {
-                    Toast.makeText(requireContext(), "需要相机权限才能拍照识别", Toast.LENGTH_SHORT).show();
+                    ErrorHandler.showError(DietFragment.this, "需要相机权限才能拍照识别", null);
+                }
+            });
+
+    private OpenFoodFactsService openFoodFactsService;
+
+    private final androidx.activity.result.ActivityResultLauncher<com.journeyapps.barcodescanner.ScanOptions> barcodeLauncher = registerForActivityResult(
+            new com.journeyapps.barcodescanner.ScanContract(),
+            result -> {
+                if (result.getContents() == null) {
+                    return;
+                }
+                String barcode = result.getContents();
+                if (openFoodFactsService != null) {
+                    openFoodFactsService.lookupByBarcode(barcode, new OpenFoodFactsService.LookupCallback() {
+                        @Override
+                        public void onSuccess(OpenFoodFactsService.FoodResult food) {
+                            requireActivity().runOnUiThread(() -> {
+                                FoodLibrary scannedFood = new FoodLibrary(
+                                        food.name, (int) food.caloriesPer100g,
+                                        (float) food.proteinPer100g, (float) food.carbsPer100g,
+                                        food.servingUnit, food.weightPerUnit,
+                                        FoodCategoryUtils.CAT_OTHER);
+                                showSmartAddFoodDialog(0, scannedFood);
+                            });
+                        }
+
+                        @Override
+                        public void onNotFound() {
+                            requireActivity().runOnUiThread(() -> ErrorHandler.showInfo(
+                                    DietFragment.this, "未在食物数据库中查询到此条码 (" + barcode + ")"));
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            requireActivity().runOnUiThread(() -> ErrorHandler.showError(
+                                    DietFragment.this, message, () -> {
+                                        if (openFoodFactsService != null) {
+                                            openFoodFactsService.lookupByBarcode(barcode, this);
+                                        }
+                                    }));
+                        }
+                    });
                 }
             });
 
@@ -118,6 +163,7 @@ public class DietFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(requireActivity()).get(DietViewModel.class);
+        openFoodFactsService = new OpenFoodFactsService();
 
         setupFoodImageResultListener();
         setupViews();
@@ -133,6 +179,7 @@ public class DietFragment extends Fragment {
 
         // 设置搜索卡片点击
         binding.cardFoodWiki.setOnClickListener(v -> showFoodWikiDialog());
+        binding.btnBarcodeScan.setOnClickListener(v -> launchBarcodeScanner());
         binding.btnFoodScan.setOnClickListener(v -> showImageSourcePicker());
 
         // 绑定卡片添加按钮监听
@@ -253,7 +300,18 @@ public class DietFragment extends Fragment {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String query = s.toString();
                 imageExecutorService.execute(() -> {
-                    List<FoodLibrary> results = viewModel.searchFoods(query);
+                    List<FoodLibrary> allFoods = viewModel.getAllFoodsSync();
+                    List<FoodLibrary> results = new ArrayList<>();
+                    String q = query.trim().toLowerCase();
+                    if (q.isEmpty()) {
+                        results.addAll(allFoods);
+                    } else {
+                        for (FoodLibrary food : allFoods) {
+                            if (PinyinUtils.matches(food.getName(), q)) {
+                                results.add(food);
+                            }
+                        }
+                    }
                     requireActivity().runOnUiThread(() -> adapter.setFoodList(results));
                 });
             }
@@ -475,6 +533,8 @@ public class DietFragment extends Fragment {
         // 0. 观察选中日期并显示 (Plan 13)
         viewModel.getSelectedDate().observe(getViewLifecycleOwner(), date -> {
             boolean isToday = com.cz.fitnessdiary.utils.DateUtils.isToday(date);
+            binding.btnNextDay.setEnabled(!isToday);
+            binding.btnNextDay.setAlpha(isToday ? 0.35f : 1f);
             if (isToday) {
                 binding.tvSelectedDate.setText("今日");
             } else {
@@ -727,6 +787,14 @@ public class DietFragment extends Fragment {
                     }
                 })
                 .show();
+    }
+
+    private void launchBarcodeScanner() {
+        com.journeyapps.barcodescanner.ScanOptions options = new com.journeyapps.barcodescanner.ScanOptions();
+        options.setPrompt("将条形码置于扫描框内");
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(true);
+        barcodeLauncher.launch(options);
     }
 
     private void launchCamera() {

@@ -17,12 +17,23 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.database.AppDatabase;
+import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.FoodRecord;
+import com.cz.fitnessdiary.database.entity.HabitItem;
+import com.cz.fitnessdiary.database.entity.HabitRecord;
+import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.database.entity.WeightRecord;
+import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.databinding.FragmentProfileBinding;
 import com.cz.fitnessdiary.ui.MainActivity;
+import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ReminderManager;
+import com.cz.fitnessdiary.utils.ShareUtils;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.cz.fitnessdiary.viewmodel.ProfileViewModel;
 import com.cz.fitnessdiary.ui.fragment.AchievementBottomSheetFragment;
@@ -139,6 +150,13 @@ public class ProfileFragment extends Fragment {
         // 开关监听
         binding.switchReminder.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
+                if (getActivity() instanceof MainActivity
+                        && ((MainActivity) getActivity()).requestNotificationPermissionIfNeeded()) {
+                    binding.switchReminder.setChecked(false);
+                    Toast.makeText(getContext(), "请先允许通知权限，再开启训练提醒", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 // [v1.2] 触发精确闹钟权限检查 (Android 12+)
                 if (getActivity() instanceof MainActivity) {
                     if (((MainActivity) getActivity()).checkExactAlarmPermission()) {
@@ -341,7 +359,126 @@ public class ProfileFragment extends Fragment {
      */
     private void setupReportEntry() {
         binding.cardDataReport.setOnClickListener(v -> {
-            new ReportBottomSheetFragment().show(getChildFragmentManager(), "ReportBottomSheet");
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("数据周报")
+                    .setItems(new String[] { "查看分析", "分享周报图片" }, (dialog, which) -> {
+                        if (which == 0) {
+                            new ReportBottomSheetFragment().show(getChildFragmentManager(), "ReportBottomSheet");
+                        } else {
+                            generateAndShareWeekReport();
+                        }
+                    })
+                    .show();
+        });
+    }
+
+    private void generateAndShareWeekReport() {
+        java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                AppDatabase db = AppDatabase.getInstance(requireContext());
+                long[] weekDates = DateUtils.getThisWeekDates();
+                long weekStart = weekDates[0];
+                long weekEnd = weekDates[6] + 24 * 3600 * 1000L;
+
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("M/d", java.util.Locale.getDefault());
+                String weekRange = sdf.format(new java.util.Date(weekDates[0]))
+                        + " - " + sdf.format(new java.util.Date(weekDates[6]));
+
+                // Exercise days
+                java.util.List<DailyLog> allLogs = db.dailyLogDao().getAllLogsSync();
+                int exerciseDays = 0;
+                int totalDuration = 0;
+                if (allLogs != null) {
+                    java.util.Set<String> dates = new java.util.HashSet<>();
+                    for (DailyLog log : allLogs) {
+                        if (log.getDate() >= weekStart && log.getDate() < weekEnd && log.isCompleted()) {
+                            dates.add(DateUtils.formatDate(log.getDate()));
+                            totalDuration += log.getDuration();
+                        }
+                    }
+                    exerciseDays = dates.size();
+                }
+
+                // Diet
+                java.util.List<FoodRecord> allFoods = db.foodRecordDao().getAllFoodRecordsSync();
+                int totalCal = 0;
+                int foodDays = 0;
+                if (allFoods != null) {
+                    java.util.Set<String> fDates = new java.util.HashSet<>();
+                    for (FoodRecord f : allFoods) {
+                        if (f.getRecordDate() >= weekStart && f.getRecordDate() < weekEnd) {
+                            totalCal += f.getCalories();
+                            fDates.add(DateUtils.formatDate(f.getRecordDate()));
+                        }
+                    }
+                    foodDays = fDates.size();
+                }
+                int avgCal = foodDays > 0 ? totalCal / foodDays : 0;
+
+                // User target
+                User user = db.userDao().getUserSync();
+                int target = (user != null && user.getDailyCalorieTarget() > 0) ? user.getDailyCalorieTarget() : 2000;
+
+                // Weight
+                java.util.List<WeightRecord> weights = db.weightRecordDao().getRecordsByDateRangeSync(weekStart, weekEnd);
+                float wStart = 0, wEnd = 0;
+                if (weights != null && !weights.isEmpty()) {
+                    wStart = (float) weights.get(0).getWeight();
+                    wEnd = (float) weights.get(weights.size() - 1).getWeight();
+                }
+
+                // Water avg
+                java.util.List<WaterRecord> waters = db.waterRecordDao().getRecordsByDateRangeSync(weekStart, weekEnd);
+                int waterTotal = 0;
+                int wDays = 0;
+                if (waters != null && !waters.isEmpty()) {
+                    java.util.Set<String> wDateSet = new java.util.HashSet<>();
+                    for (WaterRecord w : waters) {
+                        waterTotal += w.getAmountMl();
+                        wDateSet.add(DateUtils.formatDate(w.getTimestamp()));
+                    }
+                    wDays = wDateSet.size();
+                }
+                int waterAvg = wDays > 0 ? waterTotal / wDays : 0;
+
+                // Habits
+                java.util.List<HabitItem> allHabits = db.habitItemDao().getAllItemsSync();
+                int habitTotal = 0;
+                if (allHabits != null) {
+                    for (HabitItem h : allHabits) {
+                        if (h.isEnabled()) habitTotal++;
+                    }
+                }
+                int habitDone = 0;
+                int habitRate = 0;
+                if (habitTotal > 0) {
+                    for (long d = weekStart; d < weekEnd; d += 24 * 3600 * 1000L) {
+                        java.util.List<HabitRecord> dayRecords = db.habitRecordDao().getRecordsByDateSync(d);
+                        if (dayRecords != null) {
+                            for (HabitRecord hr : dayRecords) {
+                                if (hr.isCompleted()) habitDone++;
+                            }
+                        }
+                    }
+                    habitRate = habitDone * 100 / (habitTotal * 7);
+                }
+
+                ShareUtils.WeekSummary summary = new ShareUtils.WeekSummary();
+                summary.weekRange = weekRange;
+                summary.exerciseDays = exerciseDays;
+                summary.totalExerciseMinutes = totalDuration;
+                summary.avgCaloriesConsumed = avgCal;
+                summary.calorieTarget = target;
+                summary.weightStart = wStart;
+                summary.weightEnd = wEnd;
+                summary.waterAvgMl = waterAvg;
+                summary.habitCompletionRate = Math.min(habitRate, 100);
+
+                requireActivity().runOnUiThread(() -> ShareUtils.shareWeekReport(requireContext(), summary));
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "生成报告失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
         });
     }
 

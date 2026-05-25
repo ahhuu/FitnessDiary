@@ -301,17 +301,44 @@
         </com.google.android.material.card.MaterialCardView>
 
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_food_scan"
-            style="@style/Widget.Material3.Button"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="8dp"
-            android:text="AI识食"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            app:backgroundTint="@color/diet_primary" />
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_barcode_scan"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/barcode_scan"
+                android:textAllCaps="false"
+                android:textSize="13sp"
+                android:textColor="@color/diet_primary"
+                app:icon="@android:drawable/ic_menu_camera"
+                app:iconSize="18dp"
+                app:iconTint="@color/diet_primary"
+                app:strokeColor="@color/diet_primary"
+                app:cornerRadius="22dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_food_scan"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="AI识食"
+                android:textAllCaps="false"
+                android:textSize="13sp"
+                android:textColor="@color/white"
+                app:cornerRadius="22dp"
+                app:backgroundTint="@color/diet_primary" />
+        </LinearLayout>
     </LinearLayout>
     
     </androidx.core.widget.NestedScrollView>

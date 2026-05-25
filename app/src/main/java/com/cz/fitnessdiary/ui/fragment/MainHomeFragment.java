@@ -95,7 +95,7 @@ public class MainHomeFragment extends Fragment {
 
         binding.viewPager.setAdapter(adapter);
 
-        // 关键优化：预加载所有页面 (0点到4点)
+        // 预加载所有主页面，避免底部 Tab / 横滑切换时重新创建复杂页面导致明显卡顿。
         binding.viewPager.setOffscreenPageLimit(4);
 
         // 滑动监听：同步底部导航
