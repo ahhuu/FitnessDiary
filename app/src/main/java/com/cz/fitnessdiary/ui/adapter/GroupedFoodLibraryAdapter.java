@@ -269,10 +269,16 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
                 return "🍜";
             if (category.contains("快餐"))
                 return "🍔";
+            if (category.contains("即食"))
+                return "🥡";
             if (category.contains("荤菜"))
                 return "🍱";
             if (category.contains("素菜"))
                 return "🥗";
+            if (category.contains("汤羹"))
+                return "🥣";
+            if (category.contains("火锅"))
+                return "🍲";
             if (category.contains("蛋奶") || category.contains("豆制品"))
                 return "🥛";
             if (category.contains("肉类") || category.contains("海鲜"))

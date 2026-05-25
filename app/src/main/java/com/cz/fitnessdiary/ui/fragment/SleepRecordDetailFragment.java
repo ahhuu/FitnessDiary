@@ -1,5 +1,6 @@
 package com.cz.fitnessdiary.ui.fragment;
 
+import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -203,53 +204,88 @@ public class SleepRecordDetailFragment extends Fragment {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(pad, pad, pad, pad);
 
-        EditText etStart = new EditText(requireContext());
-        etStart.setHint("入睡时间 HH:mm");
-        etStart.setInputType(InputType.TYPE_CLASS_DATETIME);
-        root.addView(etStart);
-
-        EditText etEnd = new EditText(requireContext());
-        etEnd.setHint("起床时间 HH:mm");
-        etEnd.setInputType(InputType.TYPE_CLASS_DATETIME);
-        root.addView(etEnd);
-
-        EditText etQuality = new EditText(requireContext());
-        etQuality.setHint("睡眠质量 1-5");
-        etQuality.setInputType(InputType.TYPE_CLASS_NUMBER);
-        root.addView(etQuality);
-
-        EditText etNote = new EditText(requireContext());
-        etNote.setHint("备注");
-        root.addView(etNote);
+        final int[] startHour = {23};
+        final int[] startMinute = {0};
+        final int[] endHour = {7};
+        final int[] endMinute = {0};
 
         if (existing != null) {
             Calendar sc = Calendar.getInstance();
             sc.setTimeInMillis(existing.getStartTime());
             Calendar ec = Calendar.getInstance();
             ec.setTimeInMillis(existing.getEndTime());
-            etStart.setText(String.format(Locale.getDefault(), "%02d:%02d", sc.get(Calendar.HOUR_OF_DAY),
-                    sc.get(Calendar.MINUTE)));
-            etEnd.setText(String.format(Locale.getDefault(), "%02d:%02d", ec.get(Calendar.HOUR_OF_DAY),
-                    ec.get(Calendar.MINUTE)));
+            startHour[0] = sc.get(Calendar.HOUR_OF_DAY);
+            startMinute[0] = sc.get(Calendar.MINUTE);
+            endHour[0] = ec.get(Calendar.HOUR_OF_DAY);
+            endMinute[0] = ec.get(Calendar.MINUTE);
+        }
+
+        TextView tvStartLabel = new TextView(requireContext());
+        tvStartLabel.setText("入睡时间");
+        tvStartLabel.setTextSize(14);
+        tvStartLabel.setTextColor(0xFF666666);
+        tvStartLabel.setPadding(0, 0, 0, 8);
+        root.addView(tvStartLabel);
+
+        TextView tvStart = new TextView(requireContext());
+        tvStart.setText(String.format(Locale.getDefault(), "%02d:%02d", startHour[0], startMinute[0]));
+        tvStart.setTextSize(18);
+        tvStart.setPadding(0, 0, 0, 24);
+        tvStart.setOnClickListener(v -> {
+            new TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
+                startHour[0] = hourOfDay;
+                startMinute[0] = minute;
+                tvStart.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
+            }, startHour[0], startMinute[0], true).show();
+        });
+        root.addView(tvStart);
+
+        TextView tvEndLabel = new TextView(requireContext());
+        tvEndLabel.setText("起床时间");
+        tvEndLabel.setTextSize(14);
+        tvEndLabel.setTextColor(0xFF666666);
+        tvEndLabel.setPadding(0, 0, 0, 8);
+        root.addView(tvEndLabel);
+
+        TextView tvEnd = new TextView(requireContext());
+        tvEnd.setText(String.format(Locale.getDefault(), "%02d:%02d", endHour[0], endMinute[0]));
+        tvEnd.setTextSize(18);
+        tvEnd.setPadding(0, 0, 0, 24);
+        tvEnd.setOnClickListener(v -> {
+            new TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
+                endHour[0] = hourOfDay;
+                endMinute[0] = minute;
+                tvEnd.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute));
+            }, endHour[0], endMinute[0], true).show();
+        });
+        root.addView(tvEnd);
+
+        EditText etQuality = new EditText(requireContext());
+        etQuality.setHint("睡眠质量 1-5");
+        etQuality.setInputType(InputType.TYPE_CLASS_NUMBER);
+        if (existing != null) {
             etQuality.setText(String.valueOf(existing.getQuality()));
-            etNote.setText(existing.getNotes());
         } else {
-            etStart.setText("23:00");
-            etEnd.setText("07:00");
             etQuality.setText("3");
         }
+        root.addView(etQuality);
+
+        EditText etNote = new EditText(requireContext());
+        etNote.setHint("备注");
+        if (existing != null) {
+            etNote.setText(existing.getNotes());
+        }
+        root.addView(etNote);
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(existing == null ? "新增睡眠" : "编辑睡眠")
                 .setView(root)
                 .setPositiveButton("保存", (d, w) -> {
                     try {
-                        String[] s = etStart.getText().toString().trim().split(":");
-                        String[] e = etEnd.getText().toString().trim().split(":");
-                        int sh = Integer.parseInt(s[0]);
-                        int sm = Integer.parseInt(s[1]);
-                        int eh = Integer.parseInt(e[0]);
-                        int em = Integer.parseInt(e[1]);
+                        int sh = startHour[0];
+                        int sm = startMinute[0];
+                        int eh = endHour[0];
+                        int em = endMinute[0];
                         int quality = Math.max(1, Math.min(5, Integer.parseInt(etQuality.getText().toString().trim())));
                         String note = etNote.getText() == null ? "" : etNote.getText().toString().trim();
 
@@ -278,7 +314,7 @@ public class SleepRecordDetailFragment extends Fragment {
                             viewModel.updateSleepRecord(existing);
                         }
                     } catch (Exception ex) {
-                        Toast.makeText(getContext(), "请输入正确时间格式，例如 23:00", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "请填写完整的睡眠信息", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("取消", null)

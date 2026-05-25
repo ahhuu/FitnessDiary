@@ -33,6 +33,9 @@ public class FoodLibrary implements java.io.Serializable {
     @ColumnInfo(name = "carbs_per_100g")
     private double carbsPer100g; // 每100克碳水含量 (g)
 
+    @ColumnInfo(name = "fat_per_100g")
+    private double fatPer100g; // 每100克脂肪含量 (g)
+
     @ColumnInfo(name = "serving_unit")
     private String servingUnit; // 常用单位 (如 "个", "碗")
 
@@ -43,28 +46,36 @@ public class FoodLibrary implements java.io.Serializable {
     private String category; // 分类 (如 "主食", "家常菜")
 
     // 构造函数
-    public FoodLibrary(String name, int caloriesPer100g, double proteinPer100g, double carbsPer100g, String servingUnit,
-            int weightPerUnit, String category) {
+    public FoodLibrary(String name, int caloriesPer100g, double proteinPer100g, double carbsPer100g,
+            double fatPer100g, String servingUnit, int weightPerUnit, String category) {
         this.name = name;
         setCaloriesPer100g(caloriesPer100g);
         setProteinPer100g(proteinPer100g);
         setCarbsPer100g(carbsPer100g);
+        setFatPer100g(fatPer100g);
         this.servingUnit = servingUnit;
         setWeightPerUnit(weightPerUnit);
         this.category = category;
     }
 
-    // 兼容旧构造函数 (Plan 30 更新)
+    // 兼容旧构造函数 (Plan 30 更新) - 无分类
     @Ignore
     public FoodLibrary(String name, int caloriesPer100g, double proteinPer100g, double carbsPer100g, String servingUnit,
             int weightPerUnit) {
-        this(name, caloriesPer100g, proteinPer100g, carbsPer100g, servingUnit, weightPerUnit, "其他");
+        this(name, caloriesPer100g, proteinPer100g, carbsPer100g, 0, servingUnit, weightPerUnit, "其他");
+    }
+
+    // 兼容 7 参旧构造函数 (无 fat，有 category)
+    @Ignore
+    public FoodLibrary(String name, int caloriesPer100g, double proteinPer100g, double carbsPer100g, String servingUnit,
+            int weightPerUnit, String category) {
+        this(name, caloriesPer100g, proteinPer100g, carbsPer100g, 0, servingUnit, weightPerUnit, category);
     }
 
     // 兼容旧构造函数（可选，用于默认值）
     @Ignore
     public FoodLibrary(String name, int caloriesPer100g) {
-        this(name, caloriesPer100g, 0, 0, "克", 100);
+        this(name, caloriesPer100g, 0, 0, 0, "克", 100, "其他");
     }
 
     // Getter 和 Setter 方法
@@ -106,6 +117,14 @@ public class FoodLibrary implements java.io.Serializable {
 
     public void setCarbsPer100g(double carbsPer100g) {
         this.carbsPer100g = Math.max(0, carbsPer100g);
+    }
+
+    public double getFatPer100g() {
+        return fatPer100g;
+    }
+
+    public void setFatPer100g(double fatPer100g) {
+        this.fatPer100g = Math.max(0, fatPer100g);
     }
 
     public String getServingUnit() {

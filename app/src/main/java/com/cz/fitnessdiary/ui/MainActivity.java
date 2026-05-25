@@ -21,6 +21,7 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.AppDatabase;
+import com.cz.fitnessdiary.database.FoodLibraryDataLoader;
 import com.cz.fitnessdiary.databinding.ActivityMainBinding;
 import com.cz.fitnessdiary.utils.ReminderManager;
 
@@ -42,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         captureReminderRoute(getIntent());
         setupDynamicNavigation();
 
-        Executors.newSingleThreadExecutor().execute(() -> AppDatabase.updateOfficialFoodLibrary(getApplicationContext()));
+        Executors.newSingleThreadExecutor().execute(() -> FoodLibraryDataLoader.loadIfNeeded(getApplicationContext()));
     }
 
     @Override

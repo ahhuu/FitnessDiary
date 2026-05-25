@@ -20,8 +20,11 @@ public final class FoodCategoryUtils {
     public static final String CAT_STAPLE_DUMPLING = "主食: 饺子馄饨";
     public static final String CAT_STAPLE_NOODLE = "主食: 汤粉面条";
     public static final String CAT_STAPLE_FAST = "主食: 西式快餐";
+    public static final String CAT_STAPLE_READYMEAL = "主食: 即食/快手餐";
     public static final String CAT_DISH_MEAT = "菜肴: 精选荤菜";
     public static final String CAT_DISH_VEG = "菜肴: 清爽素菜";
+    public static final String CAT_DISH_SOUP = "菜肴: 汤羹类";
+    public static final String CAT_DISH_HOTPOT = "菜肴: 火锅食材";
     public static final String CAT_PROTEIN_DAILY = "蛋白: 蛋奶豆制品";
     public static final String CAT_PROTEIN_MEAT = "蛋白: 肉类海鲜";
     public static final String CAT_PROTEIN_SUPPLEMENT = "蛋白: 健身补剂";
@@ -41,8 +44,11 @@ public final class FoodCategoryUtils {
             CAT_STAPLE_DUMPLING,
             CAT_STAPLE_NOODLE,
             CAT_STAPLE_FAST,
+            CAT_STAPLE_READYMEAL,
             CAT_DISH_MEAT,
             CAT_DISH_VEG,
+            CAT_DISH_SOUP,
+            CAT_DISH_HOTPOT,
             CAT_PROTEIN_DAILY,
             CAT_PROTEIN_MEAT,
             CAT_PROTEIN_SUPPLEMENT,
@@ -65,8 +71,11 @@ public final class FoodCategoryUtils {
         DISPLAY_TO_CANONICAL.put("🥟 " + CAT_STAPLE_DUMPLING, CAT_STAPLE_DUMPLING);
         DISPLAY_TO_CANONICAL.put("🍜 " + CAT_STAPLE_NOODLE, CAT_STAPLE_NOODLE);
         DISPLAY_TO_CANONICAL.put("🍔 " + CAT_STAPLE_FAST, CAT_STAPLE_FAST);
+        DISPLAY_TO_CANONICAL.put("🥡 " + CAT_STAPLE_READYMEAL, CAT_STAPLE_READYMEAL);
         DISPLAY_TO_CANONICAL.put("🍱 " + CAT_DISH_MEAT, CAT_DISH_MEAT);
         DISPLAY_TO_CANONICAL.put("🥗 " + CAT_DISH_VEG, CAT_DISH_VEG);
+        DISPLAY_TO_CANONICAL.put("🥣 " + CAT_DISH_SOUP, CAT_DISH_SOUP);
+        DISPLAY_TO_CANONICAL.put("🍲 " + CAT_DISH_HOTPOT, CAT_DISH_HOTPOT);
         DISPLAY_TO_CANONICAL.put("🥛 " + CAT_PROTEIN_DAILY, CAT_PROTEIN_DAILY);
         DISPLAY_TO_CANONICAL.put("🥩 " + CAT_PROTEIN_MEAT, CAT_PROTEIN_MEAT);
         DISPLAY_TO_CANONICAL.put("💪 " + CAT_PROTEIN_SUPPLEMENT, CAT_PROTEIN_SUPPLEMENT);
@@ -148,12 +157,23 @@ public final class FoodCategoryUtils {
             if (source.contains("快餐") || source.contains("汉堡") || source.contains("披萨")) {
                 return CAT_STAPLE_FAST;
             }
+            if (source.contains("即食") || source.contains("快手") || source.contains("自热")
+                    || source.contains("速食") || source.contains("方便")) {
+                return CAT_STAPLE_READYMEAL;
+            }
             return CAT_STAPLE_RICE;
         }
 
-        if (source.contains("菜肴") || source.contains("家常菜") || source.contains("荤菜") || source.contains("素菜")) {
+        if (source.contains("菜肴") || source.contains("家常菜") || source.contains("荤菜") || source.contains("素菜")
+                || source.contains("汤羹") || source.contains("火锅")) {
             if (source.contains("素")) {
                 return CAT_DISH_VEG;
+            }
+            if (source.contains("汤羹") || source.contains("汤")) {
+                return CAT_DISH_SOUP;
+            }
+            if (source.contains("火锅")) {
+                return CAT_DISH_HOTPOT;
             }
             return CAT_DISH_MEAT;
         }
