@@ -58,7 +58,9 @@ public class CheckInFragment extends Fragment {
     private static final String KEY_SHOW_HABIT = "show_habit";
     private static final String KEY_SHOW_MEDICATION = "show_medication";
     private static final String KEY_SHOW_WEIGHT = "show_weight";
-    private static final String KEY_SHOW_CUSTOM = "show_custom";
+    private static final String KEY_SHOW_MEASUREMENT = "show_measurement";
+    private static final String KEY_SHOW_BOWEL = "show_bowel";
+    private static final String KEY_SHOW_MENSTRUAL = "show_menstrual";
     private static final String KEY_SMALL_ORDER = "small_order";
 
     private static final String CARD_WATER = "water";
@@ -66,7 +68,9 @@ public class CheckInFragment extends Fragment {
     private static final String CARD_HABIT = "habit";
     private static final String CARD_MEDICATION = "medication";
     private static final String CARD_WEIGHT = "weight";
-    private static final String CARD_CUSTOM = "custom";
+    private static final String CARD_MEASUREMENT = "measurement";
+    private static final String CARD_BOWEL = "bowel";
+    private static final String CARD_MENSTRUAL = "menstrual";
 
     private FragmentCheckinBinding binding;
     private CheckInViewModel checkInViewModel;
@@ -80,7 +84,6 @@ public class CheckInFragment extends Fragment {
     private final Map<Long, HabitRecord> habitRecords = new HashMap<>();
     private final List<DailyMission> latestMissions = new ArrayList<>();
     private final Map<String, View> cachedCards = new HashMap<>();
-    private final Map<Long, View> customTrackerViews = new HashMap<>(); // [v1.3] 动态分类卡片缓存
     private long lastNavigateTs = 0L;
     private List<String> lastEnabledCardIds = new ArrayList<>(); // [v2.3] 缓存记录，防止频繁刷新
     private com.cz.fitnessdiary.ui.adapter.DateNavigatorAdapter dateNavAdapter;
@@ -193,6 +196,9 @@ public class CheckInFragment extends Fragment {
         cachedCards.put(CARD_HABIT, pool.findViewById(R.id.card_habit));
         cachedCards.put(CARD_MEDICATION, pool.findViewById(R.id.card_medication));
         cachedCards.put(CARD_WEIGHT, pool.findViewById(R.id.card_weight_small));
+        cachedCards.put(CARD_MEASUREMENT, pool.findViewById(R.id.card_measure_small));
+        cachedCards.put(CARD_BOWEL, pool.findViewById(R.id.card_bowel_small));
+        cachedCards.put(CARD_MENSTRUAL, pool.findViewById(R.id.card_menstrual_small));
         // [v2.2] 饮食摘要观察
         // 这里的观察已移至底部逻辑
         dietViewModel.getTodayTotalCalories().observe(getViewLifecycleOwner(), calories -> {
@@ -267,6 +273,9 @@ public class CheckInFragment extends Fragment {
         v(R.id.card_habit).setOnClickListener(v -> openDetail(R.id.habitRecordDetailFragment));
         v(R.id.card_medication).setOnClickListener(v -> openDetail(R.id.medicationRecordDetailFragment));
         v(R.id.card_weight_small).setOnClickListener(v -> openDetail(R.id.weightRecordDetailFragment));
+        v(R.id.card_measure_small).setOnClickListener(v -> openDetail(R.id.bodyMeasurementDetailFragment));
+        v(R.id.card_bowel_small).setOnClickListener(v -> openDetail(R.id.bowelMovementDetailFragment));
+        v(R.id.card_menstrual_small).setOnClickListener(v -> openDetail(R.id.menstrualRecordDetailFragment));
 
         binding.btnAddSport.setOnClickListener(v -> openDetail(R.id.sportRecordDetailFragment));
 
@@ -290,6 +299,9 @@ public class CheckInFragment extends Fragment {
                 v -> quickTextInput("添加用药", text -> homeDashboardViewModel.addMedication(text, "", true, null)));
         v(R.id.btn_add_sleep).setOnClickListener(v -> openDetail(R.id.sleepRecordDetailFragment));
         v(R.id.btn_add_habit).setOnClickListener(v -> openDetail(R.id.habitRecordDetailFragment));
+        v(R.id.btn_add_measure).setOnClickListener(v -> openDetail(R.id.bodyMeasurementDetailFragment));
+        v(R.id.btn_add_bowel).setOnClickListener(v -> openDetail(R.id.bowelMovementDetailFragment));
+        v(R.id.btn_add_menstrual).setOnClickListener(v -> openDetail(R.id.menstrualRecordDetailFragment));
         binding.btnEditMissions.setOnClickListener(v -> showEditMissionsDialog());
 
         binding.btnEditHomeCards.setOnClickListener(v -> showEditCardsDialog());
@@ -368,13 +380,39 @@ public class CheckInFragment extends Fragment {
         homeDashboardViewModel.getTodayWaterTotal().observe(getViewLifecycleOwner(), total -> {
             currentWaterTotal = total == null ? 0 : total;
             setTextIfExists(R.id.tv_water_value, String.valueOf(currentWaterTotal));
+            setTextIfExists(R.id.tv_water_summary, currentWaterTotal > 0
+                    ? "今日已喝 " + currentWaterTotal + "ml" : "点击添加喝水记录");
             updateOverallProgress();
         });
         homeDashboardViewModel.getSelectedDateLatestWater().observe(getViewLifecycleOwner(),
                 r -> setTextIfExists(R.id.tv_water_update,
                         r == null ? "暂无更新" : getSelectedDateUpdateText(r.getTimestamp())));
-        homeDashboardViewModel.getTodayMedicationTakenCount().observe(getViewLifecycleOwner(),
-                c -> setTextIfExists(R.id.tv_medication_value, String.valueOf(c == null ? 0 : c)));
+        homeDashboardViewModel.getTodayMedicationTakenCount().observe(getViewLifecycleOwner(), taken -> {
+            int t = taken == null ? 0 : taken;
+            Integer total = homeDashboardViewModel.getTodayMedicationTotal().getValue();
+            int target = total != null ? total : 0;
+            if (target > 0) {
+                setTextIfExists(R.id.tv_medication_value, t + "/" + target);
+                setTextIfExists(R.id.tv_medication_summary, t >= target ? "今日用药已全部完成 ✓" : "还有 " + (target - t) + " 次未服用");
+                View card = cachedCards.get(CARD_MEDICATION);
+                if (card != null) {
+                    com.google.android.material.progressindicator.LinearProgressIndicator p =
+                            card.findViewById(R.id.progress_medication);
+                    if (p != null) p.setProgress(t * 100 / target);
+                }
+            } else {
+                setTextIfExists(R.id.tv_medication_value, String.valueOf(t));
+                setTextIfExists(R.id.tv_medication_summary, t > 0 ? "已记录 " + t + " 次用药" : "点击添加用药记录");
+            }
+        });
+        homeDashboardViewModel.getTodayMedicationTotal().observe(getViewLifecycleOwner(), total -> {
+            Integer taken = homeDashboardViewModel.getTodayMedicationTakenCount().getValue();
+            int t = taken != null ? taken : 0;
+            int target = total != null ? total : 0;
+            if (target > 0) {
+                setTextIfExists(R.id.tv_medication_value, t + "/" + target);
+            }
+        });
         homeDashboardViewModel.getSelectedDateLatestMedication().observe(getViewLifecycleOwner(),
                 r -> setTextIfExists(R.id.tv_medication_update,
                         r == null ? "暂无更新" : getSelectedDateUpdateText(r.getTimestamp())));
@@ -413,30 +451,6 @@ public class CheckInFragment extends Fragment {
             updateOverallProgress();
         });
 
-        homeDashboardViewModel.getEnabledTrackers().observe(getViewLifecycleOwner(), trackers -> {
-            // [v1.3] 动态管理分类卡片
-            if (trackers != null) {
-                // 清理已禁用的分类视图
-                java.util.Set<Long> enabledIds = new java.util.HashSet<>();
-                for (com.cz.fitnessdiary.database.entity.CustomTracker t : trackers)
-                    enabledIds.add(t.getId());
-                customTrackerViews.entrySet().removeIf(entry -> !enabledIds.contains(entry.getKey()));
-
-                // 更新或创建视图
-                for (com.cz.fitnessdiary.database.entity.CustomTracker tracker : trackers) {
-                    View card = customTrackerViews.get(tracker.getId());
-                    if (card == null) {
-                        card = createDynamicCustomCard(tracker);
-                        customTrackerViews.put(tracker.getId(), card);
-                        updateDynamicCardObserver(tracker, card); // 仅在创建时绑定观察者
-                    } else {
-                        // 如果卡片已存在，可能需要更新标题/颜色等视觉属性
-                        updateCardVisuals(card, tracker);
-                    }
-                }
-                applyCardConfig();
-            }
-        });
         homeDashboardViewModel.getEnabledHabits().observe(getViewLifecycleOwner(), items -> {
             habitItems.clear();
             if (items != null)
@@ -453,6 +467,63 @@ public class CheckInFragment extends Fragment {
             }
             refreshHabitCard();
             updateOverallProgress();
+        });
+
+        // 围度卡片观察
+        homeDashboardViewModel.getTodayMeasurementCount().observe(getViewLifecycleOwner(), count -> {
+            int c = count == null ? 0 : count;
+            setTextIfExists(R.id.tv_measure_value, String.valueOf(c));
+            View card = cachedCards.get(CARD_MEASUREMENT);
+            if (card != null) {
+                com.google.android.material.progressindicator.LinearProgressIndicator p =
+                        card.findViewById(R.id.progress_measure);
+                if (p != null) p.setProgress(Math.min(c * 16, 100));
+            }
+        });
+        homeDashboardViewModel.getLatestMeasurementSummary().observe(getViewLifecycleOwner(), summary -> {
+            setTextIfExists(R.id.tv_measure_summary, summary == null ? "点击查看围度明细" : summary);
+        });
+        homeDashboardViewModel.getSelectedDateLatestMeasurementTime().observe(getViewLifecycleOwner(), ts -> {
+            setTextIfExists(R.id.tv_measure_update,
+                    ts == null || ts == 0 ? "暂无更新" : getSelectedDateUpdateText(ts));
+        });
+
+        // 便便卡片观察
+        homeDashboardViewModel.getTodayBowelCount().observe(getViewLifecycleOwner(), count -> {
+            int c = count == null ? 0 : count;
+            setTextIfExists(R.id.tv_bowel_value, String.valueOf(c));
+            View card = cachedCards.get(CARD_BOWEL);
+            if (card != null) {
+                com.google.android.material.progressindicator.LinearProgressIndicator p =
+                        card.findViewById(R.id.progress_bowel);
+                if (p != null) p.setProgress(Math.min(c * 33, 100));
+            }
+        });
+        homeDashboardViewModel.getLatestBowelSummary().observe(getViewLifecycleOwner(), summary -> {
+            setTextIfExists(R.id.tv_bowel_summary, summary == null ? "点击查看便便明细" : summary);
+        });
+        homeDashboardViewModel.getSelectedDateLatestBowelTime().observe(getViewLifecycleOwner(), ts -> {
+            setTextIfExists(R.id.tv_bowel_update,
+                    ts == null || ts == 0 ? "暂无更新" : getSelectedDateUpdateText(ts));
+        });
+
+        // 经期卡片观察
+        homeDashboardViewModel.getCurrentCycleDay().observe(getViewLifecycleOwner(), day -> {
+            int d = day == null ? 0 : day;
+            setTextIfExists(R.id.tv_menstrual_value, d > 0 ? String.valueOf(d) : "--");
+            View card = cachedCards.get(CARD_MENSTRUAL);
+            if (card != null) {
+                com.google.android.material.progressindicator.LinearProgressIndicator p =
+                        card.findViewById(R.id.progress_menstrual);
+                if (p != null) p.setProgress(d > 0 ? Math.min(d * 100 / 28, 100) : 0);
+            }
+        });
+        homeDashboardViewModel.getMenstrualSummary().observe(getViewLifecycleOwner(), summary -> {
+            setTextIfExists(R.id.tv_menstrual_summary, summary == null ? "点击查看经期明细" : summary);
+        });
+        homeDashboardViewModel.getSelectedDateLatestMenstrualTime().observe(getViewLifecycleOwner(), ts -> {
+            setTextIfExists(R.id.tv_menstrual_update,
+                    ts == null || ts == 0 ? "暂无更新" : getSelectedDateUpdateText(ts));
         });
     }
 
@@ -760,9 +831,29 @@ public class CheckInFragment extends Fragment {
             if (r != null && r.isCompleted())
                 completed++;
         }
-        setTextIfExists(R.id.tv_habit_value, completed + "/" + total);
-        setTextIfExists(R.id.tv_habit_summary, completed == total ? "今日习惯已全部达成！✨" : "还有一些习惯没打卡呢");
-        setTextIfExists(R.id.tv_habit_update, "养成好习惯");
+        setTextIfExists(R.id.tv_habit_value, total > 0 ? completed + "/" + total : "--");
+        if (total > 0) {
+            int pct = completed * 100 / total;
+            if (completed == total) {
+                setTextIfExists(R.id.tv_habit_summary, "全部达成，太棒了！");
+            } else if (pct >= 50) {
+                setTextIfExists(R.id.tv_habit_summary, "已完成过半，继续加油");
+            } else if (completed > 0) {
+                setTextIfExists(R.id.tv_habit_summary, "好的开始，还有 " + (total - completed) + " 项待完成");
+            } else {
+                setTextIfExists(R.id.tv_habit_summary, "今天还没开始，行动起来吧");
+            }
+        } else {
+            setTextIfExists(R.id.tv_habit_summary, "点击添加习惯项目");
+        }
+        setTextIfExists(R.id.tv_habit_update, total > 0 ? "共 " + total + " 项习惯" : "养成好习惯");
+        // Update progress
+        View card = cachedCards.get(CARD_HABIT);
+        if (card != null) {
+            com.google.android.material.progressindicator.LinearProgressIndicator p =
+                    card.findViewById(R.id.progress_habit);
+            if (p != null) p.setProgress(total > 0 ? completed * 100 / total : 0);
+        }
     }
 
     private void openDetail(int destination) {
@@ -815,9 +906,15 @@ public class CheckInFragment extends Fragment {
             } else if (CARD_WEIGHT.equals(id)) {
                 name = "体重变化";
                 visible = isCardEnabled(KEY_SHOW_WEIGHT, true);
-            } else if (CARD_CUSTOM.equals(id)) {
-                name = "自定义分类";
-                visible = isCardEnabled(KEY_SHOW_CUSTOM, true);
+            } else if (CARD_MEASUREMENT.equals(id)) {
+                name = "围度记录";
+                visible = isCardEnabled(KEY_SHOW_MEASUREMENT, true);
+            } else if (CARD_BOWEL.equals(id)) {
+                name = "便便记录";
+                visible = isCardEnabled(KEY_SHOW_BOWEL, true);
+            } else if (CARD_MENSTRUAL.equals(id)) {
+                name = "经期记录";
+                visible = isCardEnabled(KEY_SHOW_MENSTRUAL, true);
             }
             configs.add(new EditCardsAdapter.CardConfig(id, name, visible));
         }
@@ -859,8 +956,12 @@ public class CheckInFragment extends Fragment {
                             editor.putBoolean(KEY_SHOW_MEDICATION, cfg.visible);
                         else if (CARD_WEIGHT.equals(cfg.id))
                             editor.putBoolean(KEY_SHOW_WEIGHT, cfg.visible);
-                        else if (CARD_CUSTOM.equals(cfg.id))
-                            editor.putBoolean(KEY_SHOW_CUSTOM, cfg.visible);
+                        else if (CARD_MEASUREMENT.equals(cfg.id))
+                            editor.putBoolean(KEY_SHOW_MEASUREMENT, cfg.visible);
+                        else if (CARD_BOWEL.equals(cfg.id))
+                            editor.putBoolean(KEY_SHOW_BOWEL, cfg.visible);
+                        else if (CARD_MENSTRUAL.equals(cfg.id))
+                            editor.putBoolean(KEY_SHOW_MENSTRUAL, cfg.visible);
                     }
                     editor.putString(KEY_SMALL_ORDER, String.join(",", newOrder)).apply();
                     loadCardConfig();
@@ -872,12 +973,12 @@ public class CheckInFragment extends Fragment {
         SharedPreferences sp = requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE);
         String raw = sp.getString(KEY_SMALL_ORDER,
                 CARD_WATER + "," + CARD_SLEEP + "," + CARD_HABIT + "," + CARD_MEDICATION + "," + CARD_WEIGHT + ","
-                        + CARD_CUSTOM);
+                        + CARD_MEASUREMENT + "," + CARD_BOWEL + "," + CARD_MENSTRUAL);
         smallCardOrder.clear();
         if (raw != null) {
             for (String s : raw.split(",")) {
                 String id = s.trim();
-                if (!smallCardOrder.contains(id))
+                if (!smallCardOrder.contains(id) && !"custom".equals(id))
                     smallCardOrder.add(id);
             }
         }
@@ -891,8 +992,12 @@ public class CheckInFragment extends Fragment {
             smallCardOrder.add(CARD_MEDICATION);
         if (!smallCardOrder.contains(CARD_WEIGHT))
             smallCardOrder.add(CARD_WEIGHT);
-        if (!smallCardOrder.contains(CARD_CUSTOM))
-            smallCardOrder.add(CARD_CUSTOM);
+        if (!smallCardOrder.contains(CARD_MEASUREMENT))
+            smallCardOrder.add(CARD_MEASUREMENT);
+        if (!smallCardOrder.contains(CARD_BOWEL))
+            smallCardOrder.add(CARD_BOWEL);
+        if (!smallCardOrder.contains(CARD_MENSTRUAL))
+            smallCardOrder.add(CARD_MENSTRUAL);
     }
 
     private void applyCardConfig() {
@@ -912,15 +1017,12 @@ public class CheckInFragment extends Fragment {
                 enabled.add(id);
             if (CARD_WEIGHT.equals(id) && isCardEnabled(KEY_SHOW_WEIGHT, true))
                 enabled.add(id);
-
-            // [v1.3] 处理所有动态自定义卡片
-            if (CARD_CUSTOM.equals(id) && isCardEnabled(KEY_SHOW_CUSTOM, true)) {
-                List<Long> ids = new ArrayList<>(customTrackerViews.keySet());
-                Collections.sort(ids);
-                for (Long tid : ids) {
-                    enabled.add("custom_" + tid);
-                }
-            }
+            if (CARD_MEASUREMENT.equals(id) && isCardEnabled(KEY_SHOW_MEASUREMENT, true))
+                enabled.add(id);
+            if (CARD_BOWEL.equals(id) && isCardEnabled(KEY_SHOW_BOWEL, true))
+                enabled.add(id);
+            if (CARD_MENSTRUAL.equals(id) && isCardEnabled(KEY_SHOW_MENSTRUAL, true))
+                enabled.add(id);
         }
 
         // [v2.3] 核心优化：对比配置，若无变化则跳过刷新
@@ -979,74 +1081,7 @@ public class CheckInFragment extends Fragment {
     }
 
     private View getCardById(String id) {
-        if (id.startsWith("custom_")) {
-            try {
-                long tid = Long.parseLong(id.substring(7));
-                return customTrackerViews.get(tid);
-            } catch (Exception e) {
-                return null;
-            }
-        }
         return cachedCards.get(id);
-    }
-
-    // [v1.3] 动态创建自定义卡片
-    private View createDynamicCustomCard(com.cz.fitnessdiary.database.entity.CustomTracker tracker) {
-        View card = getLayoutInflater().inflate(R.layout.view_home_card_custom, null);
-        updateCardVisuals(card, tracker);
-
-        card.setOnClickListener(v -> {
-            Bundle b = new Bundle();
-            b.putLong("targetId", tracker.getId());
-            b.putString("title", tracker.getName());
-            openDetail(R.id.customCategoryDetailFragment, b);
-        });
-
-        card.findViewById(R.id.btn_add_custom).setOnClickListener(v -> {
-            Bundle b = new Bundle();
-            b.putLong("targetId", tracker.getId());
-            b.putString("title", tracker.getName());
-            openDetail(R.id.customCategoryDetailFragment, b); // 或者打开快速录入对话框
-        });
-
-        return card;
-    }
-
-    private void updateCardVisuals(View card, com.cz.fitnessdiary.database.entity.CustomTracker tracker) {
-        int color = android.graphics.Color
-                .parseColor(tracker.getColorHex() != null ? tracker.getColorHex() : "#4CAF50");
-        TextView title = card.findViewById(R.id.tv_custom_title);
-        title.setText(tracker.getName());
-        ((android.widget.ImageView) card.findViewById(R.id.iv_custom_icon)).setColorFilter(color);
-        com.google.android.material.card.MaterialCardView cardView = card.findViewById(R.id.card_custom);
-        if (cardView != null) {
-            cardView.setCardBackgroundColor(android.graphics.Color.argb(26, android.graphics.Color.red(color),
-                    android.graphics.Color.green(color), android.graphics.Color.blue(color)));
-            cardView.setStrokeColor(android.graphics.Color.argb(40, android.graphics.Color.red(color),
-                    android.graphics.Color.green(color), android.graphics.Color.blue(color)));
-        }
-        TextView unitTv = card.findViewById(R.id.tv_custom_unit);
-        if (unitTv != null)
-            unitTv.setText(tracker.getUnit());
-    }
-
-    // [v1.3] 为动态卡片设置独立观察者
-    private void updateDynamicCardObserver(com.cz.fitnessdiary.database.entity.CustomTracker tracker, View card) {
-        homeDashboardViewModel.getTodayCustomSum(tracker.getId()).observe(getViewLifecycleOwner(), sum -> {
-            double s = sum == null ? 0.0 : sum;
-            String valStr = s == (long) s ? String.valueOf((long) s) : String.format("%.1f", s);
-            ((TextView) card.findViewById(R.id.tv_custom_value)).setText(valStr);
-            TextView unitTv = card.findViewById(R.id.tv_custom_unit);
-            if (unitTv != null)
-                unitTv.setText(tracker.getUnit());
-            updateOverallProgress();
-        });
-
-        homeDashboardViewModel.getSelectedDateLatestCustomRecord(tracker.getId()).observe(getViewLifecycleOwner(), record -> {
-            ((TextView) card.findViewById(R.id.tv_custom_update))
-                    .setText(record == null ? "暂无更新" : getSelectedDateUpdateText(record.getTimestamp()));
-            ((TextView) card.findViewById(R.id.tv_custom_summary)).setText(record == null ? "记录新数据" : "已记录新数据");
-        });
     }
 
     private boolean isCardEnabled(String key, boolean def) {
@@ -1100,7 +1135,6 @@ public class CheckInFragment extends Fragment {
         }
         lastEnabledCardIds.clear();
         cachedCards.clear();
-        customTrackerViews.clear();
         binding = null;
     }
 }

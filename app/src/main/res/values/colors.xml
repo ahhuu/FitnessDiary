@@ -102,4 +102,16 @@
     <!-- 自定义 - 灰色/蓝灰色 -->
     <color name="cat_custom_primary">#607D8B</color>
     <color name="cat_custom_bg">#ECEFF1</color>
+
+    <!-- 围度 - 青色 -->
+    <color name="cat_measure_primary">#00BCD4</color>
+    <color name="cat_measure_bg">#E0F7FA</color>
+
+    <!-- 便便 - 棕色 -->
+    <color name="cat_bowel_primary">#8D6E63</color>
+    <color name="cat_bowel_bg">#EFEBE9</color>
+
+    <!-- 经期 - 紫粉色 -->
+    <color name="cat_menstrual_primary">#E040FB</color>
+    <color name="cat_menstrual_bg">#F3E5F5</color>
 </resources>

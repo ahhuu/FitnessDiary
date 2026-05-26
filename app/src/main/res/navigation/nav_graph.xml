@@ -102,4 +102,19 @@
         android:id="@+id/customCategoryDetailFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.CustomCategoryDetailFragment"
         android:label="分类明细" />
+
+    <fragment
+        android:id="@+id/bodyMeasurementDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.BodyMeasurementDetailFragment"
+        android:label="围度记录明细" />
+
+    <fragment
+        android:id="@+id/bowelMovementDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.BowelMovementDetailFragment"
+        android:label="便便记录明细" />
+
+    <fragment
+        android:id="@+id/menstrualRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.MenstrualRecordDetailFragment"
+        android:label="经期记录明细" />
 </navigation>

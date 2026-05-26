@@ -76,6 +76,11 @@ public class HomeDashboardViewModel extends AndroidViewModel {
                 start -> Transformations.switchMap(dayEnd, end -> repository.getTodayMedicationTakenCount(start, end)));
     }
 
+    public LiveData<Integer> getTodayMedicationTotal() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> repository.getTodayMedicationTotal(start, end)));
+    }
+
     public LiveData<MedicationRecord> getLatestMedication() {
         return repository.getLatestMedication();
     }
@@ -156,6 +161,84 @@ public class HomeDashboardViewModel extends AndroidViewModel {
 
     public void addCustomTracker(String name, String unit) {
         repository.addCustomTracker(new CustomTracker(name, unit, "#4CAF50", true, 0));
+    }
+
+    // ── Body Measurement card data ──
+
+    public LiveData<Integer> getTodayMeasurementCount() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> {
+                    MutableLiveData<Integer> result = new MutableLiveData<>();
+                    new Thread(() -> result.postValue(repository.getTodayMeasurementCount(start, end))).start();
+                    return result;
+                }));
+    }
+
+    public LiveData<String> getLatestMeasurementSummary() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> {
+                    MutableLiveData<String> result = new MutableLiveData<>();
+                    new Thread(() -> result.postValue(repository.getLatestMeasurementSummary(start, end))).start();
+                    return result;
+                }));
+    }
+
+    public LiveData<Long> getSelectedDateLatestMeasurementTime() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> {
+                    MutableLiveData<Long> result = new MutableLiveData<>();
+                    new Thread(() -> result.postValue(repository.getLatestMeasurementTime(start, end))).start();
+                    return result;
+                }));
+    }
+
+    // ── Bowel movement card data ──
+
+    public LiveData<Integer> getTodayBowelCount() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> {
+                    MutableLiveData<Integer> result = new MutableLiveData<>();
+                    new Thread(() -> result.postValue(repository.getTodayBowelCount(start, end))).start();
+                    return result;
+                }));
+    }
+
+    public LiveData<String> getLatestBowelSummary() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> {
+                    MutableLiveData<String> result = new MutableLiveData<>();
+                    new Thread(() -> result.postValue(repository.getLatestBowelSummary(start, end))).start();
+                    return result;
+                }));
+    }
+
+    public LiveData<Long> getSelectedDateLatestBowelTime() {
+        return Transformations.switchMap(dayStart,
+                start -> Transformations.switchMap(dayEnd, end -> {
+                    MutableLiveData<Long> result = new MutableLiveData<>();
+                    new Thread(() -> result.postValue(repository.getLatestBowelTime(start, end))).start();
+                    return result;
+                }));
+    }
+
+    // ── Menstrual cycle card data ──
+
+    public LiveData<Integer> getCurrentCycleDay() {
+        MutableLiveData<Integer> result = new MutableLiveData<>();
+        new Thread(() -> result.postValue(repository.getCurrentCycleDay())).start();
+        return result;
+    }
+
+    public LiveData<String> getMenstrualSummary() {
+        MutableLiveData<String> result = new MutableLiveData<>();
+        new Thread(() -> result.postValue(repository.getMenstrualSummary())).start();
+        return result;
+    }
+
+    public LiveData<Long> getSelectedDateLatestMenstrualTime() {
+        MutableLiveData<Long> result = new MutableLiveData<>();
+        new Thread(() -> result.postValue(repository.getLatestMenstrualTime())).start();
+        return result;
     }
 
     private long buildRecordTimestampForSelectedDate() {

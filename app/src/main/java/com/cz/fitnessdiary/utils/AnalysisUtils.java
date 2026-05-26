@@ -80,4 +80,146 @@ public class AnalysisUtils {
 
         return sb.toString();
     }
+
+    // ── Body Measurement helpers ──
+
+    public static String getMeasurementTypeName(String type) {
+        switch (type) {
+            case "BODY_FAT": return "体脂率";
+            case "CHEST": return "胸围";
+            case "WAIST": return "腰围";
+            case "HIP": return "臀围";
+            case "ARM": return "臂围";
+            case "THIGH": return "大腿围";
+            case "CALF": return "小腿围";
+            default: return type;
+        }
+    }
+
+    public static String getMeasurementMethod(String type) {
+        switch (type) {
+            case "BODY_FAT":
+                return "使用体脂秤或皮脂卡尺测量。站立放松，体脂秤需光脚接触电极；卡尺法测量腹部、三头肌、大腿前侧等部位皮褶厚度后计算。建议早晨空腹、排尿后测量。";
+            case "CHEST":
+                return "站立放松，软尺绕过胸背部，前方经过乳头水平位（男性）或胸围最大处（女性），保持软尺水平，正常呼吸，在呼气末读数。";
+            case "WAIST":
+                return "站立放松，双脚并拢，软尺绕过肚脐上方约1cm处水平一周。保持正常呼吸，不要收腹，在呼气末读数。此为WHO推荐测量位。";
+            case "HIP":
+                return "站立双脚并拢，软尺绕过臀部最突出处水平一周。保持软尺紧贴但不压迫皮肤。";
+            case "ARM":
+                return "站立放松，手臂自然下垂，软尺绕过上臂中部（肩峰到鹰嘴中点）水平一周。可在屈臂和非屈臂两种状态分别测量。";
+            case "THIGH":
+                return "站立双脚分开与肩同宽，软尺绕过臀横纹下方大腿最粗处水平一周。保持软尺水平，双腿均匀承重。";
+            case "CALF":
+                return "站立或坐姿，软尺绕过小腿最粗处水平一周。保持软尺水平不倾斜，双腿均匀承重。早晚差异较大，建议固定时间测量。";
+            default: return "";
+        }
+    }
+
+    public static String getBodyFatZone(float bf, boolean isMale) {
+        if (isMale) {
+            if (bf < 6) return "必需脂肪";
+            if (bf < 14) return "运动员";
+            if (bf < 18) return "健康";
+            if (bf < 25) return "正常偏高";
+            return "肥胖";
+        } else {
+            if (bf < 14) return "必需脂肪";
+            if (bf < 21) return "运动员";
+            if (bf < 25) return "健康";
+            if (bf < 32) return "正常偏高";
+            return "肥胖";
+        }
+    }
+
+    public static String getWaistHipRatioAssessment(float whr, boolean isMale) {
+        if (isMale) {
+            if (whr < 0.90) return "健康";
+            if (whr < 0.95) return "轻微风险";
+            return "高风险";
+        } else {
+            if (whr < 0.80) return "健康";
+            if (whr < 0.85) return "轻微风险";
+            return "高风险";
+        }
+    }
+
+    // ── Bowel movement helpers ──
+
+    public static String getBristolTypeName(int type) {
+        switch (type) {
+            case 1: return "坚果状 (严重便秘)";
+            case 2: return "干裂香肠状 (便秘)";
+            case 3: return "玉米状 (正常)";
+            case 4: return "香蕉状 (理想)";
+            case 5: return "软团状 (偏稀)";
+            case 6: return "糊状 (腹泻)";
+            case 7: return "水状 (严重腹泻)";
+            default: return "未知";
+        }
+    }
+
+    public static String getBristolCategory(int type) {
+        if (type <= 2) return "便秘";
+        if (type <= 4) return "正常";
+        if (type == 5) return "偏稀";
+        return "腹泻";
+    }
+
+    public static String getColorName(String color) {
+        switch (color) {
+            case "BROWN": return "棕色";
+            case "GREEN": return "绿色";
+            case "YELLOW": return "黄色";
+            case "RED": return "红色";
+            case "BLACK": return "黑色";
+            case "WHITE": return "白色";
+            case "GREY": return "灰色";
+            default: return color;
+        }
+    }
+
+    // ── Menstrual cycle helpers ──
+
+    public static String getFlowIntensityName(String flow) {
+        switch (flow) {
+            case "LIGHT": return "少量";
+            case "MEDIUM": return "中等";
+            case "HEAVY": return "大量";
+            default: return flow;
+        }
+    }
+
+    public static String getSymptomName(String code) {
+        switch (code) {
+            case "CRAMPS": return "腹痛";
+            case "BLOATING": return "腹胀";
+            case "HEADACHE": return "头痛";
+            case "FATIGUE": return "疲劳";
+            case "BREAST_TENDERNESS": return "乳房胀痛";
+            case "NAUSEA": return "恶心";
+            case "BACK_PAIN": return "背痛";
+            case "ACNE": return "痘痘";
+            default: return code;
+        }
+    }
+
+    public static String getMoodName(String code) {
+        switch (code) {
+            case "HAPPY": return "开心";
+            case "SAD": return "低落";
+            case "IRRITABLE": return "易怒";
+            case "ANXIOUS": return "焦虑";
+            case "CALM": return "平静";
+            case "TIRED": return "疲倦";
+            case "ENERGETIC": return "精力充沛";
+            default: return code;
+        }
+    }
+
+    public static String getRegularityDescription(float stdDev) {
+        if (stdDev < 3) return "规律";
+        if (stdDev < 7) return "较规律";
+        return "不规律";
+    }
 }

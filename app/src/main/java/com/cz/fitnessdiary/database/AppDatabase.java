@@ -34,6 +34,9 @@ import com.cz.fitnessdiary.database.dao.CustomRecordDao;
 import com.cz.fitnessdiary.database.dao.ReminderScheduleDao;
 import com.cz.fitnessdiary.database.dao.HabitItemDao;
 import com.cz.fitnessdiary.database.dao.HabitRecordDao;
+import com.cz.fitnessdiary.database.dao.BodyMeasurementDao;
+import com.cz.fitnessdiary.database.dao.BowelMovementDao;
+import com.cz.fitnessdiary.database.dao.MenstrualCycleDao;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.database.entity.MedicationRecord;
@@ -42,6 +45,9 @@ import com.cz.fitnessdiary.database.entity.CustomRecord;
 import com.cz.fitnessdiary.database.entity.ReminderSchedule;
 import com.cz.fitnessdiary.database.entity.HabitItem;
 import com.cz.fitnessdiary.database.entity.HabitRecord;
+import com.cz.fitnessdiary.database.entity.BodyMeasurement;
+import com.cz.fitnessdiary.database.entity.BowelMovement;
+import com.cz.fitnessdiary.database.entity.MenstrualCycle;
 
 import java.util.concurrent.Executors;
 
@@ -53,7 +59,8 @@ import java.util.concurrent.Executors;
         FoodLibrary.class, ExerciseLibrary.class, SleepRecord.class, ChatMessageEntity.class,
         ChatSessionEntity.class, WeightRecord.class, WaterRecord.class, MedicationRecord.class, CustomTracker.class,
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
-        HabitRecord.class }, version = 19, exportSchema = true)
+        HabitRecord.class, BodyMeasurement.class, BowelMovement.class,
+        MenstrualCycle.class }, version = 20, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -96,6 +103,12 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract HabitRecordDao habitRecordDao();
 
     public abstract ExerciseLibraryDao exerciseLibraryDao();
+
+    public abstract BodyMeasurementDao bodyMeasurementDao();
+
+    public abstract BowelMovementDao bowelMovementDao();
+
+    public abstract MenstrualCycleDao menstrualCycleDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -407,6 +420,49 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 19 -> Version 20 (新增围度、便便、经期记录)
+     */
+    static final Migration MIGRATION_19_20 = new Migration(19, 20) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `body_measurement` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`measurement_type` TEXT NOT NULL, " +
+                    "`value` REAL NOT NULL, " +
+                    "`unit` TEXT NOT NULL, " +
+                    "`timestamp` INTEGER NOT NULL, " +
+                    "`note` TEXT)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_body_measurement_type_time` " +
+                    "ON `body_measurement` (`measurement_type`, `timestamp` DESC)");
+
+            database.execSQL("CREATE TABLE IF NOT EXISTS `bowel_movement` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`bristol_type` INTEGER NOT NULL, " +
+                    "`color` TEXT, " +
+                    "`volume` TEXT, " +
+                    "`smell` TEXT, " +
+                    "`process_feeling` TEXT, " +
+                    "`duration_seconds` INTEGER NOT NULL DEFAULT 0, " +
+                    "`timestamp` INTEGER NOT NULL, " +
+                    "`note` TEXT)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_bowel_movement_time` " +
+                    "ON `bowel_movement` (`timestamp` DESC)");
+
+            database.execSQL("CREATE TABLE IF NOT EXISTS `menstrual_cycle` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`start_date` INTEGER NOT NULL, " +
+                    "`end_date` INTEGER, " +
+                    "`flow_intensity` TEXT, " +
+                    "`symptoms` TEXT, " +
+                    "`mood` TEXT, " +
+                    "`notes` TEXT, " +
+                    "`timestamp` INTEGER NOT NULL)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_menstrual_cycle_start` " +
+                    "ON `menstrual_cycle` (`start_date` DESC)");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -420,7 +476,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-                                    MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+                                    MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
