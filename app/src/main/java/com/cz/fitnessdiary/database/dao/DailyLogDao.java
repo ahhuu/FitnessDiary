@@ -88,4 +88,10 @@ public interface DailyLogDao {
      */
     @Query("SELECT COUNT(DISTINCT date) FROM daily_log")
     int getTotalTrainingDays();
+
+    @Query("SELECT COUNT(*) FROM daily_log WHERE date = :date")
+    int getTodayPlanCountSync(long date);
+
+    @Query("SELECT COUNT(*) FROM daily_log WHERE date = :date AND is_completed = 1")
+    int getTodayCompletedCountSync(long date);
 }

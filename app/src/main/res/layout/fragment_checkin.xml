@@ -501,18 +501,108 @@
 
             </androidx.gridlayout.widget.GridLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_edit_home_cards"
+            <!-- Challenge card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_challenge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="#E8F5E9"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="#C8E6C9">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_challenge_emoji"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔥"
+                        android:textSize="28sp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="10dp">
+
+                        <TextView
+                            android:id="@+id/tv_challenge_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="减脂冲刺"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_challenge_progress"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="第 1/21 天"
+                            android:textColor="#2E7D32"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_challenge_fails"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="失败0/3"
+                        android:textColor="#E53935"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="32dp"
-                android:text="管理首页卡片"
-                android:textColor="@color/fitnessdiary_primary"
-                style="@style/Widget.Material3.Button.TextButton"
-                app:icon="@drawable/ic_edit"
-                app:iconTint="@color/fitnessdiary_primary" />
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_challenge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="21天挑战"
+                    android:textColor="@color/fitnessdiary_primary"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    app:icon="@drawable/ic_hero_fire"
+                    app:iconTint="@color/fitnessdiary_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_heatmap"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="打卡日历"
+                    android:textColor="@color/fitnessdiary_primary"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    app:icon="@drawable/ic_hero_calendar"
+                    app:iconTint="@color/fitnessdiary_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_edit_home_cards"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="管理卡片"
+                    android:textColor="@color/fitnessdiary_primary"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    app:icon="@drawable/ic_edit"
+                    app:iconTint="@color/fitnessdiary_primary" />
+            </LinearLayout>
 
                 </LinearLayout>
             </LinearLayout>

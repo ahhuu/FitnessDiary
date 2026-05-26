@@ -14,7 +14,10 @@ import com.cz.fitnessdiary.database.dao.DailyLogDao;
 import com.cz.fitnessdiary.database.dao.FoodRecordDao;
 import com.cz.fitnessdiary.database.dao.HabitRecordDao;
 import com.cz.fitnessdiary.database.dao.TrainingPlanDao;
+import com.cz.fitnessdiary.database.entity.BodyMeasurement;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.model.Achievement;
 import com.cz.fitnessdiary.model.AchievementUnlockEvent;
 import com.cz.fitnessdiary.model.DailyMission;
@@ -124,7 +127,12 @@ public class AchievementCenterViewModel extends AndroidViewModel {
             int totalDays = dailyLogDao.getTotalTrainingDays();
             int planCount = trainingPlanDao.getAllPlansList().size();
             int foodCount = foodRecordDao.getTotalRecordCountSync();
-            List<Achievement> currentAchievements = buildAchievements(totalDays, planCount, foodCount);
+            int workoutCount = dailyLogDao.getAllLogsSync().size();
+
+            AppDatabase db = AppDatabase.getInstance(getApplication());
+            User user = db.userDao().getUserSync();
+            List<Achievement> currentAchievements = buildAchievements(totalDays, planCount, foodCount,
+                    workoutCount, user);
             achievements.postValue(currentAchievements);
 
             handleAchievementUnlocks(currentAchievements);
@@ -142,7 +150,8 @@ public class AchievementCenterViewModel extends AndroidViewModel {
         unreadUnlockCount.postValue(0);
     }
 
-    private List<Achievement> buildAchievements(int totalDays, int planCount, int foodCount) {
+    private List<Achievement> buildAchievements(int totalDays, int planCount, int foodCount,
+                                                 int workoutCount, User user) {
         List<Achievement> list = new ArrayList<>();
         list.add(new Achievement("first_day", "初出茅庐", "完成第一次训练", "🌱", totalDays >= 1));
         list.add(new Achievement("streak_10", "渐入佳境", "累计训练 10 天", "🥉", totalDays >= 10));
@@ -153,7 +162,113 @@ public class AchievementCenterViewModel extends AndroidViewModel {
         list.add(new Achievement("plan_master", "计划大师", "创建 10+ 个训练计划", "📚", planCount >= 10));
         list.add(new Achievement("diet_logged", "饮食先锋", "累计 10+ 条饮食记录", "🍎", foodCount >= 10));
         list.add(new Achievement("calorie_buster", "卡路里克星", "累计 50+ 条记录", "🔥", foodCount >= 50));
+
+        // Personal record achievements
+        list.add(new Achievement("workout_100", "百炼成钢", "累计完成100次训练", "⚔️", workoutCount >= 100));
+        list.add(new Achievement("diet_100", "饮食大师", "累计记录100次饮食", "🍽️", foodCount >= 100));
+
+        // Weight goal (depends on user's goal direction)
+        boolean weightGoal = checkWeightGoal(user);
+        list.add(new Achievement("weight_goal", "体重新突破", getWeightGoalDesc(user), "⚖️", weightGoal));
+
+        // Waist goal
+        boolean waistGoal = checkWaistGoal(user);
+        list.add(new Achievement("waist_goal", "腰围新突破", getWaistGoalDesc(user), "📏", waistGoal));
+
+        // Perfect day
+        boolean perfectDay = checkPerfectDay();
+        list.add(new Achievement("perfect_day", "完美一天", "运动+饮食+饮水+睡眠+习惯全部达标", "🌟", perfectDay));
+
+        // Streak record
+        boolean streakRecord = checkStreakRecord();
+        list.add(new Achievement("streak_record", "连签破纪录", "连续打卡突破历史最长", "🏅", streakRecord));
+
         return list;
+    }
+
+    private boolean checkWeightGoal(User user) {
+        if (user == null) return false;
+        AppDatabase db = AppDatabase.getInstance(getApplication());
+        List<WeightRecord> records = db.weightRecordDao().getRecentRecordsSync(30);
+        if (records == null || records.size() < 2) return false;
+        float current = records.get(0).getWeight();
+        int goal = user.getGoalType();
+        for (int i = 1; i < records.size(); i++) {
+            float past = records.get(i).getWeight();
+            if (goal == 0 && current < past) return true; // loss: new low
+            if (goal == 1 && current > past) return true; // muscle: new high
+        }
+        if (goal == 2) { // maintain: within 1kg for 30 days
+            for (WeightRecord r : records) {
+                if (Math.abs(r.getWeight() - current) > 1.0f) return false;
+            }
+            return records.size() >= 3;
+        }
+        return false;
+    }
+
+    private boolean checkWaistGoal(User user) {
+        AppDatabase db = AppDatabase.getInstance(getApplication());
+        List<BodyMeasurement> records = db.bodyMeasurementDao().getByTypeAndDateRangeSync(
+                "WAIST", 0, System.currentTimeMillis());
+        if (records == null || records.size() < 2) return false;
+        float current = records.get(0).getValue();
+        int goal = user != null ? user.getGoalType() : 0;
+        for (int i = 1; i < records.size(); i++) {
+            float past = records.get(i).getValue();
+            if (goal == 0 && current < past) return true;
+        }
+        return false;
+    }
+
+    private boolean checkPerfectDay() {
+        // Check if today has completed training, diet, water, habit, and sleep
+        long today = DateUtils.getTodayStartTimestamp();
+        long dayEnd = today + 86400000L;
+        AppDatabase db = AppDatabase.getInstance(getApplication());
+        boolean hasTraining = db.dailyLogDao().getTodayCompletedCountSync(today) > 0;
+        boolean hasDiet = db.foodRecordDao().getRecordCountByDateRangeSync(today, dayEnd) > 0;
+        boolean hasWater = db.waterRecordDao().getTodayTotalSync(today, dayEnd) > 0;
+        boolean hasHabit = db.habitRecordDao().getCompletedCountByDateSync(today) > 0;
+        boolean hasSleep = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today, dayEnd) != null
+                && !db.sleepRecordDao().getSleepRecordsByDateRangeSync(today, dayEnd).isEmpty();
+        return hasTraining && hasDiet && hasWater && hasHabit && hasSleep;
+    }
+
+    private boolean checkStreakRecord() {
+        AppDatabase db = AppDatabase.getInstance(getApplication());
+        long today = DateUtils.getTodayStartTimestamp();
+        int streak = 0;
+        for (int i = 0; i < 365; i++) {
+            long day = today - (long) i * 86400000L;
+            if (db.dailyLogDao().getTodayCompletedCountSync(day) > 0) streak++;
+            else break;
+        }
+        // Check if this is a new record: current streak >= previous best + 1
+        SharedPreferences sp = getApplication().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        int bestStreak = sp.getInt("best_streak", 0);
+        if (streak > bestStreak) {
+            sp.edit().putInt("best_streak", streak).apply();
+            return true;
+        }
+        return false;
+    }
+
+    private String getWeightGoalDesc(User user) {
+        if (user == null) return "体重达成目标方向";
+        switch (user.getGoalType()) {
+            case 0: return "减脂目标：体重创新低";
+            case 1: return "增肌目标：体重创新高";
+            default: return "维持目标：体重稳定";
+        }
+    }
+
+    private String getWaistGoalDesc(User user) {
+        if (user == null) return "腰围达成目标";
+        switch (user.getGoalType()) {
+            case 0: return "减脂目标：腰围创新低";
+            default: return "腰围保持良好";
+        }
     }
 
     private void handleAchievementUnlocks(List<Achievement> currentAchievements) {

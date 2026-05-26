@@ -39,6 +39,10 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <!-- 训练提醒广播接收器 -->
@@ -53,7 +57,24 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.cz.fitnessdiary.ACTION_TRAINING_REMINDER" />
                 <action android:name="com.cz.fitnessdiary.ACTION_RECORD_REMINDER" />
+                <action android:name="com.cz.fitnessdiary.ACTION_MORNING_SUMMARY" />
+                <action android:name="com.cz.fitnessdiary.ACTION_EVENING_REMINDER" />
+                <action android:name="com.cz.fitnessdiary.ACTION_INACTIVITY_NUDGE" />
+                <action android:name="com.cz.fitnessdiary.ACTION_WEEKLY_REPORT" />
             </intent-filter>
+        </receiver>
+
+        <!-- 桌面小组件 -->
+        <receiver
+            android:name=".ui.widget.HomeWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.cz.fitnessdiary.ACTION_WIDGET_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_info" />
         </receiver>
 
         <provider

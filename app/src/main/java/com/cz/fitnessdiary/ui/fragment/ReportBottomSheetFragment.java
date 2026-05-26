@@ -198,4 +198,5 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
         cardAnalysisResult.setVisibility(View.VISIBLE);
         tvAnalysisText.setText(result);
     }
+
 }

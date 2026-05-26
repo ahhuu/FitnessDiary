@@ -27,9 +27,14 @@ public class ReminderManager {
     private static final String KEY_HOUR = "reminder_hour";
     private static final String KEY_MINUTE = "reminder_minute";
     private static final String KEY_AUTOSTART_GUIDED = "autostart_guided";
+    private static final String KEY_SMART_REMINDER_ENABLED = "smart_reminder_enabled";
 
     public static final String ACTION_REMINDER = "com.cz.fitnessdiary.ACTION_TRAINING_REMINDER";
     public static final String ACTION_RECORD_REMINDER = "com.cz.fitnessdiary.ACTION_RECORD_REMINDER";
+    public static final String ACTION_MORNING_SUMMARY = "com.cz.fitnessdiary.ACTION_MORNING_SUMMARY";
+    public static final String ACTION_EVENING_REMINDER = "com.cz.fitnessdiary.ACTION_EVENING_REMINDER";
+    public static final String ACTION_INACTIVITY_NUDGE = "com.cz.fitnessdiary.ACTION_INACTIVITY_NUDGE";
+    public static final String ACTION_WEEKLY_REPORT = "com.cz.fitnessdiary.ACTION_WEEKLY_REPORT";
 
     public static final String EXTRA_SCHEDULE_ID = "extra_schedule_id";
     public static final String EXTRA_MODULE_TYPE = "extra_module_type";
@@ -221,5 +226,114 @@ public class ReminderManager {
     public static void setAutoStartGuided(Context context, boolean guided) {
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_AUTOSTART_GUIDED, guided)
                 .apply();
+    }
+
+    // ── Smart notification scheduling ──
+
+    public static void scheduleMorningSummary(Context context) {
+        scheduleSmartAction(context, ACTION_MORNING_SUMMARY, 100, 8, 0);
+    }
+
+    public static void scheduleEveningReminder(Context context) {
+        scheduleSmartAction(context, ACTION_EVENING_REMINDER, 101, 20, 0);
+    }
+
+    public static void scheduleInactivityNudge(Context context) {
+        scheduleSmartAction(context, ACTION_INACTIVITY_NUDGE, 102, 18, 0);
+    }
+
+    public static void scheduleWeeklyReport(Context context) {
+        // Monday at 9:00
+        scheduleSmartActionWeekly(context, ACTION_WEEKLY_REPORT, 103, Calendar.MONDAY, 9, 0);
+    }
+
+    public static void restoreSmartReminders(Context context) {
+        scheduleMorningSummary(context);
+        scheduleEveningReminder(context);
+        scheduleInactivityNudge(context);
+        scheduleWeeklyReport(context);
+    }
+
+    public static void cancelSmartReminders(Context context) {
+        cancelSmartAction(context, ACTION_MORNING_SUMMARY, 100);
+        cancelSmartAction(context, ACTION_EVENING_REMINDER, 101);
+        cancelSmartAction(context, ACTION_INACTIVITY_NUDGE, 102);
+        cancelSmartAction(context, ACTION_WEEKLY_REPORT, 103);
+    }
+
+    private static void cancelSmartAction(Context context, String action, int requestCode) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+        Intent intent = new Intent(context, ReminderReceiver.class);
+        intent.setAction(action);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT
+                        | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0));
+        alarmManager.cancel(pendingIntent);
+    }
+
+    public static boolean isSmartReminderEnabled(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_SMART_REMINDER_ENABLED, false);
+    }
+
+    public static void setSmartReminderEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_SMART_REMINDER_ENABLED, enabled).apply();
+        if (enabled) {
+            restoreSmartReminders(context);
+        } else {
+            cancelSmartReminders(context);
+        }
+    }
+
+    private static void scheduleSmartAction(Context context, String action, int requestCode, int hour, int minute) {
+        Intent intent = new Intent(context, ReminderReceiver.class);
+        intent.setAction(action);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, requestCode, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT
+                        | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0));
+
+        scheduleExact(context, pendingIntent, hour, minute);
+    }
+
+    private static void scheduleSmartActionWeekly(Context context, String action, int requestCode,
+                                                   int dayOfWeek, int hour, int minute) {
+        Intent intent = new Intent(context, ReminderReceiver.class);
+        intent.setAction(action);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context, requestCode, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT
+                        | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0));
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.DAY_OF_WEEK, dayOfWeek);
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+
+        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+            calendar.add(Calendar.WEEK_OF_YEAR, 1);
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                alarmManager.setAlarmClock(
+                        new AlarmManager.AlarmClockInfo(calendar.getTimeInMillis(), pendingIntent),
+                        pendingIntent);
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
+                        calendar.getTimeInMillis(), pendingIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            }
+        } catch (SecurityException ignored) {}
     }
 }

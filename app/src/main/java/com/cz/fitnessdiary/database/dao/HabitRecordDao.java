@@ -19,6 +19,9 @@ public interface HabitRecordDao {
     @Query("SELECT * FROM habit_record WHERE record_date = :recordDate ORDER BY habit_id ASC")
     LiveData<List<HabitRecord>> getRecordsByDate(long recordDate);
 
+    @Query("SELECT * FROM habit_record WHERE habit_id = :habitId AND record_date = :recordDate LIMIT 1")
+    HabitRecord getByHabitAndDateSync(long habitId, long recordDate);
+
     @Query("SELECT * FROM habit_record WHERE record_date = :recordDate ORDER BY habit_id ASC")
     List<HabitRecord> getRecordsByDateSync(long recordDate);
 

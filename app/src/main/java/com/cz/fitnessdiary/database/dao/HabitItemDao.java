@@ -22,6 +22,9 @@ public interface HabitItemDao {
     @Query("SELECT * FROM habit_item WHERE is_enabled = 1 ORDER BY sort_order ASC, id ASC")
     LiveData<List<HabitItem>> getEnabledItems();
 
+    @Query("SELECT * FROM habit_item WHERE is_enabled = 1 ORDER BY sort_order ASC, id ASC")
+    List<HabitItem> getEnabledSync();
+
     @Query("SELECT * FROM habit_item ORDER BY sort_order ASC, id ASC")
     LiveData<List<HabitItem>> getAllItems();
 

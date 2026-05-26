@@ -166,16 +166,20 @@ public class ProfileFragment extends Fragment {
                     }
                 }
 
-                // 开启提醒
+                // 开启提醒，同时关闭智能推送
                 ReminderManager.setReminder(requireContext(),
                         ReminderManager.getReminderHour(requireContext()),
                         ReminderManager.getReminderMinute(requireContext()));
+                if (ReminderManager.isSmartReminderEnabled(requireContext())) {
+                    ReminderManager.setSmartReminderEnabled(requireContext(), false);
+                    binding.switchSmartReminder.setChecked(false);
+                }
 
                 // [v1.2] 展示自启动引导弹窗
                 if (getActivity() instanceof MainActivity) {
                     ((MainActivity) getActivity()).showAutoStartGuidance();
                 } else {
-                    Toast.makeText(getContext(), "训练提醒已开启", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "训练提醒已开启，智能推送已自动关闭", Toast.LENGTH_SHORT).show();
                 }
             } else {
                 // 取消提醒
@@ -217,6 +221,39 @@ public class ProfileFragment extends Fragment {
                 Toast.makeText(getContext(), "提醒时间已设为 " + formattedTime, Toast.LENGTH_SHORT).show();
 
             }, currentHour, currentMinute, true).show();
+        });
+
+        setupSmartReminderEntry();
+    }
+
+    private void setupSmartReminderEntry() {
+        boolean smartEnabled = ReminderManager.isSmartReminderEnabled(requireContext());
+        binding.switchSmartReminder.setChecked(smartEnabled);
+
+        binding.switchSmartReminder.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                if (getActivity() instanceof MainActivity
+                        && ((MainActivity) getActivity()).requestNotificationPermissionIfNeeded()) {
+                    binding.switchSmartReminder.setChecked(false);
+                    Toast.makeText(getContext(), "请先允许通知权限", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (getActivity() instanceof MainActivity) {
+                    if (((MainActivity) getActivity()).checkExactAlarmPermission()) {
+                        binding.switchSmartReminder.setChecked(false);
+                        return;
+                    }
+                }
+                ReminderManager.setSmartReminderEnabled(requireContext(), true);
+                if (ReminderManager.isReminderEnabled(requireContext())) {
+                    ReminderManager.cancelReminder(requireContext());
+                    binding.switchReminder.setChecked(false);
+                }
+                Toast.makeText(getContext(), "智能推送已开启，每日训练提醒已自动关闭", Toast.LENGTH_LONG).show();
+            } else {
+                ReminderManager.setSmartReminderEnabled(requireContext(), false);
+                Toast.makeText(getContext(), "智能推送已关闭", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -361,15 +398,64 @@ public class ProfileFragment extends Fragment {
         binding.cardDataReport.setOnClickListener(v -> {
             new MaterialAlertDialogBuilder(requireContext())
                     .setTitle("数据周报")
-                    .setItems(new String[] { "查看分析", "分享周报图片" }, (dialog, which) -> {
+                    .setItems(new String[] { "查看分析", "分享周报图片", "前后对比分享" }, (dialog, which) -> {
                         if (which == 0) {
                             new ReportBottomSheetFragment().show(getChildFragmentManager(), "ReportBottomSheet");
-                        } else {
+                        } else if (which == 1) {
                             generateAndShareWeekReport();
+                        } else {
+                            showBeforeAfterPicker();
                         }
                     })
                     .show();
         });
+    }
+
+    private long selectedBeforeDate = 0;
+    private long selectedAfterDate = 0;
+
+    private void showBeforeAfterPicker() {
+        com.google.android.material.datepicker.MaterialDatePicker<Long> picker =
+                com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
+                        .setTitleText("选择对比起点")
+                        .build();
+        picker.addOnPositiveButtonClickListener(sel -> {
+            selectedBeforeDate = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(sel);
+            com.google.android.material.datepicker.MaterialDatePicker<Long> picker2 =
+                    com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
+                            .setTitleText("选择对比终点")
+                            .build();
+            picker2.addOnPositiveButtonClickListener(sel2 -> {
+                selectedAfterDate = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(sel2);
+                generateAndShareBeforeAfter();
+            });
+            picker2.show(getParentFragmentManager(), "after_date");
+        });
+        picker.show(getParentFragmentManager(), "before_date");
+    }
+
+    private void generateAndShareBeforeAfter() {
+        new Thread(() -> {
+            android.graphics.Bitmap bitmap = com.cz.fitnessdiary.utils.ShareCardGenerator
+                    .generateBeforeAfterCard(requireContext(), selectedBeforeDate, selectedAfterDate);
+            requireActivity().runOnUiThread(() -> {
+                String dir = requireContext().getCacheDir().getAbsolutePath();
+                String path = dir + "/health_compare.png";
+                try {
+                    java.io.FileOutputStream out = new java.io.FileOutputStream(path);
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+                    out.close();
+                } catch (Exception ignored) {}
+
+                android.content.Intent si = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                si.setType("image/png");
+                si.putExtra(android.content.Intent.EXTRA_STREAM,
+                        androidx.core.content.FileProvider.getUriForFile(requireContext(),
+                                "com.cz.fitnessdiary.fileprovider", new java.io.File(path)));
+                si.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(android.content.Intent.createChooser(si, "分享前后对比"));
+            });
+        }).start();
     }
 
     private void generateAndShareWeekReport() {

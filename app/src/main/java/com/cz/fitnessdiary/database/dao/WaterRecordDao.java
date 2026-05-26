@@ -29,6 +29,9 @@ public interface WaterRecordDao {
     @Query("SELECT COALESCE(SUM(amount_ml), 0) FROM water_record WHERE timestamp >= :startTs AND timestamp < :endTs")
     LiveData<Integer> getTotalAmountByDateRange(long startTs, long endTs);
 
+    @Query("SELECT COALESCE(SUM(amount_ml), 0) FROM water_record WHERE timestamp >= :startTs AND timestamp < :endTs")
+    int getTodayTotalSync(long startTs, long endTs);
+
     @Query("SELECT * FROM water_record ORDER BY timestamp DESC LIMIT 1")
     LiveData<WaterRecord> getLatestRecord();
 

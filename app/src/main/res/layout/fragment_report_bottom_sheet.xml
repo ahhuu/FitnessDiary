@@ -278,7 +278,7 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_generate_analysis"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="48dp"
                     android:text="🔍 生成健康分析"
                     app:cornerRadius="12dp"
                     android:textSize="16sp"

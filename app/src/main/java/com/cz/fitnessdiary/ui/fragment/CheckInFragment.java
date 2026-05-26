@@ -305,6 +305,9 @@ public class CheckInFragment extends Fragment {
         binding.btnEditMissions.setOnClickListener(v -> showEditMissionsDialog());
 
         binding.btnEditHomeCards.setOnClickListener(v -> showEditCardsDialog());
+        binding.btnHeatmap.setOnClickListener(v -> showHeatmapDialog());
+        binding.btnChallenge.setOnClickListener(v -> showChallengeDialog());
+        refreshChallengeCard();
     }
 
     private interface NumberConsumer {
@@ -371,11 +374,26 @@ public class CheckInFragment extends Fragment {
         });
 
         homeDashboardViewModel.getSelectedDateLatestWeight().observe(getViewLifecycleOwner(), r -> {
-            setTextIfExists(R.id.tv_weight_value,
-                    r == null ? "--" : String.format(java.util.Locale.getDefault(), "%.1f", r.getWeight()));
-            setTextIfExists(R.id.tv_weight_update,
-                    r == null ? "暂无更新" : getSelectedDateUpdateText(r.getTimestamp()));
-            setTextIfExists(R.id.tv_weight_summary, r == null ? "点击查看体重明细" : "已记录当日体重");
+            if (r != null) {
+                setTextIfExists(R.id.tv_weight_value,
+                        String.format(java.util.Locale.getDefault(), "%.1f", r.getWeight()));
+                setTextIfExists(R.id.tv_weight_update, getSelectedDateUpdateText(r.getTimestamp()));
+                setTextIfExists(R.id.tv_weight_summary, "已记录当日体重");
+            } else {
+                // Fallback to latest overall weight
+                com.cz.fitnessdiary.database.entity.WeightRecord latest =
+                        homeDashboardViewModel.getLatestWeight().getValue();
+                if (latest != null) {
+                    setTextIfExists(R.id.tv_weight_value,
+                            String.format(java.util.Locale.getDefault(), "%.1f", latest.getWeight()));
+                    setTextIfExists(R.id.tv_weight_update, getUpdateText(latest.getTimestamp()));
+                    setTextIfExists(R.id.tv_weight_summary, "最近一次记录");
+                } else {
+                    setTextIfExists(R.id.tv_weight_value, "--");
+                    setTextIfExists(R.id.tv_weight_update, "暂无更新");
+                    setTextIfExists(R.id.tv_weight_summary, "点击查看体重明细");
+                }
+            }
         });
         homeDashboardViewModel.getTodayWaterTotal().observe(getViewLifecycleOwner(), total -> {
             currentWaterTotal = total == null ? 0 : total;
@@ -647,66 +665,109 @@ public class CheckInFragment extends Fragment {
         binding.progressTotalCircle.setProgress(totalScore);
         binding.tvProgressPercent.setText(totalScore + "%");
         updateSummaryCard();
+
+        // Compute health score on background thread (Room requires async)
+        new Thread(() -> {
+            try {
+                int score = com.cz.fitnessdiary.utils.HealthScoreCalculator.calculateToday(getContext());
+                com.cz.fitnessdiary.utils.HealthScoreCalculator.saveTodayScore(getContext(), score);
+                android.os.Handler mainHandler = new android.os.Handler(
+                        requireActivity().getMainLooper());
+                mainHandler.post(() -> {
+                    if (isAdded() && binding != null) {
+                        binding.progressTotalCircle.setProgress(score);
+                        binding.tvProgressPercent.setText(score + "分");
+                    }
+                });
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private void showOverallProgressDetails() {
-        float sportProgress = 1f;
-        if (!currentPlans.isEmpty()) {
-            int done = 0;
-            HashSet<Integer> donePlanIds = new HashSet<>();
-            for (DailyLog log : currentLogs) {
-                if (log.isCompleted()) {
-                    donePlanIds.add(log.getPlanId());
+        // Show quick summary immediately, load detailed health score from background
+        new Thread(() -> {
+            Context ctx = getContext();
+            if (ctx == null) return;
+            com.cz.fitnessdiary.database.AppDatabase db =
+                    com.cz.fitnessdiary.database.AppDatabase.getInstance(ctx);
+            long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+            long dayEnd = today + 86400000L;
+            com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+
+            int sportTotal = db.dailyLogDao().getTodayPlanCountSync(today);
+            int sportDone = db.dailyLogDao().getTodayCompletedCountSync(today);
+            int sportScore = sportTotal > 0 ? Math.round(25f * sportDone / sportTotal) : 25;
+
+            int targetCal = user != null && user.getDailyCalorieTarget() > 0 ? user.getDailyCalorieTarget() : 2000;
+            int consumedCal = 0;
+            java.util.List<com.cz.fitnessdiary.database.entity.FoodRecord> foods =
+                    db.foodRecordDao().getByDateRangeSync(today, dayEnd);
+            if (foods != null) for (com.cz.fitnessdiary.database.entity.FoodRecord f : foods) consumedCal += f.getCalories();
+            float calRatio = targetCal > 0 ? (float) consumedCal / targetCal : 0;
+            int dietScore = consumedCal == 0 ? 0 : calRatio >= 0.9f && calRatio <= 1.1f ? 25 : calRatio >= 0.8f && calRatio <= 1.2f ? 15 : 5;
+
+            int sleepScore = 0;
+            java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> sleeps = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today, dayEnd);
+            if (sleeps == null || sleeps.isEmpty())
+                sleeps = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today - 86400000L, today);
+            if (sleeps != null && !sleeps.isEmpty()) {
+                float h = 0; for (com.cz.fitnessdiary.database.entity.SleepRecord s : sleeps) h += s.getDuration() / 3600f;
+                sleepScore = h >= 7 && h <= 9 ? 20 : h >= 6 && h < 7 ? 15 : 5;
+            }
+
+            int waterMl = db.waterRecordDao().getTodayTotalSync(today, dayEnd);
+            int waterScore = waterMl >= 2000 ? 15 : waterMl >= 1000 ? 10 : waterMl > 0 ? 5 : 0;
+
+            java.util.List<com.cz.fitnessdiary.database.entity.HabitItem> habits = db.habitItemDao().getEnabledSync();
+            int habitScore = 0;
+            if (habits != null && !habits.isEmpty()) {
+                int done = 0;
+                for (com.cz.fitnessdiary.database.entity.HabitItem h : habits) {
+                    com.cz.fitnessdiary.database.entity.HabitRecord r = db.habitRecordDao().getByHabitAndDateSync(h.getId(), today);
+                    if (r != null && r.isCompleted()) done++;
+                }
+                habitScore = Math.round(10f * done / habits.size());
+            }
+
+            int weightScore = 3;
+            if (user != null && user.getWeight() > 0) {
+                java.util.List<com.cz.fitnessdiary.database.entity.WeightRecord> wRecords = db.weightRecordDao().getRecentRecordsSync(7);
+                if (wRecords != null && wRecords.size() >= 2) {
+                    float diff = wRecords.get(0).getWeight() - wRecords.get(wRecords.size() - 1).getWeight();
+                    int goal = user.getGoalType();
+                    if (goal == 0) weightScore = diff <= 0 ? 5 : 0;
+                    else if (goal == 1) weightScore = diff >= 0 ? 5 : 0;
+                    else weightScore = Math.abs(diff) < 1f ? 5 : 3;
                 }
             }
-            for (TrainingPlan plan : currentPlans) {
-                if (donePlanIds.contains(plan.getPlanId())) {
-                    done++;
-                }
-            }
-            sportProgress = (float) done / currentPlans.size();
-        }
 
-        float waterProgress = Math.min(1.0f, (float) currentWaterTotal / 1600f);
+            int total = sportScore + dietScore + sleepScore + waterScore + habitScore + weightScore;
+            total = Math.min(total, 100);
 
-        float habitProgress = 0f;
-        if (!habitItems.isEmpty()) {
-            int completed = 0;
-            for (HabitItem item : habitItems) {
-                HabitRecord r = habitRecords.get(item.getId());
-                if (r != null && r.isCompleted()) {
-                    completed++;
-                }
-            }
-            habitProgress = (float) completed / habitItems.size();
-        }
+            String msg = String.format(java.util.Locale.getDefault(),
+                    "🏃 运动 (25%%):  %d/%d → %d分\n\n" +
+                    "🍽 饮食 (25%%):  摄入%d/%d千卡 → %d分\n\n" +
+                    "😴 睡眠 (20%%):  %s → %d分\n\n" +
+                    "💧 饮水 (15%%):  %dml → %d分\n\n" +
+                    "✅ 习惯 (10%%):  %s → %d分\n\n" +
+                    "⚖ 体重 (5%%):   %s → %d分\n\n" +
+                    "─────────────────\n今日健康总分：%d / 100",
+                    sportDone, sportTotal, sportScore,
+                    consumedCal, targetCal, dietScore,
+                    sleepScore > 0 ? "已记录" : "无记录", sleepScore,
+                    waterMl, waterScore,
+                    habitScore > 0 ? "部分达成" : "无记录", habitScore,
+                    weightScore >= 4 ? "趋势良好" : "待改善", weightScore,
+                    total);
 
-        float dietProgress = 0f;
-        Integer consumed = dietViewModel.getTodayTotalCalories().getValue();
-        User user = dietViewModel.getCurrentUser().getValue();
-        int target = (user != null && user.getDailyCalorieTarget() > 0) ? user.getDailyCalorieTarget() : 2000;
-        if (consumed != null) {
-            dietProgress = Math.min(1.0f, (float) consumed / target);
-        }
-
-        int scoreSport = Math.round(sportProgress * 100);
-        int scoreWater = Math.round(waterProgress * 100);
-        int scoreHabit = Math.round(habitProgress * 100);
-        int scoreDiet = Math.round(dietProgress * 100);
-
-        String msg = String.format(java.util.Locale.getDefault(),
-                "• 运动进度 (权重30%%)：%d%%\n\n" +
-                        "• 饮食热量 (权重30%%)：%d%%\n\n" +
-                        "• 喝水目标 (权重20%%)：%d%%\n\n" +
-                        "• 习惯达成 (权重20%%)：%d%%\n\n" +
-                        "进度说明：基于以上四项得分及其权重比例综合计算，呈现今天的整体任务完成度。",
-                scoreSport, scoreDiet, scoreWater, scoreHabit);
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("今日综合进度分解")
-                .setMessage(msg)
-                .setPositiveButton("知道了", null)
-                .show();
+            requireActivity().runOnUiThread(() -> {
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("今日健康评分分解")
+                        .setMessage(msg)
+                        .setPositiveButton("知道了", null)
+                        .show();
+            });
+        }).start();
     }
 
     private void setupRestTimer() {
@@ -881,6 +942,147 @@ public class CheckInFragment extends Fragment {
                 .setPopExitAnim(R.anim.slide_out_right)
                 .build();
         NavHostFragment.findNavController(this).navigate(destination, args, navOptions);
+    }
+
+    private void showHeatmapDialog() {
+        com.cz.fitnessdiary.ui.widget.StreakCalendarView calendar =
+                new com.cz.fitnessdiary.ui.widget.StreakCalendarView(requireContext());
+        int w = (int) (getResources().getDisplayMetrics().widthPixels * 0.9f);
+        calendar.setLayoutParams(new android.view.ViewGroup.LayoutParams(w, dp(260)));
+        calendar.setPadding(dp(8), dp(12), dp(8), dp(12));
+
+        new Thread(() -> {
+            java.util.Map<Long, Integer> levels = new java.util.HashMap<>();
+            long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTimeInMillis(today);
+            cal.set(java.util.Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek());
+            cal.add(java.util.Calendar.WEEK_OF_YEAR, -5);
+            long start = cal.getTimeInMillis();
+
+            com.cz.fitnessdiary.database.AppDatabase db =
+                    com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+
+            for (int i = 0; i < 42; i++) {
+                long day = start + i * 86400000L;
+                if (day > today) break;
+                int comp = db.dailyLogDao().getTodayCompletedCountSync(day);
+                int tot = db.dailyLogDao().getTodayPlanCountSync(day);
+                int dietCount = db.foodRecordDao().getRecordCountByDateRangeSync(day, day + 86400000L);
+                int wml = db.waterRecordDao().getTodayTotalSync(day, day + 86400000L);
+                int lvl = 0;
+                if (tot > 0 && comp > 0) lvl = 1;
+                if (comp >= tot && tot > 0) lvl = 2;
+                if (lvl >= 2 && dietCount > 0) lvl = 3;
+                if (lvl >= 3 && wml >= 1000) lvl = 4;
+                levels.put(day, lvl);
+            }
+
+            requireActivity().runOnUiThread(() -> {
+                calendar.setDayLevels(levels);
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("打卡热力图")
+                        .setView(calendar)
+                        .setPositiveButton("关闭", null)
+                        .show();
+            });
+        }).start();
+    }
+
+    private void refreshChallengeCard() {
+        new Thread(() -> {
+            com.cz.fitnessdiary.utils.ChallengeManager.checkToday(getContext());
+            requireActivity().runOnUiThread(() -> {
+        String status = com.cz.fitnessdiary.utils.ChallengeManager.getStatus(getContext());
+        String type = com.cz.fitnessdiary.utils.ChallengeManager.getActiveType(getContext());
+        View card = binding.getRoot().findViewById(R.id.card_challenge);
+        if (card == null) return;
+
+        if (type == null || !"ACTIVE".equals(status)) {
+            card.setVisibility(View.GONE);
+            return;
+        }
+        card.setVisibility(View.VISIBLE);
+        int days = com.cz.fitnessdiary.utils.ChallengeManager.getProgressDays(getContext());
+        int fails = com.cz.fitnessdiary.utils.ChallengeManager.getFailDays(getContext());
+
+        TextView tvEmoji = card.findViewById(R.id.tv_challenge_emoji);
+        if (tvEmoji != null) tvEmoji.setText(com.cz.fitnessdiary.utils.ChallengeManager.getTypeEmoji(type));
+        TextView tvTitle = card.findViewById(R.id.tv_challenge_title);
+        if (tvTitle != null) tvTitle.setText(com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(type));
+        TextView tvProgress = card.findViewById(R.id.tv_challenge_progress);
+        if (tvProgress != null) tvProgress.setText("第 " + Math.min(days, 21) + "/21 天");
+        TextView tvFails = card.findViewById(R.id.tv_challenge_fails);
+        if (tvFails != null) {
+            int max = "MUSCLE_GAIN".equals(type) ? 2 : 3;
+            tvFails.setText("失败" + fails + "/" + max);
+        }
+            });
+        }).start();
+    }
+
+    private void showChallengeDialog() {
+        String active = com.cz.fitnessdiary.utils.ChallengeManager.getActiveType(getContext());
+        String status = com.cz.fitnessdiary.utils.ChallengeManager.getStatus(getContext());
+
+        if (active != null && "ACTIVE".equals(status)) {
+            // Show active challenge with option to abandon
+            String msg = "当前挑战：" + com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(active) +
+                    "\n进度：" + com.cz.fitnessdiary.utils.ChallengeManager.getProgressDays(getContext()) + "/21 天" +
+                    "\n失败：" + com.cz.fitnessdiary.utils.ChallengeManager.getFailDays(getContext()) + "次";
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("21天挑战进行中")
+                    .setMessage(msg)
+                    .setPositiveButton("继续挑战", null)
+                    .setNegativeButton("放弃挑战", (d, w) -> {
+                        com.cz.fitnessdiary.utils.ChallengeManager.reset(getContext());
+                        refreshChallengeCard();
+                        Toast.makeText(getContext(), "已放弃挑战", Toast.LENGTH_SHORT).show();
+                    })
+                    .show();
+            return;
+        }
+
+        if (active != null && ("COMPLETED".equals(status) || "FAILED".equals(status))) {
+            String result = "COMPLETED".equals(status) ? "挑战成功！太棒了！" : "挑战失败，下次加油！";
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(active))
+                    .setMessage(result + "\n\n是否开启新的挑战？")
+                    .setPositiveButton("新挑战", (d, w) -> { showChallengeTypePicker(); })
+                    .setNegativeButton("关闭", (d, w) -> {
+                        com.cz.fitnessdiary.utils.ChallengeManager.reset(getContext());
+                        refreshChallengeCard();
+                    })
+                    .show();
+            return;
+        }
+
+        showChallengeTypePicker();
+    }
+
+    private void showChallengeTypePicker() {
+        String[] types = {
+                com.cz.fitnessdiary.utils.ChallengeManager.TYPE_FAT_LOSS,
+                com.cz.fitnessdiary.utils.ChallengeManager.TYPE_MUSCLE_GAIN,
+                com.cz.fitnessdiary.utils.ChallengeManager.TYPE_EARLY_SLEEP,
+                com.cz.fitnessdiary.utils.ChallengeManager.TYPE_WATER_MASTER
+        };
+        String[] names = new String[types.length];
+        for (int i = 0; i < types.length; i++) {
+            names[i] = com.cz.fitnessdiary.utils.ChallengeManager.getTypeEmoji(types[i]) + " " +
+                    com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(types[i]) + "\n" +
+                    com.cz.fitnessdiary.utils.ChallengeManager.getTypeDesc(types[i]);
+        }
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("选择21天挑战")
+                .setItems(names, (d, idx) -> {
+                    com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), types[idx]);
+                    refreshChallengeCard();
+                    Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void showEditCardsDialog() {

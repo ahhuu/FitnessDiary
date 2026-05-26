@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="quick_checkin"
+        android:enabled="true"
+        android:icon="@drawable/ic_nav_checkin_filled"
+        android:shortcutShortLabel="@string/shortcut_checkin_short"
+        android:shortcutLongLabel="@string/shortcut_checkin_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cz.fitnessdiary"
+            android:targetClass="com.cz.fitnessdiary.ui.MainActivity">
+            <extra android:name="shortcut_id" android:value="quick_checkin" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="quick_diet"
+        android:enabled="true"
+        android:icon="@drawable/ic_hero_diet"
+        android:shortcutShortLabel="@string/shortcut_diet_short"
+        android:shortcutLongLabel="@string/shortcut_diet_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cz.fitnessdiary"
+            android:targetClass="com.cz.fitnessdiary.ui.MainActivity">
+            <extra android:name="shortcut_id" android:value="quick_diet" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="quick_water"
+        android:enabled="true"
+        android:icon="@drawable/ic_hero_water"
+        android:shortcutShortLabel="@string/shortcut_water_short"
+        android:shortcutLongLabel="@string/shortcut_water_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cz.fitnessdiary"
+            android:targetClass="com.cz.fitnessdiary.ui.MainActivity">
+            <extra android:name="shortcut_id" android:value="quick_water" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="quick_sport"
+        android:enabled="true"
+        android:icon="@drawable/ic_hero_dumbbell"
+        android:shortcutShortLabel="@string/shortcut_sport_short"
+        android:shortcutLongLabel="@string/shortcut_sport_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.cz.fitnessdiary"
+            android:targetClass="com.cz.fitnessdiary.ui.MainActivity">
+            <extra android:name="shortcut_id" android:value="quick_sport" />
+        </intent>
+    </shortcut>
+</shortcuts>

@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private NavController navController;
     private String pendingReminderModuleType;
     private long pendingReminderTargetId;
+    private String pendingShortcutId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,11 +43,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         captureReminderRoute(getIntent());
+        if (getIntent() != null) pendingShortcutId = getIntent().getStringExtra("shortcut_id");
         setupDynamicNavigation();
 
         Executors.newSingleThreadExecutor().execute(() -> {
             FoodLibraryDataLoader.loadIfNeeded(getApplicationContext());
             ExerciseLibraryDataLoader.loadIfNeeded(getApplicationContext());
+            if (ReminderManager.isSmartReminderEnabled(getApplicationContext())) {
+                ReminderManager.restoreSmartReminders(getApplicationContext());
+            }
         });
     }
 
@@ -59,9 +64,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void captureReminderRoute(Intent intent) {
-        if (intent == null) {
-            return;
-        }
+        if (intent == null) return;
         pendingReminderModuleType = intent.getStringExtra(ReminderManager.EXTRA_MODULE_TYPE);
         pendingReminderTargetId = intent.getLongExtra(ReminderManager.EXTRA_TARGET_ID, 0L);
     }
@@ -75,6 +78,12 @@ public class MainActivity extends AppCompatActivity {
         args.putLong("targetId", pendingReminderTargetId);
         if ("WATER".equalsIgnoreCase(pendingReminderModuleType)) {
             destination = R.id.waterRecordDetailFragment;
+        } else if ("SPORT".equalsIgnoreCase(pendingReminderModuleType)) {
+            destination = R.id.sportRecordDetailFragment;
+        } else if ("DIET".equalsIgnoreCase(pendingReminderModuleType)) {
+            destination = R.id.dietFragment;
+        } else if ("SLEEP".equalsIgnoreCase(pendingReminderModuleType)) {
+            destination = R.id.sleepRecordDetailFragment;
         } else if ("MEDICATION".equalsIgnoreCase(pendingReminderModuleType)) {
             destination = R.id.medicationRecordDetailFragment;
         } else if ("HABIT".equalsIgnoreCase(pendingReminderModuleType)) {
@@ -82,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
         } else if ("CUSTOM_TRACKER".equalsIgnoreCase(pendingReminderModuleType)) {
             destination = R.id.customCategoryDetailFragment;
             args.putString("title", "自定义分类");
+        } else if ("WEEKLY_REPORT".equalsIgnoreCase(pendingReminderModuleType)) {
+            destination = R.id.mainHomeFragment;
+            args.putBoolean("showWeeklyReport", true);
         }
         try {
             navController.navigate(destination, args);
@@ -89,6 +101,21 @@ public class MainActivity extends AppCompatActivity {
         }
         pendingReminderModuleType = null;
         pendingReminderTargetId = 0L;
+    }
+
+    private void routeShortcut() {
+        if (pendingShortcutId == null) return;
+        int dest = R.id.checkInFragment;
+        Bundle args = new Bundle();
+        args.putLong("selectedDate", System.currentTimeMillis());
+        switch (pendingShortcutId) {
+            case "quick_checkin": dest = R.id.sportRecordDetailFragment; break;
+            case "quick_diet": dest = R.id.dietFragment; break;
+            case "quick_water": dest = R.id.waterRecordDetailFragment; break;
+            case "quick_sport": dest = R.id.sportRecordDetailFragment; break;
+        }
+        try { navController.navigate(dest, args); } catch (Exception ignored) {}
+        pendingShortcutId = null;
     }
 
     private final ActivityResultLauncher<String> requestNotificationPermissionLauncher = registerForActivityResult(
@@ -145,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
                 graph.setStartDestination(registeredCount == 0 ? R.id.welcomeFragment : R.id.mainHomeFragment);
                 navController.setGraph(graph);
                 routeToReminderTargetIfNeeded();
+                routeShortcut();
             });
         });
     }
@@ -154,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
         graph.setStartDestination(R.id.mainHomeFragment);
         navController.setGraph(graph);
         routeToReminderTargetIfNeeded();
+        routeShortcut();
     }
 
     public void showAutoStartGuidance() {

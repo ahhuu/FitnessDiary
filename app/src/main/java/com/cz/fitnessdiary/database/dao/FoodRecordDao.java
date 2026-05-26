@@ -38,6 +38,9 @@ public interface FoodRecordDao {
     @Query("SELECT * FROM food_record WHERE record_date >= :startDate AND record_date < :endDate ORDER BY record_date DESC")
     LiveData<List<FoodRecord>> getFoodRecordsByDateRange(long startDate, long endDate);
 
+    @Query("SELECT * FROM food_record WHERE record_date >= :startDate AND record_date < :endDate ORDER BY record_date DESC")
+    List<FoodRecord> getByDateRangeSync(long startDate, long endDate);
+
     /**
      * 计算指定日期范围的总热量
      */
