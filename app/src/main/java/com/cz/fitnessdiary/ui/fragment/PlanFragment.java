@@ -97,13 +97,16 @@ public class PlanFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        viewModel = new ViewModelProvider(this).get(PlanViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(PlanViewModel.class);
 
         setupRecyclerView();
         observeViewModel();
 
-        // FAB 点击添加计划
-        binding.fabAddPlan.setOnClickListener(v -> showAddPlanDialog());
+        // FAB 点击弹出选择对话框
+        binding.fabAddPlan.setOnClickListener(v -> showAddPlanChoiceDialog());
+
+        // 空状态模板导入按钮
+        binding.btnTemplateImport.setOnClickListener(v -> showTemplateList());
 
         // [v1.2] 顶部活跃计划区域点击弹出模式选择
         binding.layoutHeroStats.setOnClickListener(v -> showModeSelectionDialog());
@@ -183,10 +186,12 @@ public class PlanFragment extends Fragment {
             if (groupedPlans != null && !groupedPlans.isEmpty()) {
                 adapter.setGroupList(groupedPlans);
                 binding.layoutEmptyState.setVisibility(View.GONE);
+                binding.btnTemplateImport.setVisibility(View.GONE);
                 binding.rvPlans.setVisibility(View.VISIBLE);
                 updateHeroMetrics(groupedPlans);
             } else {
                 binding.layoutEmptyState.setVisibility(View.VISIBLE);
+                binding.btnTemplateImport.setVisibility(View.VISIBLE);
                 binding.rvPlans.setVisibility(View.GONE);
                 binding.tvWeeklyFrequency.setText("0 次/周");
                 binding.tvBodyPartCount.setText("0 类");
@@ -309,6 +314,31 @@ public class PlanFragment extends Fragment {
             moreChip.setClickable(false);
             binding.cgCategories.addView(moreChip);
         }
+    }
+
+    /**
+     * 显示添加方式选择对话框
+     */
+    private void showAddPlanChoiceDialog() {
+        String[] options = { "新建空白计划", "从模板导入" };
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("添加训练计划")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showAddPlanDialog();
+                    } else {
+                        showTemplateList();
+                    }
+                })
+                .show();
+    }
+
+    /**
+     * 显示训练模板列表
+     */
+    private void showTemplateList() {
+        TemplateListBottomSheetFragment.newInstance()
+                .show(getChildFragmentManager(), "TemplateListBottomSheet");
     }
 
     /**

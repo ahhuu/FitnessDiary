@@ -38,7 +38,7 @@
                 style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="8dp"
                 android:hint="计划名称"
                 app:boxCornerRadiusBottomEnd="16dp"
                 app:boxCornerRadiusBottomStart="16dp"
@@ -52,6 +52,16 @@
                     android:inputType="text"
                     android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_pick_from_library"
+                style="@style/Widget.App.Button.Outlined.Plan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="从运动库选择动作"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_hero_dumbbell" />
 
             <!-- 计划描述 -->
             <com.google.android.material.textfield.TextInputLayout

@@ -63,4 +63,10 @@ public interface TrainingPlanDao {
      */
     @Query("UPDATE training_plan SET category = :newCategory WHERE category = :oldCategory")
     void updateCategory(String oldCategory, String newCategory);
+
+    /**
+     * 按分类前缀批量删除（用于模板导入替换）
+     */
+    @Query("DELETE FROM training_plan WHERE category LIKE :prefix || '%'")
+    void deleteByCategoryPrefix(String prefix);
 }

@@ -111,4 +111,11 @@ public class TrainingPlanRepository {
     public void updateCategory(String oldCategory, String newCategory) {
         executorService.execute(() -> trainingPlanDao.updateCategory(oldCategory, newCategory));
     }
+
+    /**
+     * 按分类前缀删除全部计划（模板导入替换用）
+     */
+    public void deleteByCategoryPrefix(String prefix) {
+        executorService.execute(() -> trainingPlanDao.deleteByCategoryPrefix(prefix));
+    }
 }

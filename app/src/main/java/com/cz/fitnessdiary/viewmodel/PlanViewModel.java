@@ -10,6 +10,7 @@ import androidx.lifecycle.Transformations;
 
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.model.PlanGroup;
+import com.cz.fitnessdiary.model.TemplateExercise;
 import com.cz.fitnessdiary.repository.TrainingPlanRepository;
 
 import java.util.ArrayList;
@@ -193,6 +194,43 @@ public class PlanViewModel extends AndroidViewModel {
     // Plan 28: 批量更新分类名称
     public void updateCategory(String oldCategory, String newCategory) {
         repository.updateCategory(oldCategory, newCategory);
+    }
+
+    /**
+     * 从训练模板导入动作列表
+     * 将模板中的每个动作转换为 TrainingPlan 并批量插入
+     * @param exercises 模板动作列表
+     * @param templateDifficulty 模板难度 1=初级→基础, 2/3=中高级→进阶
+     */
+    public void importTemplate(List<TemplateExercise> exercises, int templateDifficulty) {
+        if (exercises == null || exercises.isEmpty()) return;
+        String prefix = templateDifficulty == 1 ? "基础-" : "进阶-";
+        // 先删除同模式下旧计划，再插入新计划（替换逻辑）
+        repository.deleteByCategoryPrefix(prefix);
+
+        List<TrainingPlan> plans = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (TemplateExercise ex : exercises) {
+            String category = ex.getCategory();
+            String finalCategory = (category != null && !category.isEmpty())
+                    ? prefix + category
+                    : prefix + "无分类";
+
+            TrainingPlan plan = new TrainingPlan(
+                    ex.getName(),
+                    ex.getDescription() != null ? ex.getDescription() : "",
+                    now,
+                    ex.getSets(),
+                    ex.getReps(),
+                    null);
+            plan.setCategory(finalCategory);
+            plan.setScheduledDays(ex.getScheduledDays() != null ? ex.getScheduledDays() : "0");
+            plan.setDuration(ex.getDuration());
+            plans.add(plan);
+        }
+        repository.insertAll(plans);
+        // 自动切换到对应模式
+        setFilterMode(templateDifficulty == 1 ? "基础" : "进阶");
     }
 
     public LiveData<List<String>> getUniqueCategories() {

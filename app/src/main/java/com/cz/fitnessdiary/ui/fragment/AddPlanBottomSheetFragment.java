@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.database.entity.ExerciseLibrary;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.databinding.FragmentAddPlanBottomSheetBinding;
 import com.cz.fitnessdiary.utils.PermissionHelper;
@@ -170,6 +171,12 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
     }
 
     private void setupListeners() {
+        binding.btnPickFromLibrary.setOnClickListener(v -> {
+            ExerciseLibraryBottomSheet bottomSheet = ExerciseLibraryBottomSheet.newInstance();
+            bottomSheet.setOnExerciseSelectedListener(exercise -> fillFromExercise(exercise));
+            bottomSheet.show(getParentFragmentManager(), "ExerciseLibraryBottomSheet");
+        });
+
         binding.btnAddMedia.setOnClickListener(v -> {
             if (!PermissionHelper.hasMediaPermission(requireContext())) {
                 PermissionHelper.requestMediaPermission(requireActivity());
@@ -187,6 +194,14 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
         });
 
         binding.btnSave.setOnClickListener(v -> savePlan());
+    }
+
+    private void fillFromExercise(ExerciseLibrary exercise) {
+        binding.etPlanName.setText(exercise.getName());
+        if (exercise.getDescription() != null && !exercise.getDescription().isEmpty()) {
+            binding.etPlanDescription.setText(exercise.getDescription());
+        }
+        binding.etPlanCategory.setText(exercise.getBodyPart());
     }
 
     private void updateMediaPreview() {

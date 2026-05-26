@@ -10,6 +10,7 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.cz.fitnessdiary.database.dao.DailyLogDao;
+import com.cz.fitnessdiary.database.dao.ExerciseLibraryDao;
 import com.cz.fitnessdiary.database.dao.FoodLibraryDao;
 import com.cz.fitnessdiary.database.dao.FoodRecordDao;
 import com.cz.fitnessdiary.database.dao.TrainingPlanDao;
@@ -17,6 +18,7 @@ import com.cz.fitnessdiary.database.dao.UserDao;
 import com.cz.fitnessdiary.database.dao.ChatMessageDao;
 import com.cz.fitnessdiary.database.entity.ChatMessageEntity;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExerciseLibrary;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
@@ -48,10 +50,10 @@ import java.util.concurrent.Executors;
  * 使用单例模式确保整个应用只有一个数据库实例
  */
 @Database(entities = { User.class, TrainingPlan.class, DailyLog.class, FoodRecord.class,
-        FoodLibrary.class, SleepRecord.class, ChatMessageEntity.class,
+        FoodLibrary.class, ExerciseLibrary.class, SleepRecord.class, ChatMessageEntity.class,
         ChatSessionEntity.class, WeightRecord.class, WaterRecord.class, MedicationRecord.class, CustomTracker.class,
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
-        HabitRecord.class }, version = 18, exportSchema = true)
+        HabitRecord.class }, version = 19, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -92,6 +94,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract HabitItemDao habitItemDao();
 
     public abstract HabitRecordDao habitRecordDao();
+
+    public abstract ExerciseLibraryDao exerciseLibraryDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -384,6 +388,25 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
     /**
+     * 数据库迁移：Version 18 -> Version 19 (新增运动库)
+     */
+    static final Migration MIGRATION_18_19 = new Migration(18, 19) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `exercise_library` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`body_part` TEXT, " +
+                    "`sub_category` TEXT, " +
+                    "`description` TEXT, " +
+                    "`difficulty` INTEGER NOT NULL DEFAULT 1, " +
+                    "`equipment` TEXT, " +
+                    "`category` TEXT)");
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_exercise_library_name` ON `exercise_library` (`name`)");
+        }
+    };
+
+    /**
      * 获取数据库实例（单例模式）
      */
     public static AppDatabase getInstance(Context context) {
@@ -397,7 +420,7 @@ public abstract class AppDatabase extends RoomDatabase {
                             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
                                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-                                    MIGRATION_16_17, MIGRATION_17_18)
+                                    MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。
@@ -407,9 +430,10 @@ public abstract class AppDatabase extends RoomDatabase {
                                 @Override
                                 public void onCreate(@NonNull SupportSQLiteDatabase db) {
                                     super.onCreate(db);
-                                    // 数据库首次创建时预填充食物库
+                                    // 数据库首次创建时预填充食物库和运动库
                                     Executors.newSingleThreadExecutor().execute(() -> {
                                         updateOfficialFoodLibrary(context);
+                                        updateOfficialExerciseLibrary(context);
                                     });
                                 }
 
@@ -433,5 +457,13 @@ public abstract class AppDatabase extends RoomDatabase {
      */
     public static void updateOfficialFoodLibrary(Context context) {
         FoodLibraryDataLoader.loadIfNeeded(context);
+    }
+
+    /**
+     * 更新/同步官方运动库数据。
+     * 委托给 ExerciseLibraryDataLoader，从 assets/exercise_library.json 加载。
+     */
+    public static void updateOfficialExerciseLibrary(Context context) {
+        ExerciseLibraryDataLoader.loadIfNeeded(context);
     }
 }

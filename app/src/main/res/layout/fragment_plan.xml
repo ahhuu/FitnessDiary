@@ -247,6 +247,18 @@
                     android:text="点击右下角 +，添加你的第一个动作"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_template_import"
+                    style="@style/Widget.App.Button.Filled.Plan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="从训练模板快速开始"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"
+                    app:cornerRadius="16dp"
+                    android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
