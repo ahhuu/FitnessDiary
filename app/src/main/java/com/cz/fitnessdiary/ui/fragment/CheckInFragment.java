@@ -379,6 +379,51 @@ public class CheckInFragment extends Fragment {
                         String.format(java.util.Locale.getDefault(), "%.1f", r.getWeight()));
                 setTextIfExists(R.id.tv_weight_update, getSelectedDateUpdateText(r.getTimestamp()));
                 setTextIfExists(R.id.tv_weight_summary, "已记录当日体重");
+                // Compute detailed weight analysis (delta + BMI + 7-day trend)
+                new Thread(() -> {
+                    com.cz.fitnessdiary.database.AppDatabase db =
+                            com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                    StringBuilder analysis = new StringBuilder();
+                    // Weight delta vs previous record
+                    com.cz.fitnessdiary.database.entity.WeightRecord prevRecord =
+                            db.weightRecordDao().getLatestRecordBeforeSync(r.getTimestamp());
+                    if (prevRecord != null) {
+                        float delta = r.getWeight() - prevRecord.getWeight();
+                        if (Math.abs(delta) < 0.05f) {
+                            analysis.append("稳定");
+                        } else {
+                            String arrow = delta < 0 ? "↓" : "↑";
+                            analysis.append(arrow).append(String.format(java.util.Locale.getDefault(), "%.1fkg", Math.abs(delta)));
+                        }
+                    }
+                    // BMI
+                    com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+                    if (user != null && user.getHeight() > 0) {
+                        float h = user.getHeight() / 100f;
+                        float bmi = r.getWeight() / (h * h);
+                        if (analysis.length() > 0) analysis.append(" · ");
+                        analysis.append("BMI").append(String.format(java.util.Locale.getDefault(), "%.1f", bmi));
+                    }
+                    // 7-day trend
+                    long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                    long weekAgo = today - 7 * 86400000L;
+                    java.util.List<com.cz.fitnessdiary.database.entity.WeightRecord> weekRecords =
+                            db.weightRecordDao().getRecordsByDateRangeSync(weekAgo, today + 86400000L);
+                    if (weekRecords != null && weekRecords.size() >= 2) {
+                        float firstOfWeek = weekRecords.get(weekRecords.size() - 1).getWeight();
+                        float trend = r.getWeight() - firstOfWeek;
+                        if (analysis.length() > 0) analysis.append(" · ");
+                        if (Math.abs(trend) < 0.1f) {
+                            analysis.append("周平稳");
+                        } else {
+                            analysis.append("周").append(trend < 0 ? "↓" : "↑")
+                                    .append(String.format(java.util.Locale.getDefault(), "%.1fkg", Math.abs(trend)));
+                        }
+                    }
+                    final String text = analysis.length() > 0 ? analysis.toString() : "已记录当日体重";
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                            setTextIfExists(R.id.tv_weight_summary, text));
+                }).start();
             } else {
                 // Fallback to latest overall weight
                 com.cz.fitnessdiary.database.entity.WeightRecord latest =
@@ -398,8 +443,26 @@ public class CheckInFragment extends Fragment {
         homeDashboardViewModel.getTodayWaterTotal().observe(getViewLifecycleOwner(), total -> {
             currentWaterTotal = total == null ? 0 : total;
             setTextIfExists(R.id.tv_water_value, String.valueOf(currentWaterTotal));
-            setTextIfExists(R.id.tv_water_summary, currentWaterTotal > 0
-                    ? "今日已喝 " + currentWaterTotal + "ml" : "点击添加喝水记录");
+            // Show water progress toward user's target
+            new Thread(() -> {
+                com.cz.fitnessdiary.database.AppDatabase db =
+                        com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+                int target = (user != null && user.getDailyWaterTarget() > 0) ? user.getDailyWaterTarget() : 2000;
+                String summary = currentWaterTotal > 0
+                        ? "已喝 " + currentWaterTotal + " / " + target + "ml"
+                        : "点击添加喝水记录";
+                int pct = target > 0 ? Math.min(currentWaterTotal * 100 / target, 100) : 0;
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                    setTextIfExists(R.id.tv_water_summary, summary);
+                    View card = cachedCards.get(CARD_WATER);
+                    if (card != null) {
+                        com.google.android.material.progressindicator.LinearProgressIndicator p =
+                                card.findViewById(R.id.progress_water);
+                        if (p != null) p.setProgress(pct);
+                    }
+                });
+            }).start();
             updateOverallProgress();
         });
         homeDashboardViewModel.getSelectedDateLatestWater().observe(getViewLifecycleOwner(),
@@ -451,14 +514,55 @@ public class CheckInFragment extends Fragment {
                     }
                 }
                 com.cz.fitnessdiary.database.entity.SleepRecord latest = records.get(records.size() - 1);
-                setTextIfExists(R.id.tv_sleep_update, getSelectedDateUpdateText(latest.getEndTime()));
+                java.text.SimpleDateFormat tf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                String window = tf.format(new java.util.Date(latest.getStartTime())) + "-"
+                        + tf.format(new java.util.Date(latest.getEndTime()));
+                setTextIfExists(R.id.tv_sleep_update, window);
             } else {
                 setTextIfExists(R.id.tv_sleep_update, "暂无更新");
             }
 
             setTextIfExists(R.id.tv_sleep_value, String.format(java.util.Locale.getDefault(), "%.1f", totalHours));
-            setTextIfExists(R.id.tv_sleep_summary,
-                    String.format(java.util.Locale.getDefault(), "深度睡眠 %.1fh", deepSleepHours));
+            final float finalDeepSleep = deepSleepHours;
+            if (finalDeepSleep > 0) {
+                setTextIfExists(R.id.tv_sleep_summary,
+                        String.format(java.util.Locale.getDefault(), "深度%.1fh", finalDeepSleep));
+                // Compute 7-day average sleep
+                new Thread(() -> {
+                    long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                    com.cz.fitnessdiary.database.AppDatabase db =
+                            com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                    float weekTotal = 0;
+                    int weekDays = 0;
+                    for (int i = 0; i < 7; i++) {
+                        long dayStart = today - i * 86400000L;
+                        long dayEnd = dayStart + 86400000L;
+                        java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> dayRecords =
+                                db.sleepRecordDao().getSleepRecordsByDateRangeSync(dayStart, dayEnd);
+                        if (dayRecords != null && !dayRecords.isEmpty()) {
+                            float dayTotal = 0;
+                            for (com.cz.fitnessdiary.database.entity.SleepRecord sr : dayRecords) {
+                                if (sr.getEndTime() > sr.getStartTime()) {
+                                    dayTotal += (sr.getEndTime() - sr.getStartTime()) / (1000f * 60 * 60);
+                                }
+                            }
+                            if (dayTotal > 0) {
+                                weekTotal += dayTotal;
+                                weekDays++;
+                            }
+                        }
+                    }
+                    if (weekDays > 0) {
+                        float weekAvg = weekTotal / weekDays;
+                        final String summary = String.format(java.util.Locale.getDefault(),
+                                "深度%.1fh · 周均%.1fh", finalDeepSleep, weekAvg);
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                                setTextIfExists(R.id.tv_sleep_summary, summary));
+                    }
+                }).start();
+            } else {
+                setTextIfExists(R.id.tv_sleep_summary, "点击查看睡眠分析");
+            }
 
             com.google.android.material.progressindicator.LinearProgressIndicator pSleep = binding.getRoot()
                     .findViewById(R.id.progress_sleep);
@@ -716,7 +820,8 @@ public class CheckInFragment extends Fragment {
             }
 
             int waterMl = db.waterRecordDao().getTodayTotalSync(today, dayEnd);
-            int waterScore = waterMl >= 2000 ? 15 : waterMl >= 1000 ? 10 : waterMl > 0 ? 5 : 0;
+            int waterTarget = user != null && user.getDailyWaterTarget() > 0 ? user.getDailyWaterTarget() : 2000;
+            int waterScore = waterMl >= waterTarget ? 15 : waterMl >= waterTarget / 2 ? 10 : waterMl > 0 ? 5 : 0;
 
             java.util.List<com.cz.fitnessdiary.database.entity.HabitItem> habits = db.habitItemDao().getEnabledSync();
             int habitScore = 0;

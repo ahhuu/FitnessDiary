@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.dao.FoodRecordDao;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
+import com.cz.fitnessdiary.ui.widget.HomeWidgetProvider;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -18,10 +19,12 @@ import java.util.concurrent.Executors;
  */
 public class FoodRecordRepository {
 
-    private FoodRecordDao foodRecordDao;
-    private ExecutorService executorService;
+    private final FoodRecordDao foodRecordDao;
+    private final ExecutorService executorService;
+    private final Application application;
 
     public FoodRecordRepository(Application application) {
+        this.application = application;
         AppDatabase database = AppDatabase.getInstance(application);
         foodRecordDao = database.foodRecordDao();
         executorService = Executors.newSingleThreadExecutor();
@@ -52,14 +55,20 @@ public class FoodRecordRepository {
      * 插入新的食物记录
      */
     public void insert(FoodRecord foodRecord) {
-        executorService.execute(() -> foodRecordDao.insert(foodRecord));
+        executorService.execute(() -> {
+            foodRecordDao.insert(foodRecord);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
      * 删除食物记录
      */
     public void delete(FoodRecord foodRecord) {
-        executorService.execute(() -> foodRecordDao.delete(foodRecord));
+        executorService.execute(() -> {
+            foodRecordDao.delete(foodRecord);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**

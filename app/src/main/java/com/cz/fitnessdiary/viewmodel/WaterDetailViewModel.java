@@ -8,7 +8,9 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
+import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
+import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.repository.WaterRecordRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
 
@@ -17,11 +19,43 @@ import java.util.List;
 public class WaterDetailViewModel extends AndroidViewModel {
 
     private final WaterRecordRepository repository;
+    private final UserRepository userRepository;
     private final MutableLiveData<Long> selectedDate = new MutableLiveData<>(DateUtils.getTodayStartTimestamp());
+    private final MutableLiveData<Integer> waterTarget = new MutableLiveData<>(2000);
 
     public WaterDetailViewModel(@NonNull Application application) {
         super(application);
         repository = new WaterRecordRepository(application);
+        userRepository = new UserRepository(application);
+        loadWaterTarget();
+    }
+
+    private void loadWaterTarget() {
+        new Thread(() -> {
+            User user = userRepository.getUserSync();
+            int target = (user != null && user.getDailyWaterTarget() > 0) ? user.getDailyWaterTarget() : 2000;
+            waterTarget.postValue(target);
+        }).start();
+    }
+
+    public LiveData<Integer> getWaterTarget() {
+        return waterTarget;
+    }
+
+    public int getWaterTargetSync() {
+        Integer val = waterTarget.getValue();
+        return (val != null && val > 0) ? val : 2000;
+    }
+
+    public void updateWaterTarget(int newTarget) {
+        waterTarget.postValue(newTarget);
+        new Thread(() -> {
+            User user = userRepository.getUserSync();
+            if (user != null) {
+                user.setDailyWaterTarget(newTarget);
+                userRepository.update(user);
+            }
+        }).start();
     }
 
     public void setSelectedDate(long ts) {

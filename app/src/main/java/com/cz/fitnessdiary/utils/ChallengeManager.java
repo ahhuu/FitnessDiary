@@ -138,7 +138,9 @@ public class ChallengeManager {
             }
             case TYPE_WATER_MASTER: {
                 int ml = db.waterRecordDao().getTodayTotalSync(today, dayEnd);
-                failed = ml < 2000;
+                com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+                int waterTarget = (user != null && user.getDailyWaterTarget() > 0) ? user.getDailyWaterTarget() : 2000;
+                failed = ml < waterTarget;
                 break;
             }
         }

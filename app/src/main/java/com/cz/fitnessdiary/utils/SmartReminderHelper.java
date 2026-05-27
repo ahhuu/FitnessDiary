@@ -26,7 +26,7 @@ public class SmartReminderHelper {
     public static String getMorningContent(Context context) {
         User user = getUser(context);
         int calTarget = user != null && user.getDailyCalorieTarget() > 0 ? user.getDailyCalorieTarget() : 2000;
-        int waterTarget = 2000;
+        int waterTarget = user != null && user.getDailyWaterTarget() > 0 ? user.getDailyWaterTarget() : 2000;
 
         long today = DateUtils.getTodayStartTimestamp();
         AppDatabase db = AppDatabase.getInstance(context);
@@ -49,6 +49,7 @@ public class SmartReminderHelper {
         if (pending <= 0) {
             return "今天表现很棒，好好休息，明天继续加油！";
         }
+        User user = getUser(context);
         StringBuilder sb = new StringBuilder();
         long today = DateUtils.getTodayStartTimestamp();
         AppDatabase db = AppDatabase.getInstance(context);
@@ -63,7 +64,8 @@ public class SmartReminderHelper {
         // Check water (basic: if < 1000ml)
         int waterMl = db.waterRecordDao().getTodayTotalSync(today, today + 86400000L);
         if (waterMl < 1000) {
-            int remaining = 2000 - waterMl;
+            int waterTarget = user != null && user.getDailyWaterTarget() > 0 ? user.getDailyWaterTarget() : 2000;
+            int remaining = waterTarget - waterMl;
             if (remaining > 0) sb.append("饮水还差").append(remaining).append("ml · ");
         }
 

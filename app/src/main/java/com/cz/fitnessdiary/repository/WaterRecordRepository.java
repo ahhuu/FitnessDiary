@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.dao.WaterRecordDao;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
+import com.cz.fitnessdiary.ui.widget.HomeWidgetProvider;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -16,22 +17,33 @@ public class WaterRecordRepository {
 
     private final WaterRecordDao dao;
     private final ExecutorService executorService;
+    private final Application application;
 
     public WaterRecordRepository(Application application) {
+        this.application = application;
         dao = AppDatabase.getInstance(application).waterRecordDao();
         executorService = Executors.newSingleThreadExecutor();
     }
 
     public void insert(WaterRecord record) {
-        executorService.execute(() -> dao.insert(record));
+        executorService.execute(() -> {
+            dao.insert(record);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     public void update(WaterRecord record) {
-        executorService.execute(() -> dao.update(record));
+        executorService.execute(() -> {
+            dao.update(record);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     public void delete(WaterRecord record) {
-        executorService.execute(() -> dao.delete(record));
+        executorService.execute(() -> {
+            dao.delete(record);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     public LiveData<List<WaterRecord>> getRecordsByDateRange(long startTs, long endTs) {

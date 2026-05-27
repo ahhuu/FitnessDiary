@@ -24,6 +24,12 @@ public class HomeWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_WIDGET_REFRESH = "com.cz.fitnessdiary.ACTION_WIDGET_REFRESH";
     private static final String TAG = "HomeWidgetProvider";
 
+    public static void requestRefresh(Context context) {
+        Intent intent = new Intent(ACTION_WIDGET_REFRESH);
+        intent.setPackage(context.getPackageName());
+        context.sendBroadcast(intent);
+    }
+
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int widgetId : appWidgetIds) {
@@ -100,8 +106,10 @@ public class HomeWidgetProvider extends AppWidgetProvider {
                 views.setProgressBar(R.id.progress_widget_diet, 100, dietPct, false);
                 views.setTextViewText(R.id.tv_widget_diet_val, String.valueOf(consumedCal));
 
+                int waterTarget = 2000;
+                if (user != null && user.getDailyWaterTarget() > 0) waterTarget = user.getDailyWaterTarget();
                 int waterMl = db.waterRecordDao().getTodayTotalSync(today, dayEnd);
-                int waterPct = Math.min(waterMl * 100 / 2000, 100);
+                int waterPct = Math.min(waterMl * 100 / waterTarget, 100);
                 views.setProgressBar(R.id.progress_widget_water, 100, waterPct, false);
                 views.setTextViewText(R.id.tv_widget_water_val, String.valueOf(waterMl));
 

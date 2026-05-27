@@ -35,8 +35,6 @@ import java.util.Locale;
 
 public class WaterRecordDetailFragment extends Fragment {
 
-    private static final int TARGET_WATER = 1600;
-
     private WaterDetailViewModel viewModel;
     private DetailRecordAdapter adapter;
 
@@ -102,14 +100,48 @@ public class WaterRecordDetailFragment extends Fragment {
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
         btnAdd.setOnClickListener(v -> showAddDialog()); // btn_add 已 gone，保留兼容
         fabAdd.setOnClickListener(v -> showAddDialog());
-        // 需求1：点击目标显示说明弹窗
+
+        final int[] cachedTarget = {2000};
+        viewModel.getWaterTarget().observe(getViewLifecycleOwner(), target -> {
+            cachedTarget[0] = (target != null && target > 0) ? target : 2000;
+            Integer total = viewModel.getTodayTotal().getValue();
+            int t = total == null ? 0 : total;
+            tvTarget.setText("目标 " + cachedTarget[0] + "ml");
+            int left = Math.max(0, cachedTarget[0] - t);
+            tvLeft.setText("剩余 " + left + "ml");
+            waterCup.setProgress(t, cachedTarget[0]);
+        });
+
         tvTarget.setOnClickListener(
                 v -> new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                         .setTitle("💧 每日饮水目标")
-                        .setMessage("当前目标：" + TARGET_WATER + " ml\n\n一般成人每日推荐饮水量为 1500\u20132000\u00a0ml。" +
+                        .setMessage("当前目标：" + cachedTarget[0] + " ml\n\n一般成人每日推荐饮水量为 1500\u20132000\u00a0ml。" +
                                 "运动量大、天气点高时建议适量增加。\n\n" +
-                                "如需修改目标，可在「我的 → 健康设置」中调整。")
-                        .setPositiveButton("知道了", null)
+                                "推荐每日饮水量 1500-2500 ml。")
+                        .setPositiveButton("修改", (d, w) -> {
+                            EditText et = new EditText(requireContext());
+                            et.setHint("饮水目标(ml)");
+                            et.setInputType(InputType.TYPE_CLASS_NUMBER);
+                            et.setText(String.valueOf(cachedTarget[0]));
+                            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                    .setTitle("设置每日饮水目标")
+                                    .setView(et)
+                                    .setPositiveButton("保存", (d2, w2) -> {
+                                        try {
+                                            int val = Integer.parseInt(et.getText().toString().trim());
+                                            if (val <= 0) {
+                                                Toast.makeText(getContext(), "请输入大于0的数值", Toast.LENGTH_SHORT).show();
+                                                return;
+                                            }
+                                            viewModel.updateWaterTarget(val);
+                                        } catch (Exception e) {
+                                            Toast.makeText(getContext(), "请输入正确数字", Toast.LENGTH_SHORT).show();
+                                        }
+                                    })
+                                    .setNegativeButton("取消", null)
+                                    .show();
+                        })
+                        .setNegativeButton("知道了", null)
                         .show());
         btnQuick100.setOnClickListener(v -> viewModel.addWater(100, "快捷"));
         btnQuick200.setOnClickListener(v -> viewModel.addWater(200, "快捷"));
@@ -119,10 +151,10 @@ public class WaterRecordDetailFragment extends Fragment {
         viewModel.getTodayTotal().observe(getViewLifecycleOwner(), total -> {
             int t = total == null ? 0 : total;
             tvToday.setText("今日 " + t + "ml");
-            tvTarget.setText("目标 " + TARGET_WATER + "ml");
-            int left = Math.max(0, TARGET_WATER - t);
+            tvTarget.setText("目标 " + cachedTarget[0] + "ml");
+            int left = Math.max(0, cachedTarget[0] - t);
             tvLeft.setText("剩余 " + left + "ml");
-            waterCup.setProgress(t, TARGET_WATER);
+            waterCup.setProgress(t, cachedTarget[0]);
         });
 
         viewModel.getSelectedDateRecords().observe(getViewLifecycleOwner(), this::renderRecords);

@@ -74,8 +74,10 @@ public class HealthScoreCalculator {
 
     private static int calcWater(AppDatabase db, long today, long dayEnd) {
         int ml = db.waterRecordDao().getTodayTotalSync(today, dayEnd);
-        if (ml >= 2000) return 15;
-        if (ml >= 1000) return 10;
+        com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+        int waterTarget = (user != null && user.getDailyWaterTarget() > 0) ? user.getDailyWaterTarget() : 2000;
+        if (ml >= waterTarget) return 15;
+        if (ml >= waterTarget / 2) return 10;
         if (ml > 0) return 5;
         return 0;
     }

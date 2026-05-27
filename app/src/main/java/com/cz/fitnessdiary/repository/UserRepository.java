@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.dao.UserDao;
 import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.ui.widget.HomeWidgetProvider;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,11 +18,13 @@ import java.util.concurrent.Executors;
  */
 public class UserRepository {
     
-    private UserDao userDao;
-    private LiveData<User> user;
-    private ExecutorService executorService;
-    
+    private final UserDao userDao;
+    private final LiveData<User> user;
+    private final ExecutorService executorService;
+    private final Context context;
+
     public UserRepository(Context context) {
+        this.context = context;
         AppDatabase database = AppDatabase.getInstance(context);
         userDao = database.userDao();
         user = userDao.getUser();
@@ -40,10 +43,16 @@ public class UserRepository {
     }
     
     public void insert(User user) {
-        executorService.execute(() -> userDao.insert(user));
+        executorService.execute(() -> {
+            userDao.insert(user);
+            HomeWidgetProvider.requestRefresh(context);
+        });
     }
-    
+
     public void update(User user) {
-        executorService.execute(() -> userDao.update(user));
+        executorService.execute(() -> {
+            userDao.update(user);
+            HomeWidgetProvider.requestRefresh(context);
+        });
     }
 }

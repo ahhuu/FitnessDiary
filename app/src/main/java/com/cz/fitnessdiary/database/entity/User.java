@@ -206,6 +206,10 @@ public class User {
     @ColumnInfo(name = "target_carbs")
     private int targetCarbs; // 每日目标碳水 (g)
 
+    // === 2.X 新增字段 ===
+    @ColumnInfo(name = "daily_water_target", defaultValue = "2000")
+    private int dailyWaterTarget = 2000; // 每日饮水目标 (ml)
+
     public int getTargetProtein() {
         return targetProtein;
     }
@@ -220,5 +224,13 @@ public class User {
 
     public void setTargetCarbs(int targetCarbs) {
         this.targetCarbs = targetCarbs;
+    }
+
+    public int getDailyWaterTarget() {
+        return dailyWaterTarget;
+    }
+
+    public void setDailyWaterTarget(int dailyWaterTarget) {
+        this.dailyWaterTarget = dailyWaterTarget;
     }
 }

@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.dao.TrainingPlanDao;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
+import com.cz.fitnessdiary.ui.widget.HomeWidgetProvider;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -18,11 +19,13 @@ import java.util.concurrent.Executors;
  */
 public class TrainingPlanRepository {
 
-    private TrainingPlanDao trainingPlanDao;
-    private LiveData<List<TrainingPlan>> allPlans;
-    private ExecutorService executorService;
+    private final TrainingPlanDao trainingPlanDao;
+    private final LiveData<List<TrainingPlan>> allPlans;
+    private final ExecutorService executorService;
+    private final Application application;
 
     public TrainingPlanRepository(Application application) {
+        this.application = application;
         AppDatabase database = AppDatabase.getInstance(application);
         trainingPlanDao = database.trainingPlanDao();
         allPlans = trainingPlanDao.getAllPlans();
@@ -52,11 +55,17 @@ public class TrainingPlanRepository {
      * 插入新的训练计划
      */
     public void insert(TrainingPlan plan) {
-        executorService.execute(() -> trainingPlanDao.insert(plan));
+        executorService.execute(() -> {
+            trainingPlanDao.insert(plan);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     public void insertAll(List<TrainingPlan> plans) {
-        executorService.execute(() -> trainingPlanDao.insertAll(plans));
+        executorService.execute(() -> {
+            trainingPlanDao.insertAll(plans);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
@@ -83,14 +92,20 @@ public class TrainingPlanRepository {
      * 更新训练计划
      */
     public void update(TrainingPlan plan) {
-        executorService.execute(() -> trainingPlanDao.update(plan));
+        executorService.execute(() -> {
+            trainingPlanDao.update(plan);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
      * 删除训练计划
      */
     public void delete(TrainingPlan plan) {
-        executorService.execute(() -> trainingPlanDao.delete(plan));
+        executorService.execute(() -> {
+            trainingPlanDao.delete(plan);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
@@ -109,13 +124,19 @@ public class TrainingPlanRepository {
      * 批量更新分类名称
      */
     public void updateCategory(String oldCategory, String newCategory) {
-        executorService.execute(() -> trainingPlanDao.updateCategory(oldCategory, newCategory));
+        executorService.execute(() -> {
+            trainingPlanDao.updateCategory(oldCategory, newCategory);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
      * 按分类前缀删除全部计划（模板导入替换用）
      */
     public void deleteByCategoryPrefix(String prefix) {
-        executorService.execute(() -> trainingPlanDao.deleteByCategoryPrefix(prefix));
+        executorService.execute(() -> {
+            trainingPlanDao.deleteByCategoryPrefix(prefix);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 }

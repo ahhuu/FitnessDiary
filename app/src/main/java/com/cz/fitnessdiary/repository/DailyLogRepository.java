@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.dao.DailyLogDao;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.ui.widget.HomeWidgetProvider;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -18,10 +19,12 @@ import java.util.concurrent.Executors;
  */
 public class DailyLogRepository {
 
-    private DailyLogDao dailyLogDao;
-    private ExecutorService executorService;
+    private final DailyLogDao dailyLogDao;
+    private final ExecutorService executorService;
+    private final Application application;
 
     public DailyLogRepository(Application application) {
+        this.application = application;
         AppDatabase database = AppDatabase.getInstance(application);
         dailyLogDao = database.dailyLogDao();
         executorService = Executors.newSingleThreadExecutor();
@@ -38,7 +41,10 @@ public class DailyLogRepository {
      * 插入新的打卡记录
      */
     public void insert(DailyLog log) {
-        executorService.execute(() -> dailyLogDao.insert(log));
+        executorService.execute(() -> {
+            dailyLogDao.insert(log);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
@@ -46,13 +52,17 @@ public class DailyLogRepository {
      */
     public void insertSync(DailyLog log) {
         dailyLogDao.insert(log);
+        HomeWidgetProvider.requestRefresh(application);
     }
 
     /**
      * 更新打卡记录
      */
     public void update(DailyLog log) {
-        executorService.execute(() -> dailyLogDao.update(log));
+        executorService.execute(() -> {
+            dailyLogDao.update(log);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
@@ -60,13 +70,17 @@ public class DailyLogRepository {
      */
     public void updateSync(DailyLog log) {
         dailyLogDao.update(log);
+        HomeWidgetProvider.requestRefresh(application);
     }
 
     /**
      * 更新打卡完成状态
      */
     public void updateCompletionStatus(int logId, boolean isCompleted) {
-        executorService.execute(() -> dailyLogDao.updateCompletionStatus(logId, isCompleted));
+        executorService.execute(() -> {
+            dailyLogDao.updateCompletionStatus(logId, isCompleted);
+            HomeWidgetProvider.requestRefresh(application);
+        });
     }
 
     /**
