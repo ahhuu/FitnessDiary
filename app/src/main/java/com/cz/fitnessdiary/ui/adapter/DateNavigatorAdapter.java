@@ -28,6 +28,7 @@ public class DateNavigatorAdapter extends RecyclerView.Adapter<DateNavigatorAdap
     private final OnDateSelectedListener listener;
     private final SimpleDateFormat dayFormat = new SimpleDateFormat("dd", Locale.getDefault());
     private final SimpleDateFormat weekFormat = new SimpleDateFormat("E", Locale.getDefault());
+    private java.util.Set<Long> recordedDates = new java.util.HashSet<>();
 
     public DateNavigatorAdapter(List<Long> dates, long selectedDate, OnDateSelectedListener listener) {
         this.dates = dates;
@@ -37,6 +38,11 @@ public class DateNavigatorAdapter extends RecyclerView.Adapter<DateNavigatorAdap
 
     public void setSelectedDate(long timestamp) {
         this.selectedDate = DateUtils.getDayStartTimestamp(timestamp);
+        notifyDataSetChanged();
+    }
+
+    public void setRecordedDates(java.util.Set<Long> dates) {
+        this.recordedDates = dates != null ? dates : new java.util.HashSet<>();
         notifyDataSetChanged();
     }
 
@@ -74,6 +80,12 @@ public class DateNavigatorAdapter extends RecyclerView.Adapter<DateNavigatorAdap
         holder.itemView.setOnClickListener(v -> {
             listener.onDateSelected(dateTs);
         });
+
+        if (recordedDates.contains(DateUtils.getDayStartTimestamp(dateTs))) {
+            holder.vDot.setVisibility(android.view.View.VISIBLE);
+        } else {
+            holder.vDot.setVisibility(android.view.View.GONE);
+        }
     }
 
     @Override
@@ -83,11 +95,13 @@ public class DateNavigatorAdapter extends RecyclerView.Adapter<DateNavigatorAdap
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvDay, tvWeek;
+        android.view.View vDot;
 
         ViewHolder(View v) {
             super(v);
             tvDay = v.findViewById(R.id.tv_nav_day);
             tvWeek = v.findViewById(R.id.tv_nav_week);
+            vDot = v.findViewById(R.id.v_nav_dot);
         }
     }
 }

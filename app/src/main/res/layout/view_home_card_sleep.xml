@@ -8,17 +8,19 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-    app:cardBackgroundColor="@color/cat_sleep_bg"
+    app:cardBackgroundColor="@android:color/transparent"
     app:cardCornerRadius="24dp"
-    app:cardElevation="0dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="#1A673AB7">
+    app:cardElevation="3dp"
+    app:strokeWidth="0dp"
+    android:outlineSpotShadowColor="#1A4E483F"
+    android:outlineAmbientShadowColor="#1A4E483F">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:background="@drawable/bg_card_3d_sleep"
+        android:padding="14dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -28,8 +30,8 @@
 
             <ImageView
                 android:id="@+id/iv_sleep_icon"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:src="@drawable/ic_hero_moon"
                 app:tint="@color/cat_sleep_primary" />
 
@@ -43,14 +45,16 @@
                 android:ellipsize="end"
                 android:text="睡眠"
                 android:textColor="@color/text_primary"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
+            <!-- 小圆形操作快捷加号 -->
             <ImageButton
                 android:id="@+id/btn_add_sleep"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="添加"
                 android:src="@drawable/ic_add"
                 app:tint="@color/cat_sleep_primary" />
@@ -93,15 +97,15 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <com.google.android.material.progressindicator.LinearProgressIndicator
+        <!-- 自定义水平渐变进度条 -->
+        <ProgressBar
             android:id="@+id/progress_sleep"
+            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="4dp"
             android:layout_marginTop="8dp"
-            app:indicatorColor="@color/cat_sleep_primary"
-            app:trackColor="#4D673AB7"
-            app:trackThickness="4dp"
-            app:trackCornerRadius="2dp"
+            android:progressDrawable="@drawable/gradient_progress_sleep"
+            android:max="100"
             android:progress="80" />
 
         <TextView

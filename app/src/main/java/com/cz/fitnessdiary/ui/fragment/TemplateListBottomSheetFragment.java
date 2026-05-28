@@ -64,11 +64,30 @@ public class TemplateListBottomSheetFragment extends BottomSheetDialogFragment {
     }
 
     private void setupFilterChips() {
-        binding.chipAll.setOnClickListener(v -> { adapter.setFilter("全部"); binding.chipAll.setChecked(true); });
-        binding.chipBulking.setOnClickListener(v -> { adapter.setFilter("增肌"); binding.chipBulking.setChecked(true); });
-        binding.chipCutting.setOnClickListener(v -> { adapter.setFilter("减脂"); binding.chipCutting.setChecked(true); });
-        binding.chipStrength.setOnClickListener(v -> { adapter.setFilter("增力"); binding.chipStrength.setChecked(true); });
-        binding.chipAll.setChecked(true);
+        View.OnClickListener clickListener = v -> {
+            binding.chipAll.setSelected(v == binding.chipAll);
+            binding.chipBulking.setSelected(v == binding.chipBulking);
+            binding.chipCutting.setSelected(v == binding.chipCutting);
+            binding.chipStrength.setSelected(v == binding.chipStrength);
+
+            String filter = "全部";
+            if (v == binding.chipBulking) {
+                filter = "增肌";
+            } else if (v == binding.chipCutting) {
+                filter = "减脂";
+            } else if (v == binding.chipStrength) {
+                filter = "增力";
+            }
+            adapter.setFilter(filter);
+        };
+
+        binding.chipAll.setOnClickListener(clickListener);
+        binding.chipBulking.setOnClickListener(clickListener);
+        binding.chipCutting.setOnClickListener(clickListener);
+        binding.chipStrength.setOnClickListener(clickListener);
+
+        // 默认选中全部
+        binding.chipAll.setSelected(true);
     }
 
     private void loadTemplates() {

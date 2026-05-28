@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 最底层：右下深色投影 (凸起按钮阴影) -->
+    <item
+        android:left="2dp"
+        android:top="2dp">
+        <shape android:shape="oval">
+            <solid android:color="#D6CEBF"/>
+        </shape>
+    </item>
+
+    <!-- 中间层：左上白色高光 -->
+    <item
+        android:right="2.5dp"
+        android:bottom="2.5dp">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFF"/>
+        </shape>
+    </item>
+
+    <!-- 顶层：按钮面板，微曲面渐变 -->
+    <item
+        android:left="1.5dp"
+        android:top="1.5dp"
+        android:right="1.5dp"
+        android:bottom="1.5dp">
+        <shape android:shape="oval">
+            <gradient
+                android:startColor="#FFFFFF"
+                android:endColor="#FAF9F5"
+                android:angle="315"
+                android:type="linear"/>
+            <stroke
+                android:width="0.8dp"
+                android:color="#ECE7DC" />
+        </shape>
+    </item>
+</layer-list>

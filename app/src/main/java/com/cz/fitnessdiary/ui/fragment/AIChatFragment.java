@@ -101,7 +101,7 @@ public class AIChatFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        viewModel = new ViewModelProvider(this).get(AIChatViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(AIChatViewModel.class);
         foodRepository = new FoodLibraryRepository(requireContext());
         foodRecordRepository = new FoodRecordRepository(requireActivity().getApplication());
         trainingRepository = new TrainingPlanRepository(requireActivity().getApplication());

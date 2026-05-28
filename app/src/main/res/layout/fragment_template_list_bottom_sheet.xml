@@ -3,62 +3,100 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_bottom_sheet"
+    android:background="@drawable/bg_bottom_sheet_warm"
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- 顶部 3D 内凹把手 -->
     <View
         android:layout_width="32dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="12dp"
-        android:background="@color/plan_blue_stroke" />
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_handle_sunken" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="16dp"
         android:fontFamily="sans-serif-medium"
         android:text="训练模板"
         android:textColor="@color/text_primary"
-        android:textSize="20sp" />
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
-    <com.google.android.material.chip.ChipGroup
+    <!-- 3D 拟物化横向过滤器 -->
+    <LinearLayout
         android:id="@+id/chip_goal_filter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="12dp"
-        app:singleSelection="true">
+        android:orientation="horizontal">
 
-        <com.google.android.material.chip.Chip
+        <TextView
             android:id="@+id/chip_all"
-            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:textSize="13sp"
+            android:textColor="@color/color_chip_text_3d"
+            android:background="@drawable/selector_chip_3d"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:fontFamily="sans-serif-medium"
             android:text="全部" />
 
-        <com.google.android.material.chip.Chip
+        <TextView
             android:id="@+id/chip_bulking"
-            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:textSize="13sp"
+            android:textColor="@color/color_chip_text_3d"
+            android:background="@drawable/selector_chip_3d"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:fontFamily="sans-serif-medium"
             android:text="增肌" />
 
-        <com.google.android.material.chip.Chip
+        <TextView
             android:id="@+id/chip_cutting"
-            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:textSize="13sp"
+            android:textColor="@color/color_chip_text_3d"
+            android:background="@drawable/selector_chip_3d"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:fontFamily="sans-serif-medium"
             android:text="减脂" />
 
-        <com.google.android.material.chip.Chip
+        <TextView
             android:id="@+id/chip_strength"
-            style="@style/Widget.Material3.Chip.Filter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp"
+            android:textSize="13sp"
+            android:textColor="@color/color_chip_text_3d"
+            android:background="@drawable/selector_chip_3d"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:fontFamily="sans-serif-medium"
             android:text="增力" />
-    </com.google.android.material.chip.ChipGroup>
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_templates"

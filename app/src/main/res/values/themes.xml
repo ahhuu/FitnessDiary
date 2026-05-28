@@ -21,7 +21,7 @@
         <!-- Error color -->
         <item name="colorError">@color/error</item>
         
-        <!-- Status bar color -->
+        <!-- Status bar color - align with warm cream background -->
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">true</item>
         
@@ -32,33 +32,36 @@
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.MaterialAlertDialog</item>
     </style>
     
-    <!-- Custom Card Style with rounded corners -->
+    <!-- Custom Card Style with premium soft shadows and 28dp corners -->
     <style name="Widget.App.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardCornerRadius">16dp</item>
-        <item name="cardElevation">2dp</item>
-        <item name="android:background">@color/card_background</item>
-        <item name="contentPadding">16dp</item>
+        <item name="cardCornerRadius">28dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="contentPadding">0dp</item>
+        <item name="android:stateListAnimator">@animator/animator_card_3d</item>
+        <!-- 温润暖阴影：设置带色相的柔和投影，代替冷硬的黑色阴影 -->
+        <item name="android:outlineSpotShadowColor">#264E483F</item>
+        <item name="android:outlineAmbientShadowColor">#264E483F</item>
     </style>
     
     <!-- Title Text Style -->
     <style name="TextAppearance.App.Title" parent="TextAppearance.Material3.HeadlineMedium">
         <item name="android:textColor">@color/text_primary</item>
-        <item name="android:textSize">28sp</item>
+        <item name="android:textSize">26sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
     
     <!-- Subtitle Text Style -->
     <style name="TextAppearance.App.Subtitle" parent="TextAppearance.Material3.BodyLarge">
         <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:textSize">16sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
     
-        <!-- FAB Style -->
-        <style name="Widget.App.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
-            <item name="backgroundTint">@color/primary</item>
-            <item name="tint">@color/white</item>
-        </style>
-
+    <!-- FAB Style -->
+    <style name="Widget.App.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="backgroundTint">@color/primary</item>
+        <item name="tint">@color/white</item>
+    </style>
 
     <!-- Custom Material Alert Dialog Style -->
     <style name="ThemeOverlay.App.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">

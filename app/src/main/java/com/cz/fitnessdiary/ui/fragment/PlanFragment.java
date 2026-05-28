@@ -102,6 +102,13 @@ public class PlanFragment extends Fragment {
         setupRecyclerView();
         observeViewModel();
 
+        // AI 快捷召唤徽章点击事件
+        if (binding.btnAiQuick != null) {
+            binding.btnAiQuick.setOnClickListener(v -> {
+                QuickAiChatBottomSheet.newInstance().show(getParentFragmentManager(), "QUICK_AI_CHAT");
+            });
+        }
+
         // FAB 点击弹出选择对话框
         binding.fabAddPlan.setOnClickListener(v -> showAddPlanChoiceDialog());
 
@@ -288,7 +295,7 @@ public class PlanFragment extends Fragment {
             chip.setChipStartPadding(10f);
             chip.setChipEndPadding(10f);
             chip.setTextAppearance(R.style.TextAppearance_App_LabelSmall);
-            int bg = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.fitnessdiary_surface_variant);
+            int bg = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.plan_blue_container);
             int text = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.text_primary);
             int stroke = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.plan_blue_primary);
             chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(bg));

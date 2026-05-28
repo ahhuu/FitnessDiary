@@ -48,6 +48,7 @@ public class ProfileFragment extends Fragment {
     private ProfileViewModel viewModel;
     private AchievementCenterViewModel achievementCenterViewModel;
     private ActivityResultLauncher<Intent> pickImageLauncher;
+    private ActivityResultLauncher<Intent> cropImageLauncher;
 
     // SAF Launchers for Backup/Restore
     private ActivityResultLauncher<String> createBackupLauncher;
@@ -64,20 +65,37 @@ public class ProfileFragment extends Fragment {
                     if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
                         if (imageUri != null) {
-                            // [v1.1] 物理存储：将外部图片拷贝到内部私有目录
+                            // 先将图片拷贝到 cache 目录，规避跨进程读取临时 content:// URI 时分区存储的权限失效问题
+                            java.io.File cacheRawFile = new java.io.File(requireContext().getCacheDir(), "temp_raw_avatar.jpg");
+                            boolean copySuccess = copyUriToFile(imageUri, cacheRawFile);
+                            if (copySuccess) {
+                                // 调起裁剪
+                                startCrop(cacheRawFile);
+                            } else {
+                                // 拷贝失败则使用原图直接保存
+                                useOriginalImage(cacheRawFile);
+                            }
+                        }
+                    }
+                });
+
+        // 注册裁剪器
+        cropImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == android.app.Activity.RESULT_OK) {
+                        java.io.File cropFile = new java.io.File(requireContext().getCacheDir(), "crop_avatar_temp.jpg");
+                        if (cropFile.exists() && cropFile.length() > 0) {
                             java.io.File localFile = com.cz.fitnessdiary.utils.MediaManager
-                                    .saveToInternal(requireContext(), imageUri);
+                                    .saveToInternal(requireContext(), Uri.fromFile(cropFile));
                             if (localFile != null) {
-                                // 保存本地路径到数据库
                                 String localPath = localFile.getAbsolutePath();
                                 viewModel.updateAvatarUri(localPath);
-
-                                // 立即更新头像显示
                                 binding.ivAvatar.setImageURI(Uri.fromFile(localFile));
-                                Toast.makeText(getContext(), "头像已本地化存储", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(getContext(), "图片本地化失败", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getContext(), "头像已成功剪裁并保存", Toast.LENGTH_SHORT).show();
                             }
+                        } else {
+                            Toast.makeText(getContext(), "裁剪数据无效，请重试", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -137,99 +155,32 @@ public class ProfileFragment extends Fragment {
     }
 
     /**
-     * [v1.2] 初始化训练提醒入口
+     * 初始化智能推送可展开面板（替代已废弃的每日训练提醒）
      */
     private void setupReminderEntry() {
-        // 加载当前状态
-        boolean enabled = ReminderManager.isReminderEnabled(requireContext());
-        String time = ReminderManager.getFormattedTime(requireContext());
-
-        binding.switchReminder.setChecked(enabled);
-        binding.tvReminderTime.setText(time);
-
-        // 开关监听
-        binding.switchReminder.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                if (getActivity() instanceof MainActivity
-                        && ((MainActivity) getActivity()).requestNotificationPermissionIfNeeded()) {
-                    binding.switchReminder.setChecked(false);
-                    Toast.makeText(getContext(), "请先允许通知权限，再开启训练提醒", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                // [v1.2] 触发精确闹钟权限检查 (Android 12+)
-                if (getActivity() instanceof MainActivity) {
-                    if (((MainActivity) getActivity()).checkExactAlarmPermission()) {
-                        // 如果缺失权限且已弹窗，则将开关重置为关闭，并不再继续
-                        binding.switchReminder.setChecked(false);
-                        return;
-                    }
-                }
-
-                // 开启提醒，同时关闭智能推送
-                ReminderManager.setReminder(requireContext(),
-                        ReminderManager.getReminderHour(requireContext()),
-                        ReminderManager.getReminderMinute(requireContext()));
-                if (ReminderManager.isSmartReminderEnabled(requireContext())) {
-                    ReminderManager.setSmartReminderEnabled(requireContext(), false);
-                    binding.switchSmartReminder.setChecked(false);
-                }
-
-                // [v1.2] 展示自启动引导弹窗
-                if (getActivity() instanceof MainActivity) {
-                    ((MainActivity) getActivity()).showAutoStartGuidance();
-                } else {
-                    Toast.makeText(getContext(), "训练提醒已开启，智能推送已自动关闭", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                // 取消提醒
-                ReminderManager.cancelReminder(requireContext());
-                Toast.makeText(getContext(), "训练提醒已关闭", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        // 点击卡片选择时间
-        binding.cardReminder.setOnClickListener(v -> {
-            // [v1.2] 触发精确闹钟权限检查 (Android 12+)
-            if (getActivity() instanceof MainActivity) {
-                if (((MainActivity) getActivity()).checkExactAlarmPermission()) {
-                    // 如果缺失权限，直接拦截，不弹出时间选择器
-                    return;
-                }
-            }
-
-            int currentHour = ReminderManager.getReminderHour(requireContext());
-            int currentMinute = ReminderManager.getReminderMinute(requireContext());
-
-            new TimePickerDialog(requireContext(), (view1, hourOfDay, minute) -> {
-                // 更新显示
-                String formattedTime = String.format("%02d:%02d", hourOfDay, minute);
-                binding.tvReminderTime.setText(formattedTime);
-
-                // 如果开关是开启的，则立即重新设定闹钟
-                if (binding.switchReminder.isChecked()) {
-                    ReminderManager.setReminder(requireContext(), hourOfDay, minute);
-                } else {
-                    // 仅保存设置，不立即开启
-                    // 我们在 setReminder 内部处理了保存，所以这里如果是关闭状态，
-                    // 其实也应该保存一下时间设置，以便下次开启时使用正确的时间。
-                    // 我们可以直接调用 setReminder 的保存逻辑，或者直接开启开关。
-                    // 习惯上点击修改时间后，通常用户希望它是开启的。
-                    binding.switchReminder.setChecked(true);
-                    ReminderManager.setReminder(requireContext(), hourOfDay, minute);
-                }
-                Toast.makeText(getContext(), "提醒时间已设为 " + formattedTime, Toast.LENGTH_SHORT).show();
-
-            }, currentHour, currentMinute, true).show();
-        });
-
         setupSmartReminderEntry();
     }
 
+    private boolean mSmartExpanded = false;
+
     private void setupSmartReminderEntry() {
+        // ── 读取当前状态并初始化 ──
         boolean smartEnabled = ReminderManager.isSmartReminderEnabled(requireContext());
         binding.switchSmartReminder.setChecked(smartEnabled);
 
+        // 初始化子项时间文字
+        refreshSubItemTexts();
+
+        // 初始化子项开关状态
+        binding.switchMorning.setChecked(ReminderManager.isMorningEnabled(requireContext()));
+        binding.switchEvening.setChecked(ReminderManager.isEveningEnabled(requireContext()));
+        binding.switchWeekly.setChecked(ReminderManager.isWeeklyEnabled(requireContext()));
+        binding.switchInactivity.setChecked(ReminderManager.isInactivityEnabled(requireContext()));
+
+        // ── 点击头部行展开/收起 ──
+        binding.layoutSmartHeader.setOnClickListener(v -> toggleSmartExpand());
+
+        // ── 总开关 ──
         binding.switchSmartReminder.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 if (getActivity() instanceof MainActivity
@@ -245,17 +196,151 @@ public class ProfileFragment extends Fragment {
                     }
                 }
                 ReminderManager.setSmartReminderEnabled(requireContext(), true);
-                if (ReminderManager.isReminderEnabled(requireContext())) {
-                    ReminderManager.cancelReminder(requireContext());
-                    binding.switchReminder.setChecked(false);
-                }
-                Toast.makeText(getContext(), "智能推送已开启，每日训练提醒已自动关闭", Toast.LENGTH_LONG).show();
+                ReminderManager.sendSmartReminderWelcomeNotification(requireContext());
+                // 展开子项
+                if (!mSmartExpanded) toggleSmartExpand();
             } else {
                 ReminderManager.setSmartReminderEnabled(requireContext(), false);
-                Toast.makeText(getContext(), "智能推送已关闭", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "智能推送已全部关闭", Toast.LENGTH_SHORT).show();
             }
         });
+
+        // ── 子项 1：早晨概要 ──
+        binding.switchMorning.setOnCheckedChangeListener((btn, checked) ->
+                ReminderManager.setMorningEnabled(requireContext(), checked));
+        binding.itemMorning.setOnClickListener(v -> showTimePickerForMorning());
+
+        // ── 子项 2：晚间提醒 ──
+        binding.switchEvening.setOnCheckedChangeListener((btn, checked) ->
+                ReminderManager.setEveningEnabled(requireContext(), checked));
+        binding.itemEvening.setOnClickListener(v -> showTimePickerForEvening());
+
+        // ── 子项 3：健康周报 ──
+        binding.switchWeekly.setOnCheckedChangeListener((btn, checked) ->
+                ReminderManager.setWeeklyEnabled(requireContext(), checked));
+        binding.itemWeekly.setOnClickListener(v -> showWeeklyPickerDialog());
+
+        // ── 子项 4：不活跃挽留 ──
+        binding.switchInactivity.setOnCheckedChangeListener((btn, checked) ->
+                ReminderManager.setInactivityEnabled(requireContext(), checked));
+        binding.itemInactivity.setOnClickListener(v -> showTimePickerForInactivity());
     }
+
+    /** 切换智能推送子项面板展开/收起 */
+    private void toggleSmartExpand() {
+        mSmartExpanded = !mSmartExpanded;
+        int visibility = mSmartExpanded ? android.view.View.VISIBLE : android.view.View.GONE;
+        binding.layoutSmartSubItems.setVisibility(visibility);
+        binding.dividerSmart.setVisibility(visibility);
+        // 旋转箭头动画
+        float targetRotation = mSmartExpanded ? 270f : 90f;
+        binding.ivSmartExpand.animate().rotation(targetRotation).setDuration(200).start();
+    }
+
+    /** 刷新所有子项的时间摘要文字 */
+    private void refreshSubItemTexts() {
+        binding.tvMorningTime.setText(String.format("%02d:%02d",
+                ReminderManager.getMorningHour(requireContext()),
+                ReminderManager.getMorningMinute(requireContext())));
+
+        binding.tvEveningTime.setText(String.format("%02d:%02d",
+                ReminderManager.getEveningHour(requireContext()),
+                ReminderManager.getEveningMinute(requireContext())));
+
+        binding.tvInactivityTime.setText(String.format("%02d:%02d",
+                ReminderManager.getInactivityHour(requireContext()),
+                ReminderManager.getInactivityMinute(requireContext())));
+
+        // 周报：显示"周X HH:mm"
+        String dayName = getDayOfWeekName(ReminderManager.getWeeklyDayOfWeek(requireContext()));
+        binding.tvWeeklyTime.setText(String.format("%s %02d:%02d", dayName,
+                ReminderManager.getWeeklyHour(requireContext()),
+                ReminderManager.getWeeklyMinute(requireContext())));
+    }
+
+    /** TimePicker：早晨概要 */
+    private void showTimePickerForMorning() {
+        int h = ReminderManager.getMorningHour(requireContext());
+        int m = ReminderManager.getMorningMinute(requireContext());
+        new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
+            ReminderManager.setMorningTime(requireContext(), hourOfDay, minute);
+            refreshSubItemTexts();
+            Toast.makeText(getContext(),
+                    "早晨概要提醒已设为 " + String.format("%02d:%02d", hourOfDay, minute),
+                    Toast.LENGTH_SHORT).show();
+        }, h, m, true).show();
+    }
+
+    /** TimePicker：晚间提醒 */
+    private void showTimePickerForEvening() {
+        int h = ReminderManager.getEveningHour(requireContext());
+        int m = ReminderManager.getEveningMinute(requireContext());
+        new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
+            ReminderManager.setEveningTime(requireContext(), hourOfDay, minute);
+            refreshSubItemTexts();
+            Toast.makeText(getContext(),
+                    "晚间提醒已设为 " + String.format("%02d:%02d", hourOfDay, minute),
+                    Toast.LENGTH_SHORT).show();
+        }, h, m, true).show();
+    }
+
+    /** TimePicker：不活跃挽留 */
+    private void showTimePickerForInactivity() {
+        int h = ReminderManager.getInactivityHour(requireContext());
+        int m = ReminderManager.getInactivityMinute(requireContext());
+        new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
+            ReminderManager.setInactivityTime(requireContext(), hourOfDay, minute);
+            refreshSubItemTexts();
+            Toast.makeText(getContext(),
+                    "不活跃挽留提醒已设为 " + String.format("%02d:%02d", hourOfDay, minute),
+                    Toast.LENGTH_SHORT).show();
+        }, h, m, true).show();
+    }
+
+    /** 两步弹窗：选择星期 → 选择时间（健康周报） */
+    private void showWeeklyPickerDialog() {
+        String[] days = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+        int currentDayOfWeek = ReminderManager.getWeeklyDayOfWeek(requireContext());
+        // Calendar 常量从 1(Sunday) 到 7(Saturday)，映射为 0-based index
+        final int[] selectedIndex = {currentDayOfWeek - 1};
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("📊 选择周报发送日")
+                .setSingleChoiceItems(days, selectedIndex[0], (dialog, which) ->
+                        selectedIndex[0] = which)
+                .setPositiveButton("下一步：选时间", (dialog, which) -> {
+                    int chosenDayOfWeek = selectedIndex[0] + 1; // 转回 Calendar 常量
+
+                    int h = ReminderManager.getWeeklyHour(requireContext());
+                    int m = ReminderManager.getWeeklyMinute(requireContext());
+                    new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
+                        ReminderManager.setWeeklyTime(requireContext(), chosenDayOfWeek, hourOfDay, minute);
+                        refreshSubItemTexts();
+                        Toast.makeText(getContext(),
+                                "周报已设为" + days[selectedIndex[0]] + " " +
+                                        String.format("%02d:%02d", hourOfDay, minute),
+                                Toast.LENGTH_SHORT).show();
+                    }, h, m, true).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+
+    /** Calendar.DAY_OF_WEEK 常量 → 中文星期名 */
+    private String getDayOfWeekName(int dayOfWeek) {
+        switch (dayOfWeek) {
+            case java.util.Calendar.MONDAY:    return "周一";
+            case java.util.Calendar.TUESDAY:   return "周二";
+            case java.util.Calendar.WEDNESDAY: return "周三";
+            case java.util.Calendar.THURSDAY:  return "周四";
+            case java.util.Calendar.FRIDAY:    return "周五";
+            case java.util.Calendar.SATURDAY:  return "周六";
+            case java.util.Calendar.SUNDAY:    return "周日";
+            default:                           return "周一";
+        }
+    }
+
 
     @Override
     public void onResume() {
@@ -336,10 +421,8 @@ public class ProfileFragment extends Fragment {
                 }
 
                 binding.tvBmi.setTextColor(categoryColor);
-                // 同步让卡片边框／波纹也带上分类色
-                if (binding.layoutBmi.getBackground() != null) {
-                    binding.layoutBmi.getBackground().setTint(categoryColor);
-                }
+                // [修复 BUG] 移除了对 layoutBmi 整个 3D layer-list 背景的 tint 染色，
+                // 以免破坏其微拟态凹陷阴影和立体感。数值 tvBmi 自带的颜色修改即已能实现警示色要求。
             }
         });
 
@@ -609,15 +692,108 @@ public class ProfileFragment extends Fragment {
     }
 
     /**
-     * 打开图库选择器
+     * 打开图库选择器 (直接启动系统图库而非文件管理器)
      */
     private void openImagePicker() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.setType("image/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-
+        Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         pickImageLauncher.launch(intent);
+    }
+
+    /**
+     * 将临时 URI 复制到指定缓存文件中
+     */
+    private boolean copyUriToFile(Uri uri, java.io.File destFile) {
+        try {
+            java.io.InputStream in = requireContext().getContentResolver().openInputStream(uri);
+            if (in == null) return false;
+            if (destFile.exists()) {
+                destFile.delete();
+            }
+            java.io.FileOutputStream out = new java.io.FileOutputStream(destFile);
+            byte[] buf = new byte[4096];
+            int len;
+            while ((len = in.read(buf)) > 0) {
+                out.write(buf, 0, len);
+            }
+            out.close();
+            in.close();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 调起系统裁剪应用 (ACTION_CROP)
+     */
+    private void startCrop(java.io.File rawFile) {
+        try {
+            // 通过 FileProvider 获取安全的 content:// URI
+            Uri sourceUri = androidx.core.content.FileProvider.getUriForFile(
+                    requireContext(),
+                    "com.cz.fitnessdiary.fileprovider",
+                    rawFile
+            );
+
+            java.io.File cropFile = new java.io.File(requireContext().getCacheDir(), "crop_avatar_temp.jpg");
+            if (cropFile.exists()) {
+                cropFile.delete();
+            }
+            cropFile.createNewFile();
+
+            Uri destinationUri = androidx.core.content.FileProvider.getUriForFile(
+                    requireContext(),
+                    "com.cz.fitnessdiary.fileprovider",
+                    cropFile
+            );
+
+            Intent intent = new Intent("com.android.camera.action.CROP");
+            intent.setDataAndType(sourceUri, "image/*");
+            intent.putExtra("crop", "true");
+            intent.putExtra("aspectX", 1);
+            intent.putExtra("aspectY", 1);
+            intent.putExtra("outputX", 320);
+            intent.putExtra("outputY", 320);
+            intent.putExtra("scale", true);
+
+            // 临时读写授权，解决 Android 11+ 分区存储导致的沙盒越权问题
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+            intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, destinationUri);
+            intent.putExtra("return-data", false);
+            intent.putExtra("outputFormat", android.graphics.Bitmap.CompressFormat.JPEG.toString());
+
+            // 跨应用临时权限显式授予（对齐特定手机 ROM 要求）
+            android.content.pm.PackageManager pm = requireContext().getPackageManager();
+            java.util.List<android.content.pm.ResolveInfo> resInfoList = pm.queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+            for (android.content.pm.ResolveInfo resolveInfo : resInfoList) {
+                String packageName = resolveInfo.activityInfo.packageName;
+                requireContext().grantUriPermission(packageName, sourceUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                requireContext().grantUriPermission(packageName, destinationUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
+
+            cropImageLauncher.launch(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 如果裁剪程序调起崩溃/异常（如少数去裁剪器的魔改系统），直接原图保存
+            useOriginalImage(rawFile);
+        }
+    }
+
+    /**
+     * 兜底：跳过裁剪，直接使用原图进行拷贝和保存
+     */
+    private void useOriginalImage(java.io.File rawFile) {
+        java.io.File localFile = com.cz.fitnessdiary.utils.MediaManager
+                .saveToInternal(requireContext(), Uri.fromFile(rawFile));
+        if (localFile != null) {
+            String localPath = localFile.getAbsolutePath();
+            viewModel.updateAvatarUri(localPath);
+            binding.ivAvatar.setImageURI(Uri.fromFile(localFile));
+            Toast.makeText(getContext(), "已自动适配原图头像", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -827,7 +1003,7 @@ public class ProfileFragment extends Fragment {
                             if (intent != null) {
                                 intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
                                         | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                startActivity(intent);
+                                        startActivity(intent);
                             }
                             Runtime.getRuntime().exit(0);
                         }, 1000);
@@ -867,7 +1043,7 @@ public class ProfileFragment extends Fragment {
         android.widget.TextView tvBmiValue = view.findViewById(R.id.tv_bmi_value);
         tvBmiValue.setText(String.format(java.util.Locale.getDefault(), "%.1f", bmi));
 
-        // 设置分类标签和颜色
+        // 设置分类标签 and 颜色
         android.widget.TextView tvCategory = view.findViewById(R.id.tv_bmi_category);
         String category;
         int categoryColor;

@@ -209,7 +209,7 @@ public class BodyMeasurementDetailFragment extends Fragment {
                         r.getId(), typeName,
                         sdf.format(new Date(r.getTimestamp())),
                         String.format(Locale.getDefault(), "%.1f %s", r.getValue(), r.getUnit()),
-                        r.getNote(), 0, r));
+                        r.getNote(), R.drawable.ic_hero_measure, r));
             }
         }
         adapter.submitList(items);

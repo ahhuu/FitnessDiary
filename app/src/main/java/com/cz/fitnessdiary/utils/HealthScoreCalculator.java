@@ -7,6 +7,7 @@ import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.HabitItem;
 import com.cz.fitnessdiary.database.entity.HabitRecord;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
+import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 
@@ -19,25 +20,58 @@ public class HealthScoreCalculator {
     private static final String KEY_MONTHLY_SCORES = "monthly_scores";
 
     public static int calculateToday(Context context) {
-        long today = DateUtils.getTodayStartTimestamp();
-        long dayEnd = today + 86400000L;
+        return calculateForDate(context, DateUtils.getTodayStartTimestamp());
+    }
+
+    public static int calculateForDate(Context context, long date) {
+        long dayStart = DateUtils.getDayStartTimestamp(date);
+        long dayEnd = dayStart + 86400000L;
         AppDatabase db = AppDatabase.getInstance(context);
 
-        int sportScore = calcSport(db, today);
-        int dietScore = calcDiet(db, context, today, dayEnd);
-        int sleepScore = calcSleep(db, today, dayEnd);
-        int waterScore = calcWater(db, today, dayEnd);
-        int habitScore = calcHabit(db, today);
-        int weightScore = calcWeight(db, context);
+        int sportScore = calcSport(db, context, dayStart);
+        int dietScore = calcDiet(db, context, dayStart, dayEnd);
+        int sleepScore = calcSleep(db, dayStart, dayEnd);
+        int waterScore = calcWater(db, dayStart, dayEnd);
+        int habitScore = calcHabit(db, dayStart);
+        int weightScore = calcWeight(db, context, dayStart);
 
         int total = sportScore + dietScore + sleepScore + waterScore + habitScore + weightScore;
         return Math.min(total, 100);
     }
 
-    private static int calcSport(AppDatabase db, long today) {
-        int total = db.dailyLogDao().getTodayPlanCountSync(today);
-        int completed = db.dailyLogDao().getTodayCompletedCountSync(today);
-        if (total == 0) return 25; // no plans = perfect score
+    private static int calcSport(AppDatabase db, Context context, long date) {
+        // Count TrainingPlan definitions scheduled for this date (matching UI logic)
+        List<TrainingPlan> allPlans = db.trainingPlanDao().getAllPlansList();
+        SharedPreferences sp = context.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
+        String mode = sp.getString("current_plan_mode", "基础");
+
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setTimeInMillis(date);
+        int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
+        int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
+
+        int total = 0;
+        if (allPlans != null) {
+            for (TrainingPlan plan : allPlans) {
+                String cat = plan.getCategory();
+                if (cat == null || !cat.startsWith(mode + "-")) continue;
+
+                String scheduledDays = plan.getScheduledDays();
+                if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+                    total++;
+                } else {
+                    for (String day : scheduledDays.split(",")) {
+                        if (day.trim().equals(String.valueOf(dayIndex))) {
+                            total++;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (total == 0) return 25;
+        int completed = db.dailyLogDao().getTodayCompletedCountSync(date);
         return Math.round(25f * completed / total);
     }
 
@@ -60,10 +94,8 @@ public class HealthScoreCalculator {
     }
 
     private static int calcSleep(AppDatabase db, long today, long dayEnd) {
+        // 修复 bug：去除回退查询昨天睡眠记录的逻辑。当天如无记录，睡眠得分为 0，防止分数虚高
         List<SleepRecord> sleeps = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today, dayEnd);
-        if (sleeps == null || sleeps.isEmpty()) {
-            sleeps = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today - 86400000L, today);
-        }
         if (sleeps == null || sleeps.isEmpty()) return 0;
         float totalH = 0;
         for (SleepRecord s : sleeps) totalH += s.getDuration() / 3600f;
@@ -93,10 +125,13 @@ public class HealthScoreCalculator {
         return Math.round(10f * done / habits.size());
     }
 
-    private static int calcWeight(AppDatabase db, Context context) {
+    private static int calcWeight(AppDatabase db, Context context, long date) {
         User user = db.userDao().getUserSync();
         if (user == null || user.getWeight() <= 0) return 0;
-        List<WeightRecord> records = db.weightRecordDao().getRecentRecordsSync(7);
+        // Use records within 7 days before the target date for historical accuracy
+        long weekAgo = date - 7 * 86400000L;
+        long dayEnd = date + 86400000L;
+        List<WeightRecord> records = db.weightRecordDao().getRecordsByDateRangeSync(weekAgo, dayEnd);
         if (records == null || records.size() < 2) return 3;
         float recent = records.get(0).getWeight();
         float prev = records.get(records.size() - 1).getWeight();

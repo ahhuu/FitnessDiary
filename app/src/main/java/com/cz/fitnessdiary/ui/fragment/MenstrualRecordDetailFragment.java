@@ -171,7 +171,7 @@ public class MenstrualRecordDetailFragment extends Fragment {
                         r.getId(), title,
                         flowName,
                         duration + "天",
-                        r.getNotes(), 0, r));
+                        r.getNotes(), R.drawable.ic_hero_menstrual, r));
             }
         }
         adapter.submitList(items);

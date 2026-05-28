@@ -148,8 +148,8 @@ public class BowelMovementDetailFragment extends Fragment {
                 items.add(new DetailRecordAdapter.Item(
                         r.getId(), bristolName,
                         sdf.format(new Date(r.getTimestamp())),
-                        (r.getDurationSeconds() > 0 ? r.getDurationSeconds() + "秒" : ""),
-                        subtitle, 0, r));
+                        (r.getDurationSeconds() > 0 ? r.getDurationSeconds() + "分钟" : ""),
+                        subtitle, R.drawable.ic_hero_bowel, r));
             }
         }
         adapter.submitList(items);

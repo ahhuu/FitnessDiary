@@ -7,11 +7,12 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.ColorUtils;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
@@ -22,11 +23,8 @@ import com.cz.fitnessdiary.databinding.FragmentMainHomeBinding;
 import com.cz.fitnessdiary.model.AchievementUnlockEvent;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * 主页大容器 - 支持左右滑动切换四大核心功能
+ * 主页大容器 - 支持左右滑动切换五大核心功能（自定义精美底部导航）
  */
 public class MainHomeFragment extends Fragment {
 
@@ -56,6 +54,8 @@ public class MainHomeFragment extends Fragment {
         setupBottomNavigation();
         setupGlobalNotice();
         observeAchievementEvents();
+        // 初始高亮第一页（记录）
+        updateBottomNavTheme(TAB_CHECKIN);
     }
 
     @Override
@@ -95,110 +95,106 @@ public class MainHomeFragment extends Fragment {
 
         binding.viewPager.setAdapter(adapter);
 
-        // 预加载所有主页面，避免底部 Tab / 横滑切换时重新创建复杂页面导致明显卡顿。
+        // 预加载所有主页面，避免 Tab 频繁切换卡顿
         binding.viewPager.setOffscreenPageLimit(4);
 
-        // 滑动监听：同步底部导航
+        // 滑动监听：同步底部导航的高亮
         binding.viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
-                int itemId;
-                switch (position) {
-                    case 0:
-                        itemId = R.id.checkInFragment;
-                        break;
-                    case 1:
-                        itemId = R.id.planFragment;
-                        break;
-                    case 2:
-                        itemId = R.id.dietFragment;
-                        break;
-                    case 3:
-                        itemId = R.id.aiChatFragment;
-                        break;
-                    case 4:
-                        itemId = R.id.profileFragment;
-                        break;
-                    default:
-                        return;
-                }
-                // 仅在 ID 不同时更新，防止触发冗余监听
-                if (binding.bottomNav.getSelectedItemId() != itemId) {
-                    binding.bottomNav.setSelectedItemId(itemId);
-                }
                 updateBottomNavTheme(position);
             }
         });
     }
 
+    /**
+     * 初始化自定义底部导航栏的卡座点击事件
+     */
     private void setupBottomNavigation() {
-        updateBottomNavTheme(TAB_CHECKIN);
-        // 点击监听：同步 ViewPager2
-        binding.bottomNav.setOnItemSelectedListener(item -> {
-            int itemId = item.getItemId();
-            int targetPos = -1;
-            if (itemId == R.id.checkInFragment)
-                targetPos = TAB_CHECKIN;
-            else if (itemId == R.id.planFragment)
-                targetPos = TAB_PLAN;
-            else if (itemId == R.id.dietFragment)
-                targetPos = TAB_DIET;
-            else if (itemId == R.id.aiChatFragment)
-                targetPos = TAB_AI;
-            else if (itemId == R.id.profileFragment)
-                targetPos = TAB_PROFILE;
-
-            // 仅在位置不同时滚动，防止重复触发
-            if (targetPos != -1 && binding.viewPager.getCurrentItem() != targetPos) {
-                binding.viewPager.setCurrentItem(targetPos, true);
-            }
-            if (targetPos != -1) {
-                updateBottomNavTheme(targetPos);
-            }
-            return targetPos != -1;
-        });
-    }
-
-    private void updateBottomNavTheme(int tabIndex) {
-        if (binding == null || getContext() == null) {
-            return;
-        }
-        int checkedColor = getTabThemeColor(tabIndex);
-        int uncheckedColor = ContextCompat.getColor(requireContext(), R.color.text_secondary);
-
-        int[][] states = new int[][] {
-                new int[] { android.R.attr.state_checked },
-                new int[] {}
-        };
-        int[] colors = new int[] { checkedColor, uncheckedColor };
-        ColorStateList navStateList = new ColorStateList(states, colors);
-        binding.bottomNav.setItemIconTintList(navStateList);
-        binding.bottomNav.setItemTextColor(navStateList);
-
-        int indicatorColor = ColorUtils.setAlphaComponent(checkedColor, 34);
-        binding.bottomNav.setItemActiveIndicatorColor(ColorStateList.valueOf(indicatorColor));
-    }
-
-    private int getTabThemeColor(int tabIndex) {
-        if (tabIndex == TAB_CHECKIN) {
-            return ContextCompat.getColor(requireContext(), R.color.fitnessdiary_primary);
-        }
-        if (tabIndex == TAB_PLAN) {
-            return ContextCompat.getColor(requireContext(), R.color.plan_blue_primary);
-        }
-        if (tabIndex == TAB_DIET) {
-            return ContextCompat.getColor(requireContext(), R.color.diet_primary);
-        }
-        if (tabIndex == TAB_AI) {
-            return ContextCompat.getColor(requireContext(), R.color.ai_primary);
-        }
-        return ContextCompat.getColor(requireContext(), R.color.text_primary);
+        binding.tabCheckin.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_CHECKIN, true));
+        binding.tabPlan.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_PLAN, true));
+        binding.tabDiet.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_DIET, true));
+        binding.tabAi.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_AI, true));
+        binding.tabProfile.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_PROFILE, true));
     }
 
     /**
-     * 切换到指定的 Tab
-     * 
+     * 动态渲染自定义 Tab 的选中和未选中视觉效果
+     */
+    private void updateBottomNavTheme(int activeIndex) {
+        if (binding == null || getContext() == null) {
+            return;
+        }
+
+        // 选中和未选中的色彩
+        int colorSelected = ContextCompat.getColor(requireContext(), R.color.text_primary);
+        int colorUnselected = ContextCompat.getColor(requireContext(), R.color.text_secondary);
+
+        // 遍历更新所有 Tab Item 的视图
+        updateSingleTabState(TAB_CHECKIN, activeIndex == TAB_CHECKIN, colorSelected, colorUnselected);
+        updateSingleTabState(TAB_PLAN, activeIndex == TAB_PLAN, colorSelected, colorUnselected);
+        updateSingleTabState(TAB_DIET, activeIndex == TAB_DIET, colorSelected, colorUnselected);
+        updateSingleTabState(TAB_AI, activeIndex == TAB_AI, colorSelected, colorUnselected);
+        updateSingleTabState(TAB_PROFILE, activeIndex == TAB_PROFILE, colorSelected, colorUnselected);
+    }
+
+    /**
+     * 更新单个 Tab 状态
+     */
+    private void updateSingleTabState(int index, boolean isSelected, int selectedColor, int unselectedColor) {
+        View pillView;
+        ImageView iconView;
+        TextView textView;
+
+        switch (index) {
+            case TAB_CHECKIN:
+                pillView = binding.tabCheckinPill;
+                iconView = binding.tabCheckinIcon;
+                textView = binding.tabCheckinText;
+                break;
+            case TAB_PLAN:
+                pillView = binding.tabPlanPill;
+                iconView = binding.tabPlanIcon;
+                textView = binding.tabPlanText;
+                break;
+            case TAB_DIET:
+                pillView = binding.tabDietPill;
+                iconView = binding.tabDietIcon;
+                textView = binding.tabDietText;
+                break;
+            case TAB_AI:
+                pillView = binding.tabAiPill;
+                iconView = binding.tabAiIcon;
+                textView = binding.tabAiText;
+                break;
+            case TAB_PROFILE:
+                pillView = binding.tabProfilePill;
+                iconView = binding.tabProfileIcon;
+                textView = binding.tabProfileText;
+                break;
+            default:
+                return;
+        }
+
+        if (isSelected) {
+            // 选中状态：显示胶囊高亮背景，文字和图标变成主色调
+            pillView.setBackgroundResource(R.drawable.bg_nav_selected_pill);
+            iconView.setImageTintList(ColorStateList.valueOf(selectedColor));
+            textView.setTextColor(selectedColor);
+            iconView.setSelected(true);
+        } else {
+            // 未选中状态：透明背景，文字和图标为次要灰褐色
+            pillView.setBackground(null);
+            iconView.setImageTintList(ColorStateList.valueOf(unselectedColor));
+            textView.setTextColor(unselectedColor);
+            iconView.setSelected(false);
+        }
+    }
+
+    /**
+     * 切换到指定的 Tab（提供给子页面/其它组件调用）
+     *
      * @param position 0=记录, 1=计划, 2=饮食, 3=AI, 4=我的
      */
     public void switchToTab(int position) {

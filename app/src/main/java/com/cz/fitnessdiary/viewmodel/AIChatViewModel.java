@@ -206,12 +206,23 @@ public class AIChatViewModel extends AndroidViewModel {
             sessionId = 1L;
         final long finalSessionId = sessionId;
 
-        // 如果是新对话，更新标题
+        // 如果是新对话，更新标题；如果对话不存在，则在此处主动建立该会话，保障一致性
         new Thread(() -> {
-            ChatSessionEntity session = repository.sessionDao.getSessionById(finalSessionId);
-            if (session != null && "新对话".equals(session.getTitle())) {
-                session.setTitle(content.length() > 20 ? content.substring(0, 20) + "..." : content);
-                repository.updateSession(session);
+            try {
+                ChatSessionEntity session = repository.sessionDao.getSessionById(finalSessionId);
+                if (session == null) {
+                    ChatSessionEntity newSession = new ChatSessionEntity(
+                            content.length() > 20 ? content.substring(0, 20) + "..." : content,
+                            System.currentTimeMillis()
+                    );
+                    newSession.setId(finalSessionId);
+                    repository.sessionDao.insert(newSession);
+                } else if ("新对话".equals(session.getTitle())) {
+                    session.setTitle(content.length() > 20 ? content.substring(0, 20) + "..." : content);
+                    repository.updateSession(session);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }).start();
 
@@ -232,7 +243,7 @@ public class AIChatViewModel extends AndroidViewModel {
             List<ChatMessageEntity> allMessages = repository.getMessagesBySessionSync(finalSessionId);
             List<ChatMessageEntity> history = trimHistory(allMessages);
 
-            // 智能调度：图片走千问，纯文本走 DeepSeek
+            // 智能调度：图片走千问，纯文本走 DeepSeek-V4
             if (image != null) {
                 sendToQwen(content, systemInstruction, image, history);
             } else if (Boolean.TRUE.equals(isDeepThinking.getValue())) {
@@ -300,7 +311,8 @@ public class AIChatViewModel extends AndroidViewModel {
 
     private void sendToDeepSeek(final String content, final String systemInstruction, boolean thinking,
             List<ChatMessageEntity> history) {
-        currentThinkingModel.postValue(thinking ? "DeepSeek-R1" : "DeepSeek-V3");
+        // 升级为最新的 V4 提示名称
+        currentThinkingModel.postValue(thinking ? "DeepSeek-V4-Pro" : "DeepSeek-V4-Flash");
         com.cz.fitnessdiary.service.DeepSeekService.sendMessage(content, systemInstruction, thinking, history,
                 new AICallback() {
                     @Override
@@ -362,5 +374,3 @@ public class AIChatViewModel extends AndroidViewModel {
         isLoading.setValue(false);
     }
 }
-
-

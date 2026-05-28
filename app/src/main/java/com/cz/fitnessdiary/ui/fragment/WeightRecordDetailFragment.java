@@ -249,7 +249,7 @@ public class WeightRecordDetailFragment extends Fragment {
                         format.format(new Date(record.getTimestamp())),
                         String.format(Locale.getDefault(), "%.1f kg", record.getWeight()),
                         record.getNote() == null ? "点击编辑，长按删除" : record.getNote(),
-                        R.drawable.ic_hero_dumbbell,
+                        R.drawable.ic_hero_weight,
                         record));
             }
         }

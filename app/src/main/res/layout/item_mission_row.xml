@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingVertical="5dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- 3D 拟物状态选择框 -->
+    <CheckBox
+        android:id="@+id/cb_mission"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:button="@null"
+        android:background="@drawable/selector_checkbox_3d"
+        android:clickable="false"
+        android:focusable="false" />
+
+    <!-- 任务标题文本 -->
+    <TextView
+        android:id="@+id/tv_mission_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary" />
+</LinearLayout>

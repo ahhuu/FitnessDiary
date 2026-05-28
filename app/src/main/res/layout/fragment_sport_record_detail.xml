@@ -104,17 +104,11 @@
                     android:layout_width="100dp"
                     android:layout_height="100dp">
 
-                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                    <com.cz.fitnessdiary.ui.widget.GradientCircularProgressView
                         android:id="@+id/progress_today_circle"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center"
-                        android:progress="0"
-                        app:indicatorColor="@color/fitnessdiary_primary"
-                        app:indicatorSize="90dp"
-                        app:trackColor="#1A607D8B"
-                        app:trackCornerRadius="4dp"
-                        app:trackThickness="8dp" />
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        android:layout_gravity="center" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"

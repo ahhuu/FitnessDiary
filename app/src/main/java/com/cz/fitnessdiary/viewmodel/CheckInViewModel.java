@@ -45,21 +45,13 @@ public class CheckInViewModel extends AndroidViewModel {
         allLogs = dailyLogRepository.getAllLogs();
         executorService = Executors.newSingleThreadExecutor();
 
-        // 初始化记录日期集合 (用于日历高亮 - v1.2: 仅高亮全勤日)
+        // 初始化记录日期集合 (综合: 有任意运动记录的日期)
         recordedDates = androidx.lifecycle.Transformations.switchMap(dailyLogRepository.getAllLogs(),
                 logs -> androidx.lifecycle.Transformations.map(trainingPlanRepository.getAllPlans(), allPlans -> {
                     java.util.Set<Long> dates = new java.util.HashSet<>();
-                    if (logs != null && allPlans != null) {
-                        // 提取所有涉及的日期
-                        java.util.Set<Long> potentialDates = new java.util.HashSet<>();
+                    if (logs != null) {
                         for (DailyLog log : logs) {
-                            potentialDates.add(DateUtils.getUtcDayStartTimestamp(log.getDate()));
-                        }
-                        // 检查每一天是否全勤
-                        for (Long date : potentialDates) {
-                            if (isFullAttendanceUtc(date, logs, allPlans)) {
-                                dates.add(date);
-                            }
+                            dates.add(DateUtils.getDayStartTimestamp(log.getDate()));
                         }
                     }
                     return dates;

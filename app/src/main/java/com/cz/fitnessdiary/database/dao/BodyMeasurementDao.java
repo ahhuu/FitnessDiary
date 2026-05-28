@@ -44,6 +44,9 @@ public interface BodyMeasurementDao {
     @Query("SELECT * FROM body_measurement WHERE timestamp >= :startTs AND timestamp < :endTs ORDER BY timestamp ASC")
     List<BodyMeasurement> getByDateRangeSync(long startTs, long endTs);
 
+    @Query("SELECT * FROM body_measurement ORDER BY timestamp DESC LIMIT 1")
+    BodyMeasurement getLatestSync(); // 增加获取全表最近一条围度记录的方法
+
     @Query("SELECT DISTINCT measurement_type FROM body_measurement")
     LiveData<List<String>> getDistinctTypes();
 }

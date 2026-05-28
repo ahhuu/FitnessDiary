@@ -3,20 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:background="#FAF9F5"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="14dp">
 
+    <!-- 弹窗副标题提示 -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp"
         android:text="长按并拖拽可调整卡片位置"
         android:textColor="@color/text_secondary"
-        android:textSize="12sp" />
+        android:textSize="12sp"
+        android:textStyle="normal" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_edit_cards"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:overScrollMode="never" />
+        android:overScrollMode="never"
+        android:paddingBottom="8dp" />
 
 </LinearLayout>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 下凹底槽的左上阴影线 -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="4dp" />
+            <solid android:color="#1C000000" />
+        </shape>
+    </item>
+    <!-- 下凹底槽的右下白色反光 -->
+    <item android:left="0.8dp" android:top="0.8dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="4dp" />
+            <solid android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+    <!-- 凹坑内底填充面 -->
+    <item android:left="0.8dp" android:top="0.8dp" android:right="0.8dp" android:bottom="0.8dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="4dp" />
+            <solid android:color="#EDE9E0" />
+        </shape>
+    </item>
+</layer-list>

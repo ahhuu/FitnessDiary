@@ -72,6 +72,7 @@ public class DietFragment extends Fragment {
     private DietViewModel viewModel;
     private ExecutorService executorService;
     private ExecutorService imageExecutorService;
+    private java.util.Set<Long> cachedDietRecordedDates = new java.util.HashSet<>();
 
 
     private Uri photoUri;
@@ -182,6 +183,13 @@ public class DietFragment extends Fragment {
         binding.btnBarcodeScan.setOnClickListener(v -> launchBarcodeScanner());
         binding.btnFoodScan.setOnClickListener(v -> showImageSourcePicker());
 
+        // AI 快捷召唤徽章点击事件
+        if (binding.btnAiQuick != null) {
+            binding.btnAiQuick.setOnClickListener(v -> {
+                QuickAiChatBottomSheet.newInstance().show(getParentFragmentManager(), "QUICK_AI_CHAT");
+            });
+        }
+
         // 绑定卡片添加按钮监听
         setupCardListeners();
     }
@@ -194,33 +202,23 @@ public class DietFragment extends Fragment {
         if (currentSelection == null)
             currentSelection = System.currentTimeMillis();
 
-        // 获取有记录的日期集合
-        Set<Long> recordedDates = viewModel.getRecordedDates().getValue();
-        if (recordedDates == null)
-            recordedDates = new HashSet<>();
-
-        // 创建装饰器：为有记录的日期添加绿色下划点
-        final Set<Long> finalRecordedDates = recordedDates;
+        final Set<Long> finalRecordedDates = cachedDietRecordedDates;
         DayViewDecorator decorator = new DayViewDecorator() {
             @Nullable
             @Override
             public Drawable getCompoundDrawableBottom(android.content.Context context, int year, int month, int day,
                     boolean valid, boolean selected) {
-                // MaterialDatePicker 的装饰器回调是基于 UTC 的年月日
-                // 我们构造一个 UTC 0点的时间戳进行匹配
                 java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
-                cal.set(year, month, day, 0, 0, 0);
+                cal.set(year, month, day, 12, 0, 0);
                 cal.set(java.util.Calendar.MILLISECOND, 0);
-                long utcStart = cal.getTimeInMillis();
+                long dayStart = DateUtils.getDayStartTimestamp(cal.getTimeInMillis());
 
-                // 同时考虑到本地存储的时间戳可能是本地 0点，这里做一个兼容或转换逻辑
-                // 暂时假设 finalRecordedDates 包含的是 UTC 0点的时间戳 (我们在 ViewModel 中会做对齐)
-                if (finalRecordedDates.contains(utcStart)) {
+                if (finalRecordedDates.contains(dayStart)) {
                     GradientDrawable dot = new GradientDrawable();
                     dot.setShape(GradientDrawable.OVAL);
-                    dot.setSize(12, 12);
                     dot.setColor(ContextCompat.getColor(requireContext(), R.color.color_success));
-                    return new InsetDrawable(dot, 0, 0, 0, 4);
+                    dot.setBounds(0, 0, 24, 24);
+                    return dot;
                 }
                 return null;
             }
@@ -544,10 +542,14 @@ public class DietFragment extends Fragment {
             }
         });
 
+        // 预加载有饮食记录的日期
+        viewModel.getRecordedDates().observe(getViewLifecycleOwner(), d -> {
+            if (d != null) cachedDietRecordedDates = d;
+        });
+
         // 1. 观察用户信息 (核心：作为所有计算的目标基准)
         viewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
-                // 用户信息加载后，立即刷新所有相关 UI
                 refreshAllSummaryUI(user);
             }
         });

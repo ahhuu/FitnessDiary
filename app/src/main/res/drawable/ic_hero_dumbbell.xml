@@ -1,39 +1,127 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="64dp"
-    android:height="64dp"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="30dp"
+    android:height="30dp"
     android:viewportWidth="64"
     android:viewportHeight="64">
-    
+
     <!-- 哑铃杆 -->
     <path
-        android:fillColor="#00BCD4"
-        android:pathData="M18,28 L46,28 L46,36 L18,36 Z" />
-    
-    <!-- 左侧哑铃片（外层） -->
+        android:pathData="M16,29h32v6H16z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="29"
+                android:startX="16"
+                android:endY="35"
+                android:endX="16"
+                android:type="linear">
+                <item android:offset="0" android:color="#788896" />
+                <item android:offset="0.3" android:color="#BFCAD6" />
+                <item android:offset="0.7" android:color="#5C6E7E" />
+                <item android:offset="1" android:color="#3A4854" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 左内哑铃片 -->
     <path
-        android:fillColor="#00BCD4"
-        android:pathData="M10,20 L18,20 L18,44 L10,44 Z" />
-    
-    <!-- 左侧哑铃片（内层） -->
+        android:pathData="M12,18h4a2,2 0 0 1 2,2v24a2,2 0 0 1 -2,2h-4a2,2 0 0 1 -2,-2V20a2,2 0 0 1 2,-2z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="18"
+                android:startX="10"
+                android:endY="46"
+                android:endX="18"
+                android:type="linear">
+                <item android:offset="0" android:color="#9FB2C4" />
+                <item android:offset="0.4" android:color="#60768C" />
+                <item android:offset="1" android:color="#2C3B4A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 左外哑铃片 -->
     <path
-        android:fillColor="#1976D2"
-        android:pathData="M6,24 L10,24 L10,40 L6,40 Z" />
-    
-    <!-- 右侧哑铃片（外层） -->
+        android:pathData="M6,22h4a2,2 0 0 1 2,2v16a2,2 0 0 1 -2,2H6a2,2 0 0 1 -2,-2V24a2,2 0 0 1 2,-2z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="22"
+                android:startX="4"
+                android:endY="42"
+                android:endX="12"
+                android:type="linear">
+                <item android:offset="0" android:color="#B2C2D1" />
+                <item android:offset="0.5" android:color="#6D849C" />
+                <item android:offset="1" android:color="#334454" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 右内哑铃片 -->
     <path
-        android:fillColor="#00BCD4"
-        android:pathData="M46,20 L54,20 L54,44 L46,44 Z" />
-    
-    <!-- 右侧哑铃片（内层） -->
+        android:pathData="M46,18h4a2,2 0 0 1 2,2v24a2,2 0 0 1 -2,2h-4a2,2 0 0 1 -2,-2V20a2,2 0 0 1 2,-2z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="18"
+                android:startX="44"
+                android:endY="46"
+                android:endX="52"
+                android:type="linear">
+                <item android:offset="0" android:color="#9FB2C4" />
+                <item android:offset="0.4" android:color="#60768C" />
+                <item android:offset="1" android:color="#2C3B4A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 右外哑铃片 -->
     <path
-        android:fillColor="#1976D2"
-        android:pathData="M54,24 L58,24 L58,40 L54,40 Z" />
-    
-    <!-- 手臂（简化表示） -->
+        android:pathData="M52,22h4a2,2 0 0 1 2,2v16a2,2 0 0 1 -2,2h-4a2,2 0 0 1 -2,-2V24a2,2 0 0 1 2,-2z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="22"
+                android:startX="50"
+                android:endY="42"
+                android:endX="58"
+                android:type="linear">
+                <item android:offset="0" android:color="#B2C2D1" />
+                <item android:offset="0.5" android:color="#6D849C" />
+                <item android:offset="1" android:color="#334454" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 左阻挡环 -->
     <path
-        android:fillColor="#B0BEC5"
-        android:strokeWidth="2"
-        android:strokeColor="#78909C"
-        android:pathData="M32,36 Q28,42 24,48 L28,50 Q32,44 32,36 Z" />
+        android:pathData="M18,26h2v12h-2z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="26"
+                android:startX="18"
+                android:endY="38"
+                android:endX="20"
+                android:type="linear">
+                <item android:offset="0" android:color="#B5C4D4" />
+                <item android:offset="1" android:color="#4B5C6C" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 右阻挡环 -->
+    <path
+        android:pathData="M44,26h2v12h-2z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="26"
+                android:startX="44"
+                android:endY="38"
+                android:endX="46"
+                android:type="linear">
+                <item android:offset="0" android:color="#B5C4D4" />
+                <item android:offset="1" android:color="#4B5C6C" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
 </vector>

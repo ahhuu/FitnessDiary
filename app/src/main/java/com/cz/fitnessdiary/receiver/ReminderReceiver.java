@@ -99,7 +99,20 @@ public class ReminderReceiver extends BroadcastReceiver {
             String content = com.cz.fitnessdiary.utils.WeeklyReportHelper.getSummary(appContext);
             showNotification(appContext, 3004, title, content, "WEEKLY_REPORT", 0L, CHANNEL_SMART);
             ReminderManager.scheduleWeeklyReport(appContext);
+            return;
         }
+
+        if (ReminderManager.ACTION_SMART_WELCOME.equals(action)) {
+            String morningTime = String.format("%02d:%02d",
+                    ReminderManager.getMorningHour(appContext),
+                    ReminderManager.getMorningMinute(appContext));
+            String eveningTime = String.format("%02d:%02d",
+                    ReminderManager.getEveningHour(appContext),
+                    ReminderManager.getEveningMinute(appContext));
+            String content = "早晨概要 " + morningTime + " · 晚间提醒 " + eveningTime + " · 周报 · 不活跃挽留 已全部启动 🎉";
+            showNotification(appContext, 3009, "智能助手已启动 🚀", content, null, 0L, CHANNEL_SMART);
+        }
+
     }
 
     private void showNotification(Context context, int notifyId, String title, String content,
@@ -123,8 +136,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setSmallIcon(R.drawable.ic_nav_checkin_filled)
                 .setContentTitle(title)
                 .setContentText(content)
-                .setPriority(channelId.equals(CHANNEL_SMART) ?
-                        NotificationCompat.PRIORITY_DEFAULT : NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_HIGH) // 设定为高优先级，确保能横幅弹出并发出声音
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setAutoCancel(true)
@@ -151,7 +163,7 @@ public class ReminderReceiver extends BroadcastReceiver {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_SMART,
                     "智能健康提醒",
-                    NotificationManager.IMPORTANCE_DEFAULT);
+                    NotificationManager.IMPORTANCE_HIGH); // 提升为 HIGH
             channel.setDescription("早晨概要、晚间提醒、不活跃挽留、周报推送");
             channel.enableVibration(true);
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);

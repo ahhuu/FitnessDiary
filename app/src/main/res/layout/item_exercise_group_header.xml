@@ -3,42 +3,61 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="4dp"
-    android:layout_marginBottom="4dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="0dp"
-    app:strokeColor="@color/divider"
-    app:strokeWidth="1dp">
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="3dp"
+    app:cardBackgroundColor="@android:color/transparent"
+    app:strokeWidth="0dp"
+    android:outlineSpotShadowColor="#1A4E483F"
+    android:outlineAmbientShadowColor="#1A4E483F">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_card_3d_template"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp">
-
-        <ImageView
-            android:id="@+id/iv_expand_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:contentDescription="展开"
-            android:src="@drawable/ic_expand_more" />
+        android:padding="16dp">
 
         <TextView
             android:id="@+id/tv_group_name"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
             android:textColor="@color/text_primary"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_count"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_tag_sunken"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="3dp"
+            android:textColor="@color/plan_blue_primary"
+            android:textSize="11sp" />
+
+        <!-- 3D 圆形指示箭头内凹底座，作为折叠旋钮 -->
+        <FrameLayout
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_circle_sunken">
+
+            <ImageView
+                android:id="@+id/iv_expand_icon"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_expand_more"
+                android:contentDescription="展开"
+                app:tint="@color/plan_blue_primary" />
+        </FrameLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

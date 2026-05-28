@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 下凹的轨道背景 (Sunken track) -->
+    <item android:id="@android:id/background">
+        <layer-list>
+            <!-- 1. 右下亮高光 -->
+            <item android:left="0.5dp" android:top="0.5dp" android:right="0dp" android:bottom="0dp">
+                <shape>
+                    <corners android:radius="100dp"/>
+                    <solid android:color="#FFFFFF"/>
+                </shape>
+            </item>
+            <!-- 2. 左上阴影 -->
+            <item android:left="0dp" android:top="0dp" android:right="0.5dp" android:bottom="0.5dp">
+                <shape>
+                    <corners android:radius="100dp"/>
+                    <solid android:color="#C6BEB5"/>
+                </shape>
+            </item>
+            <!-- 3. 中央凹陷槽填充 -->
+            <item android:left="0.8dp" android:top="0.8dp" android:right="0.8dp" android:bottom="0.8dp">
+                <shape>
+                    <corners android:radius="100dp"/>
+                    <solid android:color="#E6E2D8"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <!-- 进度填充条 -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <corners android:radius="100dp"/>
+                <gradient
+                    android:startColor="@color/sport_gradient_start"
+                    android:endColor="@color/sport_gradient_end"
+                    android:angle="0"/>
+            </shape>
+        </clip>
+    </item>
+</layer-list>

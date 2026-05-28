@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout 
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -9,13 +9,18 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:clipToPadding="false"
+        android:paddingBottom="100dp"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="32dp">
 
         <!-- 日期导航控制条 (归一化视觉对齐) -->
         <LinearLayout
@@ -61,154 +66,167 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/fitnessdiary_surface"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/diet_stroke"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp"
+            android:outlineSpotShadowColor="#264E3F35"
+            android:outlineAmbientShadowColor="#264E3F35"
             android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_3d_diet"
+                android:padding="16dp">
 
+                <!-- 第一行：大数字 + 火焰图标 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="4dp">
+
+                    <!-- 大数字 -->
+                    <TextView
+                        android:id="@+id/tv_total_calories"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="0"
+                        android:textSize="56sp"
+                        android:textColor="@color/diet_primary"
+                        android:textStyle="bold" />
+
+                    <!-- AI 快捷召唤徽章 -->
+                    <ImageButton
+                        android:id="@+id/btn_ai_quick"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="12dp"
+                        android:background="@drawable/bg_circle_sunken"
+                        android:src="@drawable/ic_brain"
+                        app:tint="@color/ai_primary"
+                        android:contentDescription="AI 助手"
+                        android:padding="8dp" />
+
+                    <!-- 火焰图标 -->
+                    <ImageView
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:src="@drawable/ic_hero_diet"
+                        android:contentDescription="饮食图标" />
+                </LinearLayout>
+
+                <!-- 第二行：单位描述 + 进度条 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <!-- 第一行：大数字 + 火焰图标 -->
+                    <!-- 单位和描述 -->
+                    <TextView
+                        android:id="@+id/tv_calories_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="千卡 · 今日已摄入"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 进度条 (Material 3) -->
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_calories"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        app:trackCornerRadius="3dp"
+                        app:indicatorColor="@color/diet_primary"
+                        app:trackColor="@color/diet_track"
+                        android:max="100"
+                        android:progress="0"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 宏量营养素进度条 (双列) - 嵌入凹槽仪表槽 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="4dp">
+                        android:background="@drawable/bg_diet_stats_sunken"
+                        android:paddingVertical="12dp"
+                        android:paddingHorizontal="14dp"
+                        android:baselineAligned="false">
 
-                        <!-- 大数字 -->
-                        <TextView
-                            android:id="@+id/tv_total_calories"
+                        <!-- 蛋白质进度 -->
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="0"
-                            android:textSize="56sp"
-                            android:textColor="@color/diet_primary"
-                            android:textStyle="bold" />
-
-                        <!-- 火焰图标 -->
-                        <ImageView
-                            android:layout_width="64dp"
-                            android:layout_height="64dp"
-                            android:src="@drawable/ic_hero_diet"
-                            android:contentDescription="饮食图标" />
-                    </LinearLayout>
-
-                    <!-- 第二行：单位描述 + 进度条 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <!-- 单位和描述 -->
-                        <TextView
-                            android:id="@+id/tv_calories_subtitle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="千卡 · 今日已摄入"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginBottom="12dp" />
-
-                        <!-- 进度条 (Material 3) -->
-                        <com.google.android.material.progressindicator.LinearProgressIndicator
-                            android:id="@+id/progress_calories"
-                            android:layout_width="match_parent"
-                            android:layout_height="6dp"
-                            app:trackCornerRadius="3dp"
-                            app:indicatorColor="@color/diet_primary"
-                            app:trackColor="@color/diet_track"
-                            android:max="100"
-                            android:progress="0"
-                            android:layout_marginBottom="8dp" />
-
-                        <!-- 宏量营养素进度条 (双列) -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:baselineAligned="false">
-
-                            <!-- 蛋白质进度 -->
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical"
-                                android:layout_marginEnd="8dp">
+                            android:orientation="vertical"
+                            android:layout_marginEnd="10dp"
+                            android:padding="0dp">
+                            
+                            <com.google.android.material.progressindicator.LinearProgressIndicator
+                                android:id="@+id/progress_protein"
+                                android:layout_width="match_parent"
+                                android:layout_height="6dp"
+                                app:trackCornerRadius="3dp"
+                                app:indicatorColor="@color/diet_protein_indicator"
+                                app:trackColor="@color/diet_protein_track"
+                                android:max="100"
+                                android:progress="0"
+                                android:layout_marginBottom="4dp" />
                                 
-                                <com.google.android.material.progressindicator.LinearProgressIndicator
-                                    android:id="@+id/progress_protein"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="6dp"
-                                    app:trackCornerRadius="3dp"
-                                    app:indicatorColor="@color/diet_protein_indicator"
-                                    app:trackColor="@color/diet_protein_track"
-                                    android:max="100"
-                                    android:progress="0"
-                                    android:layout_marginBottom="2dp" />
-                                    
-                                <TextView
-                                    android:id="@+id/tv_protein_status"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="蛋白质: 0/0"
-                                    android:textSize="10sp"
-                                    android:textColor="@color/text_secondary"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <!-- 碳水进度 -->
-                            <LinearLayout
-                                android:layout_width="0dp"
+                            <TextView
+                                android:id="@+id/tv_protein_status"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical"
-                                android:layout_marginStart="8dp">
+                                android:text="蛋白质: 0/0"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary"
+                                android:textStyle="bold" />
+                        </LinearLayout>
 
-                                <com.google.android.material.progressindicator.LinearProgressIndicator
-                                    android:id="@+id/progress_carbs"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="6dp"
-                                    app:trackCornerRadius="3dp"
-                                    app:indicatorColor="@color/diet_carbs_indicator"
-                                    app:trackColor="@color/diet_carbs_track"
-                                    android:max="100"
-                                    android:progress="0"
-                                    android:layout_marginBottom="2dp" />
+                        <!-- 碳水进度 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="10dp"
+                            android:padding="0dp">
 
-                                <TextView
-                                    android:id="@+id/tv_carbs_status"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="碳水: 0/0"
-                                    android:textSize="10sp"
-                                    android:textColor="@color/text_secondary"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
+                            <com.google.android.material.progressindicator.LinearProgressIndicator
+                                android:id="@+id/progress_carbs"
+                                android:layout_width="match_parent"
+                                android:layout_height="6dp"
+                                app:trackCornerRadius="3dp"
+                                app:indicatorColor="@color/diet_carbs_indicator"
+                                app:trackColor="@color/diet_carbs_track"
+                                android:max="100"
+                                android:progress="0"
+                                android:layout_marginBottom="4dp" />
 
+                            <TextView
+                                android:id="@+id/tv_carbs_status"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="碳水: 0/0"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary"
+                                android:textStyle="bold" />
                         </LinearLayout>
 
                     </LinearLayout>
+
                 </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 中部：餐点网格 (2x2) -->
+        <!-- 中部：餐点网格 (2x2) - 固定高度避免挤压变形 -->
         <GridLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -224,9 +242,8 @@
                 android:id="@+id/card_breakfast"
                 layout="@layout/include_meal_card"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="130dp"
                 android:layout_columnWeight="1"
-                android:layout_rowWeight="1"
                 android:layout_margin="6dp" />
 
             <!-- 午餐 -->
@@ -234,9 +251,8 @@
                 android:id="@+id/card_lunch"
                 layout="@layout/include_meal_card"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="130dp"
                 android:layout_columnWeight="1"
-                android:layout_rowWeight="1"
                 android:layout_margin="6dp" />
 
             <!-- 晚餐 -->
@@ -244,9 +260,8 @@
                 android:id="@+id/card_dinner"
                 layout="@layout/include_meal_card"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="130dp"
                 android:layout_columnWeight="1"
-                android:layout_rowWeight="1"
                 android:layout_margin="6dp" />
 
             <!-- 加餐 -->
@@ -254,30 +269,32 @@
                 android:id="@+id/card_snack"
                 layout="@layout/include_meal_card"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="130dp"
                 android:layout_columnWeight="1"
-                android:layout_rowWeight="1"
                 android:layout_margin="6dp" />
 
         </GridLayout>
         
-        <!-- 底部：食物百科入口 -->
+        <!-- 底部：食物百科入口 (3D 浮雕化) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_food_wiki"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/fitnessdiary_surface"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/diet_stroke"
+            app:cardElevation="3dp"
+            app:strokeWidth="0dp"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:outlineSpotShadowColor="#1A4E3F35"
+            android:outlineAmbientShadowColor="#1A4E3F35">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:background="@drawable/bg_card_3d_meal"
                 android:padding="16dp"
                 android:gravity="center_vertical">
                 
@@ -305,7 +322,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="16dp"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
@@ -361,6 +378,4 @@
         android:id="@+id/view_food_scan_flow"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
-
-
+</FrameLayout>

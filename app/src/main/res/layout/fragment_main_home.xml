@@ -4,14 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- ViewPager2 核心容器 -->
+    <!-- ViewPager2 核心页面滑动容器 -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/view_pager"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/bottom_nav_container"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- 全局新成就解锁/消息卡片 -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_global_notice"
         android:layout_width="0dp"
@@ -21,9 +22,8 @@
         android:visibility="gone"
         app:cardBackgroundColor="@color/fitnessdiary_surface"
         app:cardCornerRadius="18dp"
-        app:cardElevation="2dp"
-        app:strokeColor="#1A3D79E6"
-        app:strokeWidth="1dp"
+        app:cardElevation="4dp"
+        app:strokeWidth="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -91,28 +91,226 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- 底部导航容器 (从 MainActivity 迁移至此，更易同步) -->
-    <FrameLayout
-        android:id="@+id/bottom_nav_container"
+    <!-- 底部导航分割线 (已隐藏) -->
+    <View
+        android:id="@+id/bottom_nav_divider"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav_custom" />
+
+    <!-- 方案 B：自定义温润胶囊底部导航栏 (悬浮 3D 拟物胶囊) -->
+    <LinearLayout
+        android:id="@+id/bottom_nav_custom"
+        android:layout_width="0dp"
+        android:layout_height="68dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="12dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_bottom_nav_3d"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="4dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottom_nav"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="@color/fitnessdiary_background"
-            app:itemIconSize="26dp"
-            app:itemIconTint="@color/selector_nav_color"
-            app:itemTextColor="@color/selector_nav_color"
-            app:itemPaddingTop="6dp"
-            app:itemPaddingBottom="4dp"
-            app:labelVisibilityMode="labeled"
-            app:itemTextAppearanceActive="@style/TextAppearance.Nav.Small"
-            app:itemTextAppearanceInactive="@style/TextAppearance.Nav.Small"
-            app:itemActiveIndicatorStyle="@style/App.Custom.Indicator"
-            app:menu="@menu/menu_bottom_nav" />
-    </FrameLayout>
+        <!-- 1. 记录 Tab -->
+        <FrameLayout
+            android:id="@+id/tab_checkin"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+            <LinearLayout
+                android:id="@+id/tab_checkin_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp">
+
+                <ImageView
+                    android:id="@+id/tab_checkin_icon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/selector_nav_icon_checkin"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tab_checkin_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="记录"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 2. 计划 Tab -->
+        <FrameLayout
+            android:id="@+id/tab_plan"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+            <LinearLayout
+                android:id="@+id/tab_plan_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp">
+
+                <ImageView
+                    android:id="@+id/tab_plan_icon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/selector_nav_icon_plan"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tab_plan_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="计划"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 3. 饮食 Tab -->
+        <FrameLayout
+            android:id="@+id/tab_diet"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+            <LinearLayout
+                android:id="@+id/tab_diet_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp">
+
+                <ImageView
+                    android:id="@+id/tab_diet_icon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/selector_nav_icon_diet"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tab_diet_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="饮食"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 4. AI 私教 Tab -->
+        <FrameLayout
+            android:id="@+id/tab_ai"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+            <LinearLayout
+                android:id="@+id/tab_ai_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp">
+
+                <ImageView
+                    android:id="@+id/tab_ai_icon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/selector_nav_icon_ai"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tab_ai_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="AI私教"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- 5. 我的 Tab -->
+        <FrameLayout
+            android:id="@+id/tab_profile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+            <LinearLayout
+                android:id="@+id/tab_profile_pill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp">
+
+                <ImageView
+                    android:id="@+id/tab_profile_icon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/selector_nav_icon_profile"
+                    app:tint="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tab_profile_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="我的"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

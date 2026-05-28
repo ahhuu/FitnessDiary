@@ -171,7 +171,7 @@ public class WaterRecordDetailFragment extends Fragment {
                         format.format(new Date(record.getTimestamp())),
                         record.getAmountMl() + " ml",
                         record.getNote() == null ? "点击编辑，长按删除" : record.getNote(),
-                        R.drawable.ic_add,
+                        R.drawable.ic_hero_water,
                         record));
             }
         }

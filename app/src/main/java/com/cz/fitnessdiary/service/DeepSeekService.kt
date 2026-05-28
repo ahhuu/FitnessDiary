@@ -15,7 +15,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * DeepSeek AI 服务 - 标准 OpenAI 接口实现
- * 支持携带对话历史以实现上下文记忆
+ * 已升级至 DeepSeek-V4 系列：deepseek-v4-pro (深度推理) 与 deepseek-v4-flash (极速)
+ * 适配 2026 年官方模型退休节点，提升时效与响应表现。
  */
 object DeepSeekService {
     private val client = OkHttpClient.Builder()
@@ -31,7 +32,7 @@ object DeepSeekService {
      * 发送消息（带对话历史）
      * @param message 当前用户消息
      * @param systemInstruction 系统指令
-     * @param thinking 是否使用 DeepSeek Reasoner 模型
+     * @param thinking 是否使用 DeepSeek-V4-Pro 推理模型
      * @param history 历史消息列表（已按时间排序, 最旧在前）
      * @param callback 回调接口
      */
@@ -46,7 +47,8 @@ object DeepSeekService {
     ) {
         scope.launch {
             try {
-                val modelName = if (thinking) "deepseek-reasoner" else "deepseek-chat"
+                // 升级为最新的 V4 API，防止 2026年7月 旧版 API 彻底退休下线
+                val modelName = if (thinking) "deepseek-v4-pro" else "deepseek-v4-flash"
                 val finalSystemPrompt = systemInstruction ?: "你是健身日记（FitnessDiary）应用的 AI 助手，身份是一位专业的健身教练和营养师。" +
                         "在回答食物营养价值时，请务必以 ### [食物名] 开头，并明确列出 [热量]、[蛋白质]、[碳水] 等数值（以每100g为标准）。" +
                         "请始终使用中文回答。"

@@ -138,7 +138,7 @@ public class MedicationRecordDetailFragment extends Fragment {
                                         : record.getDosage()),
                                 record.getDailyTotal()),
                         record.isTaken() ? "已服药 (点击取消)" : "未服药 (点击标记已服)",
-                        record.isTaken() ? R.drawable.circle_checked : R.drawable.circle_unchecked,
+                        R.drawable.ic_hero_medication,
                         record));
             }
         }

@@ -16,13 +16,13 @@ public class BristolChartView extends View {
 
     private static final int[] TYPE_COLORS = {
             0x00000000, // unused 0
-            0xFFE53935, // type 1 - red (severe constipation)
-            0xFFFF7043, // type 2 - deep orange (constipation)
-            0xFF66BB6A, // type 3 - green (normal)
-            0xFF43A047, // type 4 - dark green (normal ideal)
-            0xFFFFCA28, // type 5 - yellow (soft)
-            0xFFFF9800, // type 6 - orange (diarrhea)
-            0xFFEF5350, // type 7 - red (severe diarrhea)
+            0xFFD48280, // type 1 - 莫兰迪暗红 (严重便秘)
+            0xFFECA586, // type 2 - 莫兰迪粉橙 (便秘)
+            0xFFA1CCA5, // type 3 - 莫兰迪淡草绿 (正常)
+            0xFF6E9C73, // type 4 - 莫兰迪雅致绿 (香蕉状理想)
+            0xFFE1CD98, // type 5 - 莫兰迪燕麦黄 (偏软)
+            0xFFD5A77B, // type 6 - 莫兰迪暖茶色 (腹泻)
+            0xFFD4857B, // type 7 - 莫兰迪绛红色 (严重腹泻)
     };
 
     private static final String[] TYPE_NAMES = {
@@ -58,16 +58,16 @@ public class BristolChartView extends View {
         barPaint.setStyle(Paint.Style.FILL);
 
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        textPaint.setColor(0xFF424242);
+        textPaint.setColor(0xFF3C3730); // 统一对齐项目主色深褐灰
         textPaint.setTextSize(28f);
 
         labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        labelPaint.setColor(0xFF757575);
+        labelPaint.setColor(0xFF8A8276); // 统一对齐项目副色柔灰褐
         labelPaint.setTextSize(24f);
         labelPaint.setTextAlign(Paint.Align.RIGHT);
 
         bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        bgPaint.setColor(0xFFF5F5F5);
+        bgPaint.setColor(0xFFFCFAF6); // 使用卡面背景对齐
     }
 
     public void setData(Map<Integer, Integer> bristolCounts) {
@@ -99,12 +99,12 @@ public class BristolChartView extends View {
             float top = paddingTop + (type - 1) * barHeight;
             float midY = top + barHeight / 2f;
 
-            // Label - show Chinese name only (no "Type N" prefix)
-            labelPaint.setColor(0xFF757575);
+            // Label - 柔灰褐字色
+            labelPaint.setColor(0xFF8A8276);
             canvas.drawText(TYPE_NAMES[type], paddingLeft - 8, midY + 8, labelPaint);
 
-            // Bar background
-            barPaint.setColor(0xFFEEEEEE);
+            // Bar background - 升级为平滑内敛的淡暖米灰槽
+            barPaint.setColor(0xFFF4F0E6);
             canvas.drawRect(paddingLeft, top + 4, width - paddingRight, top + barHeight - 4, barPaint);
 
             // Bar
@@ -112,11 +112,12 @@ public class BristolChartView extends View {
                 barPaint.setColor(TYPE_COLORS[type]);
                 canvas.drawRect(paddingLeft, top + 4, paddingLeft + barWidth, top + barHeight - 4, barPaint);
 
-                // Count label
-                textPaint.setColor(0xFF212121);
+                // Count label - 醒目主色
+                textPaint.setColor(0xFF3C3730);
                 canvas.drawText(String.valueOf(count), paddingLeft + barWidth + 12, midY + 10, textPaint);
             } else {
-                textPaint.setColor(0xFFBDBDBD);
+                // 无记录时字色淡化
+                textPaint.setColor(0xFFC5BEB5);
                 canvas.drawText("0", paddingLeft + 8, midY + 10, textPaint);
             }
         }

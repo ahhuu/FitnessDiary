@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 下凹阴影面 -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="3dp" />
+            <solid android:color="#20000000" />
+        </shape>
+    </item>
+    <!-- 右下高光面 -->
+    <item android:left="0.8dp" android:top="0.8dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="3dp" />
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+    <!-- 主体填充底色 (凹槽内深米灰) -->
+    <item android:left="0.8dp" android:top="0.8dp" android:right="0.8dp" android:bottom="0.8dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="2.5dp" />
+            <solid android:color="#D0C9BD" />
+        </shape>
+    </item>
+</layer-list>

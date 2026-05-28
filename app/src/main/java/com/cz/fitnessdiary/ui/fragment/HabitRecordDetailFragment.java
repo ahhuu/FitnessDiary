@@ -153,7 +153,7 @@ public class HabitRecordDetailFragment extends Fragment {
                     done ? "✅ 今日已完成" : "⬜ 今日未完成",
                     "连续 " + streak + " 天",
                     desc,
-                    R.drawable.ic_ach_plan_starter,
+                    R.drawable.ic_hero_habit,
                     item));
         }
 

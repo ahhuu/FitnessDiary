@@ -1,117 +1,122 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Gemini 风格配色 - FitnessDiary 主题 -->
+    <!-- 治愈暖色系 UI 配色表 - FitnessDiary -->
     
-    <!-- 页面底色（极浅的蓝灰色） -->
-    <color name="fitnessdiary_background">#F0F4F9</color>
+    <!-- 页面底色：浅暖米黄色，大面积留白的核心 -->
+    <color name="fitnessdiary_background">#F7F5F0</color>
     
-    <!-- 卡片颜色（纯白） -->
-    <color name="fitnessdiary_surface">#FFFFFF</color>
-    <color name="fitnessdiary_surface_variant">#F5F5F5</color>
-    
-    <!-- 深青色（用于文字或图标） -->
-    <color name="fitnessdiary_primary">#006A6A</color>
-
-    <!-- 计划页/运动记录卡片蓝色主题（参考 Hero 哑铃图标） -->
-    <color name="plan_blue_primary">#1976D2</color>
-    <color name="plan_blue_secondary">#00BCD4</color>
-    <color name="plan_blue_container">#E3F2FD</color>
-    <color name="plan_blue_stroke">#BFD9F7</color>
-    <color name="plan_blue_header_collapsed">#F4FAFF</color>
-    <color name="plan_blue_header_expanded">#ECF6FF</color>
-
-    <!-- 饮食页暖食色主题 -->
-    <color name="diet_primary">#E87328</color>
-    <color name="diet_container">#FEEBDD</color>
-    <color name="diet_stroke">#FDF7F2</color>
-    <color name="diet_checkin_stroke">#F0D3C1</color>
-    <color name="diet_accent">#D88E59</color>
-    <color name="diet_track">#F5DFCF</color>
-    <color name="diet_state_low">#0EA5E9</color>
-    <color name="diet_state_ok">#F59E0B</color>
-    <color name="diet_state_over">#EF4444</color>
-    <color name="diet_protein_indicator">#8DB7D6</color>
-    <color name="diet_protein_track">#EAF2F8</color>
-    <color name="diet_carbs_indicator">#B9BEC6</color>
-    <color name="diet_carbs_track">#ECEFF3</color>
-
-    <!-- AI 教练专属主题色 -->
-    <color name="ai_primary">#3D79E6</color>
-    <color name="ai_container">#EAF1FF</color>
-    
-    <!-- 薄荷绿（用于FAB按钮背景） -->
-    <color name="fitnessdiary_accent_container">#C4EED0</color>
-    
-    <!-- 深色（用于FAB上的加号颜色） -->
-    <color name="fitnessdiary_on_accent_container">#04210F</color>
-    
-    <!-- 文字颜色 -->
-    <color name="text_primary">#1F1F1F</color>
-    <color name="text_secondary">#757575</color>
-    <color name="text_hint">#9E9E9E</color>
-    
-    <!-- 基础颜色定义（Material Design 规范） -->
-    <color name="primary">#006A6A</color>
-    <color name="primary_variant">#004D4D</color>
-    <color name="secondary">#4FC3F7</color>
-    <color name="secondary_variant">#0288D1</color>
-    
-    <!-- 背景和表面颜色 -->
-    <color name="background">#F0F4F9</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="card_background">#FFFFFF</color>
-    
-    <!-- 通用颜色 -->
+    <!-- 卡片与前景色：纯白或奶油白 -->
+    <color name="fitnessdiary_surface">#FCFAF6</color>
+    <color name="fitnessdiary_surface_variant">#F2EFE8</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     
+    <!-- 页面通用背景与卡片 -->
+    <color name="background">#F7F5F0</color>
+    <color name="surface">#FCFAF6</color>
+    <color name="card_background">#FCFAF6</color>
+
+    <!-- 底部导航高亮胶囊底色 -->
+    <color name="nav_pill_selected">#EAE6DC</color>
+
+    <!-- 品牌主色：有机的暖深褐色，用于主标题和重要控件 -->
+    <color name="fitnessdiary_primary">#3C3730</color>
+    <color name="primary">#3C3730</color>
+    <color name="primary_variant">#24211D</color>
+    
+    <!-- 辅助主色（继承原有功能色但调低饱和度） -->
+    <color name="fitnessdiary_accent_container">#D4E5D9</color>
+    <color name="fitnessdiary_on_accent_container">#243329</color>
+
+    <!-- 哑铃运动记录卡片——蓝色温润主题 -->
+    <color name="plan_blue_primary">#2E6BB3</color>
+    <color name="plan_blue_secondary">#4F85C2</color>
+    <color name="plan_blue_container">#E8EFF5</color>
+    <color name="plan_blue_stroke">#D0DDE7</color>
+    <color name="plan_blue_header_collapsed">#F4F7FA</color>
+    <color name="plan_blue_header_expanded">#EBF1F7</color>
+    <!-- 运动进度条渐变起止色 -->
+    <color name="sport_gradient_start">#1C5185</color>
+    <color name="sport_gradient_end">#5391CC</color>
+
+    <!-- 饮食卡片——暖食橙棕色主题 -->
+    <color name="diet_primary">#D6621B</color>
+    <color name="diet_container">#F5ECE6</color>
+    <color name="diet_stroke">#EBE0D7</color>
+    <color name="diet_checkin_stroke">#DFCBBF</color>
+    <color name="diet_accent">#E07634</color>
+    <color name="diet_track">#EFDFD6</color>
+    <color name="diet_state_low">#6D95B3</color>
+    <color name="diet_state_ok">#C79549</color>
+    <color name="diet_state_over">#C76363</color>
+    <color name="diet_protein_indicator">#93AEC2</color>
+    <color name="diet_protein_track">#EBEFF2</color>
+    <color name="diet_carbs_indicator">#AFAFB0</color>
+    <color name="diet_carbs_track">#EEEEEF</color>
+    <!-- 饮食进度条渐变起止色 -->
+    <color name="diet_gradient_start">#BD5213</color>
+    <color name="diet_gradient_end">#EDA372</color>
+
+    <!-- AI 教练专属主题色 -->
+    <color name="ai_primary">#2E6DD1</color>
+    <color name="ai_container">#EDF2FA</color>
+    <color name="secondary">#2E6DD1</color>
+    <color name="secondary_variant">#22509C</color>
+
+    <!-- 文字颜色：深褐灰与柔灰褐，完美避开刺眼纯黑 -->
+    <color name="text_primary">#3C3730</color>
+    <color name="text_secondary">#8A8276</color>
+    <color name="text_hint">#B3ABA0</color>
+    <color name="fitnessdiary_text_primary">#3C3730</color>
+    <color name="fitnessdiary_text_secondary">#8A8276</color>
+
+    <!-- 分类专属色彩 (低饱和度软色调，适合新拟态布局) -->
+    <!-- 水 - 青蓝色调 -->
+    <color name="cat_water_primary">#527A8F</color>
+    <color name="cat_water_bg">#E9EFF2</color>
+    <color name="water_gradient_start">#527A8F</color>
+    <color name="water_gradient_end">#8EB5C9</color>
+    
+    <!-- 睡眠 - 柔紫色调 -->
+    <color name="cat_sleep_primary">#7B6F96</color>
+    <color name="cat_sleep_bg">#ECEAF0</color>
+    <color name="sleep_gradient_start">#7B6F96</color>
+    <color name="sleep_gradient_end">#B1A8C7</color>
+    
+    <!-- 用药 - 浅蔷薇色 -->
+    <color name="cat_med_primary">#A75A77</color>
+    <color name="cat_med_bg">#F5EDF0</color>
+    
+    <!-- 习惯 - 燕麦金/秋麦色 -->
+    <color name="cat_habit_primary">#A6874E</color>
+    <color name="cat_habit_bg">#F5F0E6</color>
+    
+    <!-- 体重 - 暖赤金/赤陶色 -->
+    <color name="cat_weight_primary">#A86452</color>
+    <color name="cat_weight_bg">#F5ECE9</color>
+
+    <!-- 自定义 - 暖灰褐色 -->
+    <color name="cat_custom_primary">#7C766F</color>
+    <color name="cat_custom_bg">#EFEFEF</color>
+
+    <!-- 围度 - 雾青色 -->
+    <color name="cat_measure_primary">#538E8E</color>
+    <color name="cat_measure_bg">#E9F2F2</color>
+
+    <!-- 便便 - 燕麦灰褐 -->
+    <color name="cat_bowel_primary">#82716B</color>
+    <color name="cat_bowel_bg">#EFECEB</color>
+
+    <!-- 经期 - 灰粉红 -->
+    <color name="cat_menstrual_primary">#A76C95</color>
+    <color name="cat_menstrual_bg">#F5ECEF</color>
+
     <!-- 功能色 -->
-    <color name="color_success">#34A853</color>
-    <color name="color_warning">#FBBC04</color>
-    <color name="error">#EA4335</color>
+    <color name="color_success">#559664</color>
+    <color name="color_warning">#BFA34D</color>
+    <color name="error">#B85151</color>
+    <color name="fitnessdiary_error">#B85151</color>
     
-    <!-- 分割线 -->
-    <color name="divider">#E0E0E0</color>
-
-    <!-- 补全 AI 对话需要的配色 -->
-    <color name="fitnessdiary_text_primary">#1F1F1F</color>
-    <color name="fitnessdiary_text_secondary">#757575</color>
-    <color name="fitnessdiary_error">#EA4335</color>
-
-    <!-- 分类专属色彩 (Vibrant Palette) -->
-    <!-- 水 - 蓝色 -->
-    <color name="cat_water_primary">#007BFF</color>
-    <color name="cat_water_bg">#E3F2FD</color>
-    
-    <!-- 睡眠 - 紫色 -->
-    <color name="cat_sleep_primary">#673AB7</color>
-    <color name="cat_sleep_bg">#EDE7F6</color>
-    
-    <!-- 用药 - 粉色/红色 -->
-    <color name="cat_med_primary">#E91E63</color>
-    <color name="cat_med_bg">#FCE4EC</color>
-    
-    <!-- 习惯 - 琥珀色/黄色 -->
-    <color name="cat_habit_primary">#FFB300</color>
-    <color name="cat_habit_bg">#FFF8E1</color>
-    
-    <!-- 体重 - 橙色 -->
-    <color name="cat_weight_primary">#FF5722</color>
-    <color name="cat_weight_bg">#FBE9E7</color>
-
-    <!-- 自定义 - 灰色/蓝灰色 -->
-    <color name="cat_custom_primary">#607D8B</color>
-    <color name="cat_custom_bg">#ECEFF1</color>
-
-    <!-- 围度 - 青色 -->
-    <color name="cat_measure_primary">#00BCD4</color>
-    <color name="cat_measure_bg">#E0F7FA</color>
-
-    <!-- 便便 - 棕色 -->
-    <color name="cat_bowel_primary">#8D6E63</color>
-    <color name="cat_bowel_bg">#EFEBE9</color>
-
-    <!-- 经期 - 紫粉色 -->
-    <color name="cat_menstrual_primary">#E040FB</color>
-    <color name="cat_menstrual_bg">#F3E5F5</color>
+    <!-- 分割线色 -->
+    <color name="divider">#E8E5DF</color>
 </resources>

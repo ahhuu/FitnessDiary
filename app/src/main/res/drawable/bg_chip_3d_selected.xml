@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 最底层：左上角凹陷阴影 -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp" />
+            <solid android:color="#202E6BB3" />
+        </shape>
+    </item>
+
+    <!-- 中间层：右下角反光白边 -->
+    <item android:left="1.2dp" android:top="1.2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp" />
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+
+    <!-- 最表层：主体填充为清爽的淡蓝色凹槽 -->
+    <item android:left="1.2dp" android:top="1.2dp" android:right="1.2dp" android:bottom="1.2dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="10.5dp" />
+            <gradient
+                android:startColor="#FAFBFD"
+                android:endColor="#D5E3F2"
+                android:angle="315"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

@@ -143,7 +143,7 @@ public class DietViewModel extends AndroidViewModel {
                     java.util.Set<Long> dates = new java.util.HashSet<>();
                     if (timestamps != null) {
                         for (Long ts : timestamps) {
-                            dates.add(DateUtils.getUtcDayStartTimestamp(ts));
+                            dates.add(DateUtils.getDayStartTimestamp(ts));
                         }
                     }
                     return dates;

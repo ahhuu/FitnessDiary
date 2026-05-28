@@ -41,7 +41,7 @@ import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.cz.fitnessdiary.viewmodel.DietViewModel;
 import com.cz.fitnessdiary.viewmodel.HomeDashboardViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.progressindicator.LinearProgressIndicator;
+import android.widget.ProgressBar;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -181,6 +181,28 @@ public class CheckInFragment extends Fragment {
             // 选中的不是今天则显示“回到今天”
             binding.btnBackToToday.setVisibility(DateUtils.isToday(ts) ? View.GONE : View.VISIBLE);
         });
+
+        // 综合运动和饮食记录日期，更新横滑绿点
+        androidx.lifecycle.MediatorLiveData<java.util.Set<Long>> combined = new androidx.lifecycle.MediatorLiveData<>();
+        combined.addSource(checkInViewModel.getRecordedDates(), sportDates -> {
+            java.util.Set<Long> diet = dietViewModel.getRecordedDates().getValue();
+            java.util.Set<Long> all = new HashSet<>();
+            if (sportDates != null) all.addAll(sportDates);
+            if (diet != null) all.addAll(diet);
+            combined.setValue(all);
+        });
+        combined.addSource(dietViewModel.getRecordedDates(), dietDates -> {
+            java.util.Set<Long> sport = checkInViewModel.getRecordedDates().getValue();
+            java.util.Set<Long> all = new HashSet<>();
+            if (sport != null) all.addAll(sport);
+            if (dietDates != null) all.addAll(dietDates);
+            combined.setValue(all);
+        });
+        combined.observe(getViewLifecycleOwner(), rd -> {
+            if (dateNavAdapter != null) {
+                dateNavAdapter.setRecordedDates(rd);
+            }
+        });
     }
 
     private void toggleDateHeader() {
@@ -217,7 +239,7 @@ public class CheckInFragment extends Fragment {
         });
 
         dietViewModel.getProgressColor().observe(getViewLifecycleOwner(), colorRes -> {
-            binding.progressDietToday.setIndicatorColor(getResources().getColor(R.color.diet_primary, null));
+            // 已由 gradient_progress_diet.xml 指定精美渐变色，此处无须动态改变
         });
 
         // 饮食数据变化时，同步更新大圆环
@@ -276,6 +298,13 @@ public class CheckInFragment extends Fragment {
         v(R.id.card_measure_small).setOnClickListener(v -> openDetail(R.id.bodyMeasurementDetailFragment));
         v(R.id.card_bowel_small).setOnClickListener(v -> openDetail(R.id.bowelMovementDetailFragment));
         v(R.id.card_menstrual_small).setOnClickListener(v -> openDetail(R.id.menstrualRecordDetailFragment));
+
+        View btnAiQuick = v(R.id.btn_ai_quick);
+        if (btnAiQuick != null) {
+            btnAiQuick.setOnClickListener(va -> {
+                QuickAiChatBottomSheet.newInstance().show(getParentFragmentManager(), "QUICK_AI_CHAT");
+            });
+        }
 
         binding.btnAddSport.setOnClickListener(v -> openDetail(R.id.sportRecordDetailFragment));
 
@@ -425,19 +454,29 @@ public class CheckInFragment extends Fragment {
                             setTextIfExists(R.id.tv_weight_summary, text));
                 }).start();
             } else {
-                // Fallback to latest overall weight
-                com.cz.fitnessdiary.database.entity.WeightRecord latest =
-                        homeDashboardViewModel.getLatestWeight().getValue();
-                if (latest != null) {
-                    setTextIfExists(R.id.tv_weight_value,
-                            String.format(java.util.Locale.getDefault(), "%.1f", latest.getWeight()));
-                    setTextIfExists(R.id.tv_weight_update, getUpdateText(latest.getTimestamp()));
-                    setTextIfExists(R.id.tv_weight_summary, "最近一次记录");
-                } else {
-                    setTextIfExists(R.id.tv_weight_value, "--");
-                    setTextIfExists(R.id.tv_weight_update, "暂无更新");
-                    setTextIfExists(R.id.tv_weight_summary, "点击查看体重明细");
-                }
+                // Fallback to latest overall weight using direct query to prevent LiveData latency/null issues
+                new Thread(() -> {
+                    try {
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        com.cz.fitnessdiary.database.entity.WeightRecord latest =
+                                db.weightRecordDao().getLatestRecordSync();
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            if (isAdded() && binding != null) {
+                                if (latest != null) {
+                                    setTextIfExists(R.id.tv_weight_value,
+                                            String.format(java.util.Locale.getDefault(), "%.1f", latest.getWeight()));
+                                    setTextIfExists(R.id.tv_weight_update, getUpdateText(latest.getTimestamp()));
+                                    setTextIfExists(R.id.tv_weight_summary, "最近一次记录");
+                                } else {
+                                    setTextIfExists(R.id.tv_weight_value, "--");
+                                    setTextIfExists(R.id.tv_weight_update, "暂无更新");
+                                    setTextIfExists(R.id.tv_weight_summary, "点击查看体重明细");
+                                }
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                }).start();
             }
         });
         homeDashboardViewModel.getTodayWaterTotal().observe(getViewLifecycleOwner(), total -> {
@@ -457,7 +496,7 @@ public class CheckInFragment extends Fragment {
                     setTextIfExists(R.id.tv_water_summary, summary);
                     View card = cachedCards.get(CARD_WATER);
                     if (card != null) {
-                        com.google.android.material.progressindicator.LinearProgressIndicator p =
+                        android.widget.ProgressBar p =
                                 card.findViewById(R.id.progress_water);
                         if (p != null) p.setProgress(pct);
                     }
@@ -477,13 +516,15 @@ public class CheckInFragment extends Fragment {
                 setTextIfExists(R.id.tv_medication_summary, t >= target ? "今日用药已全部完成 ✓" : "还有 " + (target - t) + " 次未服用");
                 View card = cachedCards.get(CARD_MEDICATION);
                 if (card != null) {
-                    com.google.android.material.progressindicator.LinearProgressIndicator p =
+                    android.widget.ProgressBar p =
                             card.findViewById(R.id.progress_medication);
                     if (p != null) p.setProgress(t * 100 / target);
                 }
             } else {
-                setTextIfExists(R.id.tv_medication_value, String.valueOf(t));
-                setTextIfExists(R.id.tv_medication_summary, t > 0 ? "已记录 " + t + " 次用药" : "点击添加用药记录");
+                if (t > 0) {
+                    setTextIfExists(R.id.tv_medication_value, String.valueOf(t));
+                    setTextIfExists(R.id.tv_medication_summary, "已记录 " + t + " 次用药");
+                }
             }
         });
         homeDashboardViewModel.getTodayMedicationTotal().observe(getViewLifecycleOwner(), total -> {
@@ -494,21 +535,56 @@ public class CheckInFragment extends Fragment {
                 setTextIfExists(R.id.tv_medication_value, t + "/" + target);
             }
         });
-        homeDashboardViewModel.getSelectedDateLatestMedication().observe(getViewLifecycleOwner(),
-                r -> setTextIfExists(R.id.tv_medication_update,
-                        r == null ? "暂无更新" : getSelectedDateUpdateText(r.getTimestamp())));
+        homeDashboardViewModel.getSelectedDateLatestMedication().observe(getViewLifecycleOwner(), r -> {
+            if (r != null) {
+                setTextIfExists(R.id.tv_medication_update, getSelectedDateUpdateText(r.getTimestamp()));
+            } else {
+                new Thread(() -> {
+                    try {
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        java.util.List<com.cz.fitnessdiary.database.entity.MedicationRecord> recs =
+                                db.medicationRecordDao().getRecentRecordsSync(1);
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            if (isAdded() && binding != null) {
+                                if (recs != null && !recs.isEmpty()) {
+                                    com.cz.fitnessdiary.database.entity.MedicationRecord latest = recs.get(0);
+                                    setTextIfExists(R.id.tv_medication_update, getUpdateText(latest.getTimestamp()));
+                                    setTextIfExists(R.id.tv_medication_summary, "上次服用: " + latest.getName());
+                                    setTextIfExists(R.id.tv_medication_value, "--");
+                                    View card = cachedCards.get(CARD_MEDICATION);
+                                    if (card != null) {
+                                        android.widget.ProgressBar p = card.findViewById(R.id.progress_medication);
+                                        if (p != null) p.setProgress(0);
+                                    }
+                                } else {
+                                    setTextIfExists(R.id.tv_medication_update, "暂无更新");
+                                    setTextIfExists(R.id.tv_medication_summary, "点击添加用药记录");
+                                    setTextIfExists(R.id.tv_medication_value, "0");
+                                    View card = cachedCards.get(CARD_MEDICATION);
+                                    if (card != null) {
+                                        android.widget.ProgressBar p = card.findViewById(R.id.progress_medication);
+                                        if (p != null) p.setProgress(0);
+                                    }
+                                }
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                }).start();
+            }
+        });
 
         achievementCenterViewModel.getTodayMissions().observe(getViewLifecycleOwner(), this::renderDailyMissions);
 
         checkInViewModel.getSelectedDaySleepRecords().observe(getViewLifecycleOwner(), records -> {
-            float totalHours = 0;
-            float deepSleepHours = 0;
             if (records != null && !records.isEmpty()) {
+                float totalHours = 0;
+                float deepSleepHours = 0;
                 for (com.cz.fitnessdiary.database.entity.SleepRecord r : records) {
                     if (r.getEndTime() > r.getStartTime()) {
                         float duration = (r.getEndTime() - r.getStartTime()) / (1000f * 60 * 60);
                         totalHours += duration;
-                        // 估算深度睡眠：基于总时长和睡眠质量 (15%-35%)
+                        // 估算深度睡眠：基于总时长 and 睡眠质量 (15%-35%)
                         float ratio = 0.15f + (Math.max(1, Math.min(5, r.getQuality())) / 5.0f) * 0.20f;
                         deepSleepHours += (duration * ratio);
                     }
@@ -518,59 +594,97 @@ public class CheckInFragment extends Fragment {
                 String window = tf.format(new java.util.Date(latest.getStartTime())) + "-"
                         + tf.format(new java.util.Date(latest.getEndTime()));
                 setTextIfExists(R.id.tv_sleep_update, window);
-            } else {
-                setTextIfExists(R.id.tv_sleep_update, "暂无更新");
-            }
-
-            setTextIfExists(R.id.tv_sleep_value, String.format(java.util.Locale.getDefault(), "%.1f", totalHours));
-            final float finalDeepSleep = deepSleepHours;
-            if (finalDeepSleep > 0) {
-                setTextIfExists(R.id.tv_sleep_summary,
-                        String.format(java.util.Locale.getDefault(), "深度%.1fh", finalDeepSleep));
-                // Compute 7-day average sleep
-                new Thread(() -> {
-                    long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
-                    com.cz.fitnessdiary.database.AppDatabase db =
-                            com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
-                    float weekTotal = 0;
-                    int weekDays = 0;
-                    for (int i = 0; i < 7; i++) {
-                        long dayStart = today - i * 86400000L;
-                        long dayEnd = dayStart + 86400000L;
-                        java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> dayRecords =
-                                db.sleepRecordDao().getSleepRecordsByDateRangeSync(dayStart, dayEnd);
-                        if (dayRecords != null && !dayRecords.isEmpty()) {
-                            float dayTotal = 0;
-                            for (com.cz.fitnessdiary.database.entity.SleepRecord sr : dayRecords) {
-                                if (sr.getEndTime() > sr.getStartTime()) {
-                                    dayTotal += (sr.getEndTime() - sr.getStartTime()) / (1000f * 60 * 60);
+                setTextIfExists(R.id.tv_sleep_value, String.format(java.util.Locale.getDefault(), "%.1f", totalHours));
+                
+                final float finalDeepSleep = deepSleepHours;
+                if (finalDeepSleep > 0) {
+                    setTextIfExists(R.id.tv_sleep_summary,
+                            String.format(java.util.Locale.getDefault(), "深度%.1fh", finalDeepSleep));
+                    // Compute 7-day average sleep
+                    new Thread(() -> {
+                        long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        float weekTotal = 0;
+                        int weekDays = 0;
+                        for (int i = 0; i < 7; i++) {
+                            long dayStart = today - i * 86400000L;
+                            long dayEnd = dayStart + 86400000L;
+                            java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> dayRecords =
+                                    db.sleepRecordDao().getSleepRecordsByDateRangeSync(dayStart, dayEnd);
+                            if (dayRecords != null && !dayRecords.isEmpty()) {
+                                float dayTotal = 0;
+                                for (com.cz.fitnessdiary.database.entity.SleepRecord sr : dayRecords) {
+                                    if (sr.getEndTime() > sr.getStartTime()) {
+                                        dayTotal += (sr.getEndTime() - sr.getStartTime()) / (1000f * 60 * 60);
+                                    }
+                                }
+                                if (dayTotal > 0) {
+                                    weekTotal += dayTotal;
+                                    weekDays++;
                                 }
                             }
-                            if (dayTotal > 0) {
-                                weekTotal += dayTotal;
-                                weekDays++;
-                            }
                         }
-                    }
-                    if (weekDays > 0) {
-                        float weekAvg = weekTotal / weekDays;
-                        final String summary = String.format(java.util.Locale.getDefault(),
-                                "深度%.1fh · 周均%.1fh", finalDeepSleep, weekAvg);
-                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
-                                setTextIfExists(R.id.tv_sleep_summary, summary));
-                    }
-                }).start();
-            } else {
-                setTextIfExists(R.id.tv_sleep_summary, "点击查看睡眠分析");
-            }
+                        if (weekDays > 0) {
+                            float weekAvg = weekTotal / weekDays;
+                            final String summary = String.format(java.util.Locale.getDefault(),
+                                     "深度%.1fh · 周均%.1fh", finalDeepSleep, weekAvg);
+                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                                    setTextIfExists(R.id.tv_sleep_summary, summary));
+                        }
+                    }).start();
+                } else {
+                    setTextIfExists(R.id.tv_sleep_summary, "点击查看睡眠分析");
+                }
 
-            com.google.android.material.progressindicator.LinearProgressIndicator pSleep = binding.getRoot()
-                    .findViewById(R.id.progress_sleep);
-            if (pSleep != null) {
-                int progress = (int) (Math.min(totalHours / 8.0f, 1.0f) * 100);
-                pSleep.setProgress(progress);
+                android.widget.ProgressBar pSleep = binding.getRoot()
+                        .findViewById(R.id.progress_sleep);
+                if (pSleep != null) {
+                    int progress = (int) (Math.min(totalHours / 8.0f, 1.0f) * 100);
+                    pSleep.setProgress(progress);
+                }
+                updateOverallProgress();
+            } else {
+                // 当天没有更新睡眠记录时，回退去拉取最近一次历史记录展示，但今天的分数不加分
+                new Thread(() -> {
+                    try {
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> recs =
+                                db.sleepRecordDao().getRecentRecordsSync(1);
+                        if (recs != null && !recs.isEmpty()) {
+                            com.cz.fitnessdiary.database.entity.SleepRecord latest = recs.get(0);
+                            float duration = (latest.getEndTime() - latest.getStartTime()) / (1000f * 60 * 60);
+                            float ratio = 0.15f + (Math.max(1, Math.min(5, latest.getQuality())) / 5.0f) * 0.20f;
+                            float deep = duration * ratio;
+                            
+                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                if (isAdded() && binding != null) {
+                                    setTextIfExists(R.id.tv_sleep_value, String.format(java.util.Locale.getDefault(), "%.1f", duration));
+                                    setTextIfExists(R.id.tv_sleep_update, getUpdateText(latest.getEndTime()));
+                                    setTextIfExists(R.id.tv_sleep_summary, String.format(java.util.Locale.getDefault(), "上次：深度%.1fh", deep));
+                                    android.widget.ProgressBar pSleep = binding.getRoot().findViewById(R.id.progress_sleep);
+                                    if (pSleep != null) {
+                                        pSleep.setProgress((int) (Math.min(duration / 8.0f, 1.0f) * 100));
+                                    }
+                                    updateOverallProgress();
+                                }
+                            });
+                        } else {
+                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                if (isAdded() && binding != null) {
+                                    setTextIfExists(R.id.tv_sleep_update, "暂无更新");
+                                    setTextIfExists(R.id.tv_sleep_value, "0.0");
+                                    setTextIfExists(R.id.tv_sleep_summary, "点击查看睡眠分析");
+                                    android.widget.ProgressBar pSleep = binding.getRoot().findViewById(R.id.progress_sleep);
+                                    if (pSleep != null) pSleep.setProgress(0);
+                                    updateOverallProgress();
+                                }
+                            });
+                        }
+                    } catch (Exception ignored) {}
+                }).start();
             }
-            updateOverallProgress();
         });
 
         homeDashboardViewModel.getEnabledHabits().observe(getViewLifecycleOwner(), items -> {
@@ -593,40 +707,108 @@ public class CheckInFragment extends Fragment {
 
         // 围度卡片观察
         homeDashboardViewModel.getTodayMeasurementCount().observe(getViewLifecycleOwner(), count -> {
-            int c = count == null ? 0 : count;
-            setTextIfExists(R.id.tv_measure_value, String.valueOf(c));
-            View card = cachedCards.get(CARD_MEASUREMENT);
-            if (card != null) {
-                com.google.android.material.progressindicator.LinearProgressIndicator p =
-                        card.findViewById(R.id.progress_measure);
-                if (p != null) p.setProgress(Math.min(c * 16, 100));
+            if (count != null && count > 0) {
+                int c = count;
+                setTextIfExists(R.id.tv_measure_value, String.valueOf(c));
+                View card = cachedCards.get(CARD_MEASUREMENT);
+                if (card != null) {
+                    android.widget.ProgressBar p =
+                            card.findViewById(R.id.progress_measure);
+                    if (p != null) p.setProgress(Math.min(c * 16, 100));
+                }
             }
         });
         homeDashboardViewModel.getLatestMeasurementSummary().observe(getViewLifecycleOwner(), summary -> {
-            setTextIfExists(R.id.tv_measure_summary, summary == null ? "点击查看围度明细" : summary);
+            if (summary != null) {
+                setTextIfExists(R.id.tv_measure_summary, summary);
+            }
         });
         homeDashboardViewModel.getSelectedDateLatestMeasurementTime().observe(getViewLifecycleOwner(), ts -> {
-            setTextIfExists(R.id.tv_measure_update,
-                    ts == null || ts == 0 ? "暂无更新" : getSelectedDateUpdateText(ts));
+            if (ts != null && ts > 0) {
+                setTextIfExists(R.id.tv_measure_update, getSelectedDateUpdateText(ts));
+            } else {
+                new Thread(() -> {
+                    try {
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        com.cz.fitnessdiary.database.entity.BodyMeasurement latest =
+                                db.bodyMeasurementDao().getLatestSync();
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            if (isAdded() && binding != null) {
+                                if (latest != null) {
+                                    String typeName = com.cz.fitnessdiary.utils.AnalysisUtils.getMeasurementTypeName(latest.getMeasurementType());
+                                    String desc = typeName + ": " + latest.getValue() + latest.getUnit();
+                                    setTextIfExists(R.id.tv_measure_update, getUpdateText(latest.getTimestamp()));
+                                    setTextIfExists(R.id.tv_measure_summary, "上次: " + desc);
+                                    setTextIfExists(R.id.tv_measure_value, String.format(java.util.Locale.getDefault(), "%.1f", latest.getValue()));
+                                } else {
+                                    setTextIfExists(R.id.tv_measure_update, "暂无更新");
+                                    setTextIfExists(R.id.tv_measure_summary, "点击查看围度明细");
+                                    setTextIfExists(R.id.tv_measure_value, "--");
+                                }
+                                View card = cachedCards.get(CARD_MEASUREMENT);
+                                if (card != null) {
+                                    android.widget.ProgressBar p = card.findViewById(R.id.progress_measure);
+                                    if (p != null) p.setProgress(0);
+                                }
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                }).start();
+            }
         });
 
         // 便便卡片观察
         homeDashboardViewModel.getTodayBowelCount().observe(getViewLifecycleOwner(), count -> {
-            int c = count == null ? 0 : count;
-            setTextIfExists(R.id.tv_bowel_value, String.valueOf(c));
-            View card = cachedCards.get(CARD_BOWEL);
-            if (card != null) {
-                com.google.android.material.progressindicator.LinearProgressIndicator p =
-                        card.findViewById(R.id.progress_bowel);
-                if (p != null) p.setProgress(Math.min(c * 33, 100));
+            if (count != null && count > 0) {
+                int c = count;
+                setTextIfExists(R.id.tv_bowel_value, String.valueOf(c));
+                View card = cachedCards.get(CARD_BOWEL);
+                if (card != null) {
+                    android.widget.ProgressBar p =
+                            card.findViewById(R.id.progress_bowel);
+                    if (p != null) p.setProgress(Math.min(c * 33, 100));
+                }
             }
         });
         homeDashboardViewModel.getLatestBowelSummary().observe(getViewLifecycleOwner(), summary -> {
-            setTextIfExists(R.id.tv_bowel_summary, summary == null ? "点击查看便便明细" : summary);
+            if (summary != null) {
+                setTextIfExists(R.id.tv_bowel_summary, summary);
+            }
         });
         homeDashboardViewModel.getSelectedDateLatestBowelTime().observe(getViewLifecycleOwner(), ts -> {
-            setTextIfExists(R.id.tv_bowel_update,
-                    ts == null || ts == 0 ? "暂无更新" : getSelectedDateUpdateText(ts));
+            if (ts != null && ts > 0) {
+                setTextIfExists(R.id.tv_bowel_update, getSelectedDateUpdateText(ts));
+            } else {
+                new Thread(() -> {
+                    try {
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        com.cz.fitnessdiary.database.entity.BowelMovement latest =
+                                db.bowelMovementDao().getLatestSync();
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            if (isAdded() && binding != null) {
+                                if (latest != null) {
+                                    String typeStr = "类型" + latest.getBristolType();
+                                    String colorStr = latest.getColor() != null ? latest.getColor() : "";
+                                    String desc = typeStr + " " + colorStr;
+                                    setTextIfExists(R.id.tv_bowel_update, getUpdateText(latest.getTimestamp()));
+                                    setTextIfExists(R.id.tv_bowel_summary, "上次: " + desc.trim());
+                                } else {
+                                    setTextIfExists(R.id.tv_bowel_update, "暂无更新");
+                                    setTextIfExists(R.id.tv_bowel_summary, "点击查看便便明细");
+                                }
+                                setTextIfExists(R.id.tv_bowel_value, "--");
+                                View card = cachedCards.get(CARD_BOWEL);
+                                if (card != null) {
+                                    android.widget.ProgressBar p = card.findViewById(R.id.progress_bowel);
+                                    if (p != null) p.setProgress(0);
+                                }
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                }).start();
+            }
         });
 
         // 经期卡片观察
@@ -635,17 +817,39 @@ public class CheckInFragment extends Fragment {
             setTextIfExists(R.id.tv_menstrual_value, d > 0 ? String.valueOf(d) : "--");
             View card = cachedCards.get(CARD_MENSTRUAL);
             if (card != null) {
-                com.google.android.material.progressindicator.LinearProgressIndicator p =
+                android.widget.ProgressBar p =
                         card.findViewById(R.id.progress_menstrual);
                 if (p != null) p.setProgress(d > 0 ? Math.min(d * 100 / 28, 100) : 0);
             }
         });
         homeDashboardViewModel.getMenstrualSummary().observe(getViewLifecycleOwner(), summary -> {
-            setTextIfExists(R.id.tv_menstrual_summary, summary == null ? "点击查看经期明细" : summary);
+            if (summary != null) {
+                setTextIfExists(R.id.tv_menstrual_summary, summary);
+            }
         });
         homeDashboardViewModel.getSelectedDateLatestMenstrualTime().observe(getViewLifecycleOwner(), ts -> {
-            setTextIfExists(R.id.tv_menstrual_update,
-                    ts == null || ts == 0 ? "暂无更新" : getSelectedDateUpdateText(ts));
+            if (ts != null && ts > 0) {
+                setTextIfExists(R.id.tv_menstrual_update, getSelectedDateUpdateText(ts));
+            } else {
+                new Thread(() -> {
+                    try {
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        com.cz.fitnessdiary.database.entity.MenstrualCycle latest =
+                                db.menstrualCycleDao().getLatestSync();
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            if (isAdded() && binding != null) {
+                                if (latest != null) {
+                                    setTextIfExists(R.id.tv_menstrual_update, getUpdateText(latest.getStartDate()));
+                                } else {
+                                    setTextIfExists(R.id.tv_menstrual_update, "暂无更新");
+                                    setTextIfExists(R.id.tv_menstrual_summary, "点击查看经期明细");
+                                }
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                }).start();
+            }
         });
     }
 
@@ -657,18 +861,28 @@ public class CheckInFragment extends Fragment {
         latestMissions.addAll(missions);
 
         binding.layoutMissionList.removeAllViews();
+        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(requireContext());
         for (DailyMission mission : missions) {
-            TextView tv = new TextView(requireContext());
-            tv.setTextSize(14);
-            tv.setPadding(0, dp(4), 0, dp(4));
-            tv.setText((mission.isCompleted() ? "✅ " : "○ ") + mission.getTitle());
+            View view = inflater.inflate(R.layout.item_mission_row, binding.layoutMissionList, false);
+            CheckBox cb = view.findViewById(R.id.cb_mission);
+            TextView tv = view.findViewById(R.id.tv_mission_title);
+
+            cb.setChecked(mission.isCompleted());
+            tv.setText(mission.getTitle());
             tv.setTextColor(getResources().getColor(
                     mission.isCompleted() ? R.color.fitnessdiary_primary : R.color.text_secondary,
                     null));
+
             if (mission.isCustom()) {
-                tv.setOnClickListener(v -> achievementCenterViewModel.toggleCustomMissionCompletion(mission.getId()));
+                view.setOnClickListener(v -> achievementCenterViewModel.toggleCustomMissionCompletion(mission.getId()));
+                view.setClickable(true);
+                view.setFocusable(true);
+            } else {
+                view.setOnClickListener(null);
+                view.setClickable(false);
+                view.setFocusable(false);
             }
-            binding.layoutMissionList.addView(tv);
+            binding.layoutMissionList.addView(view);
         }
 
         if (missions.isEmpty()) {
@@ -737,7 +951,7 @@ public class CheckInFragment extends Fragment {
         binding.progressSportToday.setProgress((int) (sportProgress * 100));
 
         float waterProgress = Math.min(1.0f, (float) currentWaterTotal / 1600f);
-        LinearProgressIndicator pWater = binding.getRoot().findViewById(R.id.progress_water);
+        ProgressBar pWater = binding.getRoot().findViewById(R.id.progress_water);
         if (pWater != null) {
             pWater.setProgress((int) (waterProgress * 100));
         }
@@ -751,7 +965,7 @@ public class CheckInFragment extends Fragment {
                     completed++;
             }
             habitProgress = (float) completed / habitItems.size();
-            LinearProgressIndicator pHabit = binding.getRoot().findViewById(R.id.progress_habit);
+            ProgressBar pHabit = binding.getRoot().findViewById(R.id.progress_habit);
             if (pHabit != null)
                 pHabit.setProgress((int) (habitProgress * 100));
         }
@@ -773,7 +987,9 @@ public class CheckInFragment extends Fragment {
         // Compute health score on background thread (Room requires async)
         new Thread(() -> {
             try {
-                int score = com.cz.fitnessdiary.utils.HealthScoreCalculator.calculateToday(getContext());
+                Long selectedDate = checkInViewModel.getSelectedDate().getValue();
+                long date = selectedDate != null ? selectedDate : DateUtils.getTodayStartTimestamp();
+                int score = com.cz.fitnessdiary.utils.HealthScoreCalculator.calculateForDate(getContext(), date);
                 com.cz.fitnessdiary.utils.HealthScoreCalculator.saveTodayScore(getContext(), score);
                 android.os.Handler mainHandler = new android.os.Handler(
                         requireActivity().getMainLooper());
@@ -794,11 +1010,35 @@ public class CheckInFragment extends Fragment {
             if (ctx == null) return;
             com.cz.fitnessdiary.database.AppDatabase db =
                     com.cz.fitnessdiary.database.AppDatabase.getInstance(ctx);
-            long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+            Long selectedTs = checkInViewModel.getSelectedDate().getValue();
+            long today = selectedTs != null ? selectedTs : com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
             long dayEnd = today + 86400000L;
             com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
 
-            int sportTotal = db.dailyLogDao().getTodayPlanCountSync(today);
+            // Count TrainingPlan definitions for this date (matching HealthScoreCalculator logic)
+            java.util.List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans =
+                    db.trainingPlanDao().getAllPlansList();
+            android.content.SharedPreferences sp = ctx.getSharedPreferences("fitness_diary_prefs",
+                    android.content.Context.MODE_PRIVATE);
+            String mode = sp.getString("current_plan_mode", "基础");
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTimeInMillis(today);
+            int androidDow = cal.get(java.util.Calendar.DAY_OF_WEEK);
+            int dayIdx = (androidDow == java.util.Calendar.SUNDAY) ? 7 : (androidDow - 1);
+            int sportTotal = 0;
+            if (allPlans != null) {
+                for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
+                    String cat = plan.getCategory();
+                    if (cat == null || !cat.startsWith(mode + "-")) continue;
+                    String sd = plan.getScheduledDays();
+                    if (sd == null || sd.isEmpty() || sd.contains("0")) { sportTotal++; }
+                    else {
+                        for (String d : sd.split(",")) {
+                            if (d.trim().equals(String.valueOf(dayIdx))) { sportTotal++; break; }
+                        }
+                    }
+                }
+            }
             int sportDone = db.dailyLogDao().getTodayCompletedCountSync(today);
             int sportScore = sportTotal > 0 ? Math.round(25f * sportDone / sportTotal) : 25;
 
@@ -812,8 +1052,6 @@ public class CheckInFragment extends Fragment {
 
             int sleepScore = 0;
             java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> sleeps = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today, dayEnd);
-            if (sleeps == null || sleeps.isEmpty())
-                sleeps = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today - 86400000L, today);
             if (sleeps != null && !sleeps.isEmpty()) {
                 float h = 0; for (com.cz.fitnessdiary.database.entity.SleepRecord s : sleeps) h += s.getDuration() / 3600f;
                 sleepScore = h >= 7 && h <= 9 ? 20 : h >= 6 && h < 7 ? 15 : 5;
@@ -836,7 +1074,9 @@ public class CheckInFragment extends Fragment {
 
             int weightScore = 3;
             if (user != null && user.getWeight() > 0) {
-                java.util.List<com.cz.fitnessdiary.database.entity.WeightRecord> wRecords = db.weightRecordDao().getRecentRecordsSync(7);
+                long weekAgo = today - 7 * 86400000L;
+                java.util.List<com.cz.fitnessdiary.database.entity.WeightRecord> wRecords =
+                        db.weightRecordDao().getRecordsByDateRangeSync(weekAgo, today + 86400000L);
                 if (wRecords != null && wRecords.size() >= 2) {
                     float diff = wRecords.get(0).getWeight() - wRecords.get(wRecords.size() - 1).getWeight();
                     int goal = user.getGoalType();
@@ -849,6 +1089,8 @@ public class CheckInFragment extends Fragment {
             int total = sportScore + dietScore + sleepScore + waterScore + habitScore + weightScore;
             total = Math.min(total, 100);
 
+            boolean isToday = com.cz.fitnessdiary.utils.DateUtils.isToday(today);
+            String dayLabel = isToday ? "今日" : "当日";
             String msg = String.format(java.util.Locale.getDefault(),
                     "🏃 运动 (25%%):  %d/%d → %d分\n\n" +
                     "🍽 饮食 (25%%):  摄入%d/%d千卡 → %d分\n\n" +
@@ -856,18 +1098,18 @@ public class CheckInFragment extends Fragment {
                     "💧 饮水 (15%%):  %dml → %d分\n\n" +
                     "✅ 习惯 (10%%):  %s → %d分\n\n" +
                     "⚖ 体重 (5%%):   %s → %d分\n\n" +
-                    "─────────────────\n今日健康总分：%d / 100",
+                    "─────────────────\n%s健康总分：%d / 100",
                     sportDone, sportTotal, sportScore,
                     consumedCal, targetCal, dietScore,
                     sleepScore > 0 ? "已记录" : "无记录", sleepScore,
                     waterMl, waterScore,
                     habitScore > 0 ? "部分达成" : "无记录", habitScore,
                     weightScore >= 4 ? "趋势良好" : "待改善", weightScore,
-                    total);
+                    dayLabel, total);
 
             requireActivity().runOnUiThread(() -> {
                 new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("今日健康评分分解")
+                        .setTitle(dayLabel + "健康评分分解")
                         .setMessage(msg)
                         .setPositiveButton("知道了", null)
                         .show();
@@ -1016,7 +1258,7 @@ public class CheckInFragment extends Fragment {
         // Update progress
         View card = cachedCards.get(CARD_HABIT);
         if (card != null) {
-            com.google.android.material.progressindicator.LinearProgressIndicator p =
+            android.widget.ProgressBar p =
                     card.findViewById(R.id.progress_habit);
             if (p != null) p.setProgress(total > 0 ? completed * 100 / total : 0);
         }
@@ -1050,12 +1292,6 @@ public class CheckInFragment extends Fragment {
     }
 
     private void showHeatmapDialog() {
-        com.cz.fitnessdiary.ui.widget.StreakCalendarView calendar =
-                new com.cz.fitnessdiary.ui.widget.StreakCalendarView(requireContext());
-        int w = (int) (getResources().getDisplayMetrics().widthPixels * 0.9f);
-        calendar.setLayoutParams(new android.view.ViewGroup.LayoutParams(w, dp(260)));
-        calendar.setPadding(dp(8), dp(12), dp(8), dp(12));
-
         new Thread(() -> {
             java.util.Map<Long, Integer> levels = new java.util.HashMap<>();
             long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
@@ -1084,10 +1320,13 @@ public class CheckInFragment extends Fragment {
             }
 
             requireActivity().runOnUiThread(() -> {
-                calendar.setDayLevels(levels);
+                android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_heatmap, null);
+                com.cz.fitnessdiary.ui.widget.StreakCalendarView calView = dialogView.findViewById(R.id.calendar_view);
+                calView.setDayLevels(levels);
+
                 new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                         .setTitle("打卡热力图")
-                        .setView(calendar)
+                        .setView(dialogView)
                         .setPositiveButton("关闭", null)
                         .show();
             });

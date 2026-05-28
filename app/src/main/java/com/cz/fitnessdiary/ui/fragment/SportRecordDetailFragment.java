@@ -25,13 +25,21 @@ import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
+import com.google.android.material.datepicker.DayViewDecorator;
 import com.google.android.material.datepicker.MaterialDatePicker;
+
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class SportRecordDetailFragment extends Fragment {
 
@@ -39,11 +47,12 @@ public class SportRecordDetailFragment extends Fragment {
     private DailyLogAdapter adapter;
     private final List<TrainingPlan> plans = new ArrayList<>();
     private final List<DailyLog> logs = new ArrayList<>();
+    private java.util.Set<Long> cachedSportRecordedDates = new java.util.HashSet<>();
 
     private TextView tvSummary;
     private TextView tvSummarySmall;
     private TextView tvProgressPercent;
-    private com.google.android.material.progressindicator.CircularProgressIndicator progressCircle;
+    private com.cz.fitnessdiary.ui.widget.GradientCircularProgressView progressCircle;
     private TextView tvSelectedDate;
     private TextView tvConsecutiveDays;
     private TextView tvNoLogs;
@@ -73,6 +82,13 @@ public class SportRecordDetailFragment extends Fragment {
         tvSummarySmall = view.findViewById(R.id.tv_summary_small);
         tvProgressPercent = view.findViewById(R.id.tv_progress_percent);
         progressCircle = view.findViewById(R.id.progress_today_circle);
+        if (progressCircle != null) {
+            int startColor = getResources().getColor(R.color.sport_gradient_end, null); // 浅色作为渐变起点
+            int endColor = getResources().getColor(R.color.sport_gradient_start, null); // 深色作为渐变终点
+            progressCircle.setColors(startColor, endColor);
+            progressCircle.setTrackColor(0xFFE2E7E9); // 冷调淡灰底，契合运动蓝色主题
+            progressCircle.setStrokeWidthDp(8f);      // 8dp 厚度，动感有力
+        }
         tvNoLogs = view.findViewById(R.id.tv_no_logs);
         tvWeeklyStat = view.findViewById(R.id.tv_weekly_stat);
         tvDailyAvg = view.findViewById(R.id.tv_daily_avg);
@@ -138,12 +154,48 @@ public class SportRecordDetailFragment extends Fragment {
         if (currentSelection == null) {
             currentSelection = System.currentTimeMillis();
         }
+
+        final Set<Long> finalCheckedDates = cachedSportRecordedDates;
+        DayViewDecorator decorator = new DayViewDecorator() {
+            @Override
+            public Drawable getCompoundDrawableBottom(android.content.Context context,
+                    int year, int month, int day, boolean valid, boolean selected) {
+                java.util.Calendar cal = java.util.Calendar.getInstance(
+                        java.util.TimeZone.getTimeZone("UTC"));
+                cal.set(year, month, day, 12, 0, 0);
+                cal.set(java.util.Calendar.MILLISECOND, 0);
+                long dayStart = DateUtils.getDayStartTimestamp(cal.getTimeInMillis());
+
+                if (finalCheckedDates.contains(dayStart)) {
+                    GradientDrawable dot = new GradientDrawable();
+                    dot.setShape(GradientDrawable.OVAL);
+                    dot.setColor(ContextCompat.getColor(requireContext(), R.color.color_success));
+                    dot.setBounds(0, 0, 24, 24);
+                    return dot;
+                }
+                return null;
+            }
+
+            @Override
+            public void writeToParcel(android.os.Parcel dest, int flags) {
+            }
+
+            @Override
+            public int describeContents() {
+                return 0;
+            }
+        };
+
         MaterialDatePicker<Long> datePicker = MaterialDatePicker.Builder.datePicker()
                 .setTitleText("选择日期")
                 .setSelection(DateUtils.localToUtcDayStart(currentSelection))
-                .setCalendarConstraints(new CalendarConstraints.Builder().setValidator(DateValidatorPointBackward.now()).build())
+                .setDayViewDecorator(decorator)
+                .setCalendarConstraints(new CalendarConstraints.Builder()
+                        .setValidator(DateValidatorPointBackward.now())
+                        .build())
                 .build();
-        datePicker.addOnPositiveButtonClickListener(selection -> checkInViewModel.setSelectedDate(selection));
+        datePicker.addOnPositiveButtonClickListener(
+                selection -> checkInViewModel.setSelectedDate(selection));
         datePicker.show(getParentFragmentManager(), "SPORT_DETAIL_DATE_PICKER");
     }
 
@@ -179,6 +231,11 @@ public class SportRecordDetailFragment extends Fragment {
         checkInViewModel.getConsecutiveDays().observe(getViewLifecycleOwner(), days -> {
             int value = days == null ? 0 : days;
             tvConsecutiveDays.setText("已连续坚持 " + value + " 天");
+        });
+
+        // 预加载有运动记录的日期
+        checkInViewModel.getRecordedDates().observe(getViewLifecycleOwner(), d -> {
+            if (d != null) cachedSportRecordedDates = d;
         });
     }
 
