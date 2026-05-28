@@ -6,7 +6,10 @@
       "PowerShell(Get-ChildItem \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" -Directory | ForEach-Object { $_.Name })",
       "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached)",
       "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached \"build.gradle\" \"settings.gradle\" \"gradle.properties\" \"gradlew\" \"gradlew.bat\" \"CLAUDE.md\")",
-      "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached \"docs/\" \"gradle/\")"
+      "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached \"docs/\" \"gradle/\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"d:\\\\code\\\\JaProject\\\\FitnessDiary\\\\docs\\\\plans\")",
+      "Read(//c/Users/hhgg/AppData/Local/Temp/**)",
+      "PowerShell(node \"d:\\\\code\\\\JaProject\\\\FitnessDiary\\\\docs\\\\translate-template.js\")"
     ]
   }
 }

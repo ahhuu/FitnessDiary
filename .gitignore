@@ -40,6 +40,9 @@ build/
 # Agent
 # .agent/ is tracked — contains project-level behavior rules shared by the team
 
+# Generated reports (template is tracked, output is not)
+docs/reports/
+
 # Local history
 .history/
 
