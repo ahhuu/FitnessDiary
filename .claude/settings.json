@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(if \\(Test-Path \"$env:USERPROFILE\\\\.claude\\\\settings.json\"\\) { Get-Content \"$env:USERPROFILE\\\\.claude\\\\settings.json\" | ConvertFrom-Json | Select-Object -ExpandProperty enabledPlugins -ErrorAction SilentlyContinue } else { Write-Output \"No settings.json found\" })",
+      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.claude\\\\plugins\" -Directory -ErrorAction SilentlyContinue | ForEach-Object { Write-Output \"Plugin: $\\($_.Name\\)\"; Get-ChildItem $_.FullName -Directory | ForEach-Object { Write-Output \"  Command: $\\($_.Name\\)\" } })",
+      "PowerShell(Get-ChildItem \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" -Directory | ForEach-Object { $_.Name })",
+      "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached)",
+      "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached \"build.gradle\" \"settings.gradle\" \"gradle.properties\" \"gradlew\" \"gradlew.bat\" \"CLAUDE.md\")",
+      "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached \"docs/\" \"gradle/\")"
+    ]
+  }
+}

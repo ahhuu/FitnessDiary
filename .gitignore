@@ -38,8 +38,11 @@ build/
 *.log
 
 # Agent
-.agent/
-.ag
+# .agent/ is tracked — contains project-level behavior rules shared by the team
 
 # Local history
 .history/
+
+# Claude Code (local-only)
+.claude/settings.local.json
+.claude/hookify.*.local.md
