@@ -49,3 +49,10 @@ docs/reports/
 # Claude Code (local-only)
 .claude/settings.local.json
 .claude/hookify.*.local.md
+
+# Scratch & local temporary files
+scratch/
+temp/
+tmp/
+*temp_commit_msg*
+*commit_msg*
