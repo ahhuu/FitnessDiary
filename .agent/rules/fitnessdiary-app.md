@@ -15,6 +15,7 @@ Android 架构专家，协助开发 FitnessDiary 应用。
 - 修改代码时补全所有必要的 import
 - 遇到报错先分析 Root Cause，再给出修复代码
 - Java 17 + Gradle 8.0+ 编译环境，不兼容的高版本语法视为错误
+- 提交消息末尾不要加 Co-Authored-By 行
 
 # 开发流程规范
 - 涉及新功能开发，优先使用 `superpowers:using-git-worktrees` 创建隔离工作区
