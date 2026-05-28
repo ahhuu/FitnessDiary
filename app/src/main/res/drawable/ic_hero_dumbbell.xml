@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="30dp"
-    android:height="30dp"
+    android:width="140dp"
+    android:height="140dp"
     android:viewportWidth="64"
     android:viewportHeight="64">
 
@@ -58,15 +58,15 @@
         </aapt:attr>
     </path>
 
-    <!-- 右内哑铃片 -->
+    <!-- 右内哑铃片 (精确水平镜像对称) -->
     <path
-        android:pathData="M46,18h4a2,2 0 0 1 2,2v24a2,2 0 0 1 -2,2h-4a2,2 0 0 1 -2,-2V20a2,2 0 0 1 2,-2z">
+        android:pathData="M52,18h-4a2,2 0 0 0 -2,2v24a2,2 0 0 0 2,2h4a2,2 0 0 0 2,-2V20a2,2 0 0 0 -2,-2z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:startY="18"
-                android:startX="44"
+                android:startX="46"
                 android:endY="46"
-                android:endX="52"
+                android:endX="54"
                 android:type="linear">
                 <item android:offset="0" android:color="#9FB2C4" />
                 <item android:offset="0.4" android:color="#60768C" />
@@ -75,15 +75,15 @@
         </aapt:attr>
     </path>
 
-    <!-- 右外哑铃片 -->
+    <!-- 右外哑铃片 (精确水平镜像对称) -->
     <path
-        android:pathData="M52,22h4a2,2 0 0 1 2,2v16a2,2 0 0 1 -2,2h-4a2,2 0 0 1 -2,-2V24a2,2 0 0 1 2,-2z">
+        android:pathData="M58,22h-4a2,2 0 0 0 -2,2v16a2,2 0 0 0 2,2H58a2,2 0 0 0 2,-2V24a2,2 0 0 0 -2,-2z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:startY="22"
-                android:startX="50"
+                android:startX="52"
                 android:endY="42"
-                android:endX="58"
+                android:endX="60"
                 android:type="linear">
                 <item android:offset="0" android:color="#B2C2D1" />
                 <item android:offset="0.5" android:color="#6D849C" />

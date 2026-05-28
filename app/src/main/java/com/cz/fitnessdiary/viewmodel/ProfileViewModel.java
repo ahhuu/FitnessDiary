@@ -318,7 +318,16 @@ public class ProfileViewModel extends AndroidViewModel {
         java.util.List<Achievement> list = new java.util.ArrayList<>();
 
         // 基础数据查询
-        int planCount = trainingPlanDao.getAllPlansList().size();
+        int planCount = 0;
+        java.util.List<com.cz.fitnessdiary.database.entity.TrainingPlan> plans = trainingPlanDao.getAllPlansList();
+        if (plans != null) {
+            for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : plans) {
+                String cat = plan.getCategory();
+                if (cat != null && cat.startsWith("自定义-")) {
+                    planCount++;
+                }
+            }
+        }
         int foodCount = foodRecordDao.getTotalRecordCountSync();
 
         // --- 训练天数系列 ---

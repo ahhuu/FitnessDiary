@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 最底层：右下角深影线 -->
+    <item 
+        android:left="1.5dp" 
+        android:top="1.5dp" 
+        android:right="0dp" 
+        android:bottom="0dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="28dp"/>
+            <solid android:color="#DFD8CE"/>
+        </shape>
+    </item>
+
+    <!-- 中间层：左上角高光线 -->
+    <item 
+        android:left="0dp" 
+        android:top="0dp" 
+        android:right="1.5dp" 
+        android:bottom="1.5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="28dp"/>
+            <solid android:color="#FFFFFF"/>
+        </shape>
+    </item>
+
+    <!-- 最表层：奶油白主体渐变 -->
+    <item 
+        android:left="1.5dp" 
+        android:top="1.5dp" 
+        android:right="1.5dp" 
+        android:bottom="1.5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="26.5dp"/>
+            <gradient
+                android:startColor="#FAF9F6"
+                android:endColor="#EDE8DC"
+                android:angle="315"
+                android:type="linear"/>
+        </shape>
+    </item>
+</layer-list>

@@ -144,6 +144,50 @@ public class AIChatFragment extends Fragment {
                 this::handleSessionLongClick);
         binding.recyclerViewSessions.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerViewSessions.setAdapter(sessionAdapter);
+
+        // 绑定抽屉滑动监听，动态实现底部导航栏的下滑出屏效果
+        binding.drawerLayout.addDrawerListener(new androidx.drawerlayout.widget.DrawerLayout.DrawerListener() {
+            @Override
+            public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+                View bottomNav = getBottomNavView();
+                if (bottomNav != null) {
+                    // bottomNav.getHeight() 通常是底栏高度，乘上 slideOffset 并加余量使底栏平滑缩回下缘外
+                    float translationY = slideOffset * (bottomNav.getHeight() + 120);
+                    bottomNav.setTranslationY(translationY);
+                }
+            }
+
+            @Override
+            public void onDrawerOpened(@NonNull View drawerView) {
+                View bottomNav = getBottomNavView();
+                if (bottomNav != null) {
+                    bottomNav.setTranslationY(bottomNav.getHeight() + 120);
+                }
+            }
+
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+                View bottomNav = getBottomNavView();
+                if (bottomNav != null) {
+                    bottomNav.setTranslationY(0f);
+                }
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {}
+        });
+    }
+
+    /**
+     * 安全获取父级布局 MainHome 中的自定义 3D 底部导航栏 View
+     */
+    @Nullable
+    private View getBottomNavView() {
+        Fragment parent = getParentFragment();
+        if (parent != null && parent.getView() != null) {
+            return parent.getView().findViewById(R.id.bottom_nav_custom);
+        }
+        return null;
     }
 
     private void handleSessionLongClick(ChatSessionEntity session) {

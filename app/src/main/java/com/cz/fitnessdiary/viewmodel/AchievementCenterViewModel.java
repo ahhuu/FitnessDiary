@@ -125,7 +125,16 @@ public class AchievementCenterViewModel extends AndroidViewModel {
     public void refreshAll() {
         executorService.execute(() -> {
             int totalDays = dailyLogDao.getTotalTrainingDays();
-            int planCount = trainingPlanDao.getAllPlansList().size();
+            int planCount = 0;
+            List<com.cz.fitnessdiary.database.entity.TrainingPlan> plans = trainingPlanDao.getAllPlansList();
+            if (plans != null) {
+                for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : plans) {
+                    String cat = plan.getCategory();
+                    if (cat != null && cat.startsWith("自定义-")) {
+                        planCount++;
+                    }
+                }
+            }
             int foodCount = foodRecordDao.getTotalRecordCountSync();
             int workoutCount = dailyLogDao.getAllLogsSync().size();
 

@@ -110,12 +110,21 @@ public class WelcomeFragment extends Fragment {
      * 设置性别选择
      */
     private void setupGenderChips() {
-        binding.chipGenderGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (checkedIds.contains(R.id.chip_female)) {
-                selectedGender = CalorieCalculatorUtils.GENDER_FEMALE;
-            } else if (checkedIds.contains(R.id.chip_male)) {
-                selectedGender = CalorieCalculatorUtils.GENDER_MALE;
-            }
+        // 默认选中女
+        binding.chipFemale.setSelected(true);
+        binding.chipMale.setSelected(false);
+
+        binding.chipFemale.setOnClickListener(v -> {
+            binding.chipFemale.setSelected(true);
+            binding.chipMale.setSelected(false);
+            selectedGender = CalorieCalculatorUtils.GENDER_FEMALE;
+            updateCaloriePreview();
+        });
+
+        binding.chipMale.setOnClickListener(v -> {
+            binding.chipFemale.setSelected(false);
+            binding.chipMale.setSelected(true);
+            selectedGender = CalorieCalculatorUtils.GENDER_MALE;
             updateCaloriePreview();
         });
     }
@@ -124,14 +133,32 @@ public class WelcomeFragment extends Fragment {
      * 设置目标选择
      */
     private void setupGoalChips() {
-        binding.chipGoalGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (checkedIds.contains(R.id.chip_lose_fat)) {
-                selectedGoal = CalorieCalculatorUtils.GOAL_LOSE_FAT;
-            } else if (checkedIds.contains(R.id.chip_gain_muscle)) {
-                selectedGoal = CalorieCalculatorUtils.GOAL_GAIN_MUSCLE;
-            } else if (checkedIds.contains(R.id.chip_maintain)) {
-                selectedGoal = CalorieCalculatorUtils.GOAL_MAINTAIN;
-            }
+        // 默认选中减脂
+        binding.chipLoseFat.setSelected(true);
+        binding.chipGainMuscle.setSelected(false);
+        binding.chipMaintain.setSelected(false);
+
+        binding.chipLoseFat.setOnClickListener(v -> {
+            binding.chipLoseFat.setSelected(true);
+            binding.chipGainMuscle.setSelected(false);
+            binding.chipMaintain.setSelected(false);
+            selectedGoal = CalorieCalculatorUtils.GOAL_LOSE_FAT;
+            updateCaloriePreview();
+        });
+
+        binding.chipGainMuscle.setOnClickListener(v -> {
+            binding.chipLoseFat.setSelected(false);
+            binding.chipGainMuscle.setSelected(true);
+            binding.chipMaintain.setSelected(false);
+            selectedGoal = CalorieCalculatorUtils.GOAL_GAIN_MUSCLE;
+            updateCaloriePreview();
+        });
+
+        binding.chipMaintain.setOnClickListener(v -> {
+            binding.chipLoseFat.setSelected(false);
+            binding.chipGainMuscle.setSelected(false);
+            binding.chipMaintain.setSelected(true);
+            selectedGoal = CalorieCalculatorUtils.GOAL_MAINTAIN;
             updateCaloriePreview();
         });
     }
@@ -140,14 +167,32 @@ public class WelcomeFragment extends Fragment {
      * 设置活动水平选择
      */
     private void setupActivityChips() {
-        binding.chipActivityGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (checkedIds.contains(R.id.chip_sedentary)) {
-                selectedActivityLevel = 1.2f;
-            } else if (checkedIds.contains(R.id.chip_light)) {
-                selectedActivityLevel = 1.375f;
-            } else if (checkedIds.contains(R.id.chip_moderate)) {
-                selectedActivityLevel = 1.55f;
-            }
+        // 默认选中久坐
+        binding.chipSedentary.setSelected(true);
+        binding.chipLight.setSelected(false);
+        binding.chipModerate.setSelected(false);
+
+        binding.chipSedentary.setOnClickListener(v -> {
+            binding.chipSedentary.setSelected(true);
+            binding.chipLight.setSelected(false);
+            binding.chipModerate.setSelected(false);
+            selectedActivityLevel = 1.2f;
+            updateCaloriePreview();
+        });
+
+        binding.chipLight.setOnClickListener(v -> {
+            binding.chipSedentary.setSelected(false);
+            binding.chipLight.setSelected(true);
+            binding.chipModerate.setSelected(false);
+            selectedActivityLevel = 1.375f;
+            updateCaloriePreview();
+        });
+
+        binding.chipModerate.setOnClickListener(v -> {
+            binding.chipSedentary.setSelected(false);
+            binding.chipLight.setSelected(false);
+            binding.chipModerate.setSelected(true);
+            selectedActivityLevel = 1.55f;
             updateCaloriePreview();
         });
     }

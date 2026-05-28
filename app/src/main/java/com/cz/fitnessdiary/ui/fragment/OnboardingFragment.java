@@ -83,12 +83,12 @@ public class OnboardingFragment extends Fragment {
 
     private void setupViewPager() {
         List<PageData> pages = new ArrayList<>();
-        pages.add(new PageData(R.drawable.ic_hero_dumbbell, "全方位健康追踪",
-                "记录运动、饮食、饮水、睡眠、用药和习惯\n一站式管理你的健康数据"));
-        pages.add(new PageData(R.drawable.img_welcome_hero, "AI 智能教练",
-                "拍照识别食物热量，AI 为你定制训练计划\n智能分析饮食和进度，让健身更科学"));
-        pages.add(new PageData(R.drawable.ic_hero_diet, "坚持，成为更好的自己",
-                "每日任务、成就解锁、连续打卡激励\n从今天开始，和健康日记一起蜕变"));
+        pages.add(new PageData(R.drawable.img_welcome_hero, "全方位健康手账",
+                "轻松记录每日运动、饮食、饮水与睡眠\n科学管理体重与围度，见证身体的每一次蜕变"));
+        pages.add(new PageData(R.drawable.ic_onboarding_brain, "专属 AI 私教",
+                "随时对话答疑，为您定制个性化训练与饮食计划\n智能分析卡路里与进度，让您的健身更科学、更高效"));
+        pages.add(new PageData(R.drawable.ic_hero_dumbbell, "21天挑战与成就系统",
+                "开启21天挑战培养健康好习惯，解锁丰富成就徽章\n让每一次坚持都有迹可循，成为更好的自己"));
 
         binding.vpOnboarding.setAdapter(new androidx.recyclerview.widget.RecyclerView.Adapter<PageHolder>() {
             @NonNull
