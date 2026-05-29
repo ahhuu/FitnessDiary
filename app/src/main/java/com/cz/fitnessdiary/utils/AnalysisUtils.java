@@ -146,6 +146,19 @@ public class AnalysisUtils {
 
     // ── Bowel movement helpers ──
 
+    public static int getBristolIconRes(int type) {
+        switch (type) {
+            case 1: return com.cz.fitnessdiary.R.drawable.ic_bristol_1;
+            case 2: return com.cz.fitnessdiary.R.drawable.ic_bristol_2;
+            case 3: return com.cz.fitnessdiary.R.drawable.ic_bristol_3;
+            case 4: return com.cz.fitnessdiary.R.drawable.ic_bristol_4;
+            case 5: return com.cz.fitnessdiary.R.drawable.ic_bristol_5;
+            case 6: return com.cz.fitnessdiary.R.drawable.ic_bristol_6;
+            case 7: return com.cz.fitnessdiary.R.drawable.ic_bristol_7;
+            default: return com.cz.fitnessdiary.R.drawable.ic_hero_bowel;
+        }
+    }
+
     public static String getBristolTypeName(int type) {
         switch (type) {
             case 1: return "坚果状 (严重便秘)";

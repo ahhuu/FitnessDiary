@@ -165,6 +165,7 @@ public class BowelMovementDetailFragment extends Fragment {
                 ivHeaderIcon.setImageResource(getBristolIconRes(latest.getBristolType()));
             }
         } else {
+            tvLatestBristol.setText("暂无记录");
             if (ivHeaderIcon != null) {
                 ivHeaderIcon.setImageResource(R.drawable.ic_hero_bowel);
             }
@@ -313,15 +314,6 @@ public class BowelMovementDetailFragment extends Fragment {
         }
     }
     private int getBristolIconRes(int type) {
-        switch (type) {
-            case 1: return R.drawable.ic_bristol_1;
-            case 2: return R.drawable.ic_bristol_2;
-            case 3: return R.drawable.ic_bristol_3;
-            case 4: return R.drawable.ic_bristol_4;
-            case 5: return R.drawable.ic_bristol_5;
-            case 6: return R.drawable.ic_bristol_6;
-            case 7: return R.drawable.ic_bristol_7;
-            default: return R.drawable.ic_hero_bowel;
-        }
+        return com.cz.fitnessdiary.utils.AnalysisUtils.getBristolIconRes(type);
     }
 }

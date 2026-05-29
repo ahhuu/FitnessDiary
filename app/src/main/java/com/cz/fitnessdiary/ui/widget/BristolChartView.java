@@ -39,6 +39,8 @@ public class BristolChartView extends View {
     private Paint labelPaint;
     private Paint bgPaint;
 
+    private android.graphics.drawable.Drawable[] mBristolIcons = new android.graphics.drawable.Drawable[8];
+
     private int paddingLeft = 270;
     private int paddingRight = 40;
     private int paddingTop = 20;
@@ -69,6 +71,15 @@ public class BristolChartView extends View {
 
         bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         bgPaint.setColor(0xFFFCFAF6); // 使用卡面背景对齐
+
+        for (int type = 1; type <= 7; type++) {
+            android.graphics.drawable.Drawable d = androidx.appcompat.content.res.AppCompatResources.getDrawable(getContext(), getBristolIconRes(type));
+            if (d != null) {
+                d = d.mutate();
+                d.setTint(0xFF8A8276);
+            }
+            mBristolIcons[type] = d;
+        }
     }
 
     public void setData(Map<Integer, Integer> bristolCounts) {
@@ -106,9 +117,10 @@ public class BristolChartView extends View {
             float iconTop = midY - iconSize / 2f;
             float iconRight = iconLeft + iconSize;
             float iconBottom = midY + iconSize / 2f;
-            android.graphics.drawable.Drawable drawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(getContext(), getBristolIconRes(type));
+            android.graphics.drawable.Drawable drawable = mBristolIcons[type];
             if (drawable != null) {
-                drawable.setTint(0xFF8A8276); // Match label paint color
+                drawable.setBounds((int) iconLeft, (int) iconTop, (int) iconRight, (int) iconBottom);
+                drawable.draw(canvas);
                 drawable.setBounds((int) iconLeft, (int) iconTop, (int) iconRight, (int) iconBottom);
                 drawable.draw(canvas);
             }
@@ -137,15 +149,6 @@ public class BristolChartView extends View {
         }
     }
     private int getBristolIconRes(int type) {
-        switch (type) {
-            case 1: return R.drawable.ic_bristol_1;
-            case 2: return R.drawable.ic_bristol_2;
-            case 3: return R.drawable.ic_bristol_3;
-            case 4: return R.drawable.ic_bristol_4;
-            case 5: return R.drawable.ic_bristol_5;
-            case 6: return R.drawable.ic_bristol_6;
-            case 7: return R.drawable.ic_bristol_7;
-            default: return R.drawable.ic_hero_bowel;
-        }
+        return com.cz.fitnessdiary.utils.AnalysisUtils.getBristolIconRes(type);
     }
 }
