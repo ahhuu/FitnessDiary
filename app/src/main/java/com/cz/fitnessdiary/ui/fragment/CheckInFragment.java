@@ -779,6 +779,27 @@ public class CheckInFragment extends Fragment {
         homeDashboardViewModel.getSelectedDateLatestBowelTime().observe(getViewLifecycleOwner(), ts -> {
             if (ts != null && ts > 0) {
                 setTextIfExists(R.id.tv_bowel_update, getSelectedDateUpdateText(ts));
+                new Thread(() -> {
+                    try {
+                        com.cz.fitnessdiary.database.AppDatabase db =
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        Long selectedDate = checkInViewModel.getSelectedDate().getValue();
+                        long date = selectedDate != null ? selectedDate : com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                        com.cz.fitnessdiary.database.entity.BowelMovement latest =
+                                db.bowelMovementDao().getLatestByDateSync(date, date + 86400000L);
+                        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                            if (isAdded() && binding != null && latest != null) {
+                                View card = cachedCards.get(CARD_BOWEL);
+                                if (card != null) {
+                                    android.widget.ImageView ivIcon = card.findViewById(R.id.iv_bowel_icon);
+                                    if (ivIcon != null) {
+                                        ivIcon.setImageResource(getBristolIconRes(latest.getBristolType()));
+                                    }
+                                }
+                            }
+                        });
+                    } catch (Exception ignored) {}
+                }).start();
             } else {
                 new Thread(() -> {
                     try {
@@ -794,9 +815,23 @@ public class CheckInFragment extends Fragment {
                                     String desc = typeStr + " " + colorStr;
                                     setTextIfExists(R.id.tv_bowel_update, getUpdateText(latest.getTimestamp()));
                                     setTextIfExists(R.id.tv_bowel_summary, "上次: " + desc.trim());
+                                    View card = cachedCards.get(CARD_BOWEL);
+                                    if (card != null) {
+                                        android.widget.ImageView ivIcon = card.findViewById(R.id.iv_bowel_icon);
+                                        if (ivIcon != null) {
+                                            ivIcon.setImageResource(getBristolIconRes(latest.getBristolType()));
+                                        }
+                                    }
                                 } else {
                                     setTextIfExists(R.id.tv_bowel_update, "暂无更新");
                                     setTextIfExists(R.id.tv_bowel_summary, "点击查看便便明细");
+                                    View card = cachedCards.get(CARD_BOWEL);
+                                    if (card != null) {
+                                        android.widget.ImageView ivIcon = card.findViewById(R.id.iv_bowel_icon);
+                                        if (ivIcon != null) {
+                                            ivIcon.setImageResource(R.drawable.ic_hero_bowel);
+                                        }
+                                    }
                                 }
                                 setTextIfExists(R.id.tv_bowel_value, "--");
                                 View card = cachedCards.get(CARD_BOWEL);
@@ -1749,5 +1784,18 @@ public class CheckInFragment extends Fragment {
         lastEnabledCardIds.clear();
         cachedCards.clear();
         binding = null;
+    }
+
+    private int getBristolIconRes(int type) {
+        switch (type) {
+            case 1: return R.drawable.ic_bristol_1;
+            case 2: return R.drawable.ic_bristol_2;
+            case 3: return R.drawable.ic_bristol_3;
+            case 4: return R.drawable.ic_bristol_4;
+            case 5: return R.drawable.ic_bristol_5;
+            case 6: return R.drawable.ic_bristol_6;
+            case 7: return R.drawable.ic_bristol_7;
+            default: return R.drawable.ic_hero_bowel;
+        }
     }
 }

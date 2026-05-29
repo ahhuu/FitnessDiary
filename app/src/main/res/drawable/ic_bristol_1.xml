@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Bristol Type 1: Separate hard lumps, like nuts -->
+    <path
+        android:strokeColor="#8D6E63"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M 7 5.8 A 2.2 2.2 0 1 1 6.99 5.8 Z M 16 9.2 A 2.8 2.8 0 1 1 15.99 9.2 Z M 9 14.7 A 1.8 1.8 0 1 1 8.99 14.7 Z" />
+</vector>

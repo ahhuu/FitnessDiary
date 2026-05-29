@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Bristol Type 7: Watery, no solid pieces, entirely liquid -->
+    <path
+        android:strokeColor="#8D6E63"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M 3,12 C 6,10 8,14 11,12 C 14,10 16,14 19,12 C 20.5,11 21,11.5 22,12 M 3,16 C 6,14 8,18 11,16 C 14,14 16,18 19,16 C 20.5,15 21,15.5 22,16 M 7,7 C 7,7 8.5,8.5 8,9.5 C 7.5,10.2 6.5,10.2 6,9.5 C 5.5,8.5 7,7 7,7 Z M 15,6 C 15,6 16,7 15.8,7.8 C 15.5,8.3 14.8,8.3 14.5,7.8 C 14.2,7 15,6 15,6 Z M 12,9 C 12,9 12.5,9.5 12.4,10 C 12.2,10.3 11.8,10.3 11.6,10 C 11.4,9.5 12,9 12,9 Z" />
+</vector>

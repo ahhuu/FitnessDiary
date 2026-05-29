@@ -40,6 +40,7 @@ public class BowelMovementDetailFragment extends Fragment {
     private BristolChartView bristolChart;
     private TextView tvHeaderSummary, tvTodayCount, tvLatestBristol;
     private TextView tvHealthScore, tvAvgBristol, tvColorSummary, tvEmpty;
+    private android.widget.ImageView ivHeaderIcon;
 
     private static final int[] BRISTOL_CHIP_IDS = {
             R.id.chip_b1, R.id.chip_b2, R.id.chip_b3, R.id.chip_b4, R.id.chip_b5, R.id.chip_b6, R.id.chip_b7
@@ -61,6 +62,7 @@ public class BowelMovementDetailFragment extends Fragment {
         tvHeaderSummary = view.findViewById(R.id.tv_header_summary);
         tvTodayCount = view.findViewById(R.id.tv_today_count);
         tvLatestBristol = view.findViewById(R.id.tv_latest_bristol);
+        ivHeaderIcon = view.findViewById(R.id.iv_header_icon);
         tvHealthScore = view.findViewById(R.id.tv_health_score);
         tvAvgBristol = view.findViewById(R.id.tv_avg_bristol);
         tvColorSummary = view.findViewById(R.id.tv_color_summary);
@@ -149,7 +151,7 @@ public class BowelMovementDetailFragment extends Fragment {
                         r.getId(), bristolName,
                         sdf.format(new Date(r.getTimestamp())),
                         (r.getDurationSeconds() > 0 ? r.getDurationSeconds() + "分钟" : ""),
-                        subtitle, R.drawable.ic_hero_bowel, r));
+                        subtitle, getBristolIconRes(r.getBristolType()), r));
             }
         }
         adapter.submitList(items);
@@ -159,6 +161,13 @@ public class BowelMovementDetailFragment extends Fragment {
         if (records != null && !records.isEmpty()) {
             BowelMovement latest = records.get(0);
             tvLatestBristol.setText("最近分型：Type " + latest.getBristolType());
+            if (ivHeaderIcon != null) {
+                ivHeaderIcon.setImageResource(getBristolIconRes(latest.getBristolType()));
+            }
+        } else {
+            if (ivHeaderIcon != null) {
+                ivHeaderIcon.setImageResource(R.drawable.ic_hero_bowel);
+            }
         }
     }
 
@@ -301,6 +310,18 @@ public class BowelMovementDetailFragment extends Fragment {
             case "INCOMPLETE": return "不尽";
             case "URGENT": return "急迫";
             default: return code;
+        }
+    }
+    private int getBristolIconRes(int type) {
+        switch (type) {
+            case 1: return R.drawable.ic_bristol_1;
+            case 2: return R.drawable.ic_bristol_2;
+            case 3: return R.drawable.ic_bristol_3;
+            case 4: return R.drawable.ic_bristol_4;
+            case 5: return R.drawable.ic_bristol_5;
+            case 6: return R.drawable.ic_bristol_6;
+            case 7: return R.drawable.ic_bristol_7;
+            default: return R.drawable.ic_hero_bowel;
         }
     }
 }

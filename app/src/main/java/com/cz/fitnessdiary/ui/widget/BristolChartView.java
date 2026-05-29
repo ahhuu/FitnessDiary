@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import com.cz.fitnessdiary.R;
 
 public class BristolChartView extends View {
 
@@ -38,7 +39,7 @@ public class BristolChartView extends View {
     private Paint labelPaint;
     private Paint bgPaint;
 
-    private int paddingLeft = 200;
+    private int paddingLeft = 270;
     private int paddingRight = 40;
     private int paddingTop = 20;
     private int paddingBottom = 20;
@@ -64,7 +65,7 @@ public class BristolChartView extends View {
         labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         labelPaint.setColor(0xFF8A8276); // 统一对齐项目副色柔灰褐
         labelPaint.setTextSize(24f);
-        labelPaint.setTextAlign(Paint.Align.RIGHT);
+        labelPaint.setTextAlign(Paint.Align.LEFT);
 
         bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         bgPaint.setColor(0xFFFCFAF6); // 使用卡面背景对齐
@@ -99,9 +100,22 @@ public class BristolChartView extends View {
             float top = paddingTop + (type - 1) * barHeight;
             float midY = top + barHeight / 2f;
 
+            // Draw Bristol Icon
+            int iconSize = 36;
+            float iconLeft = 20f;
+            float iconTop = midY - iconSize / 2f;
+            float iconRight = iconLeft + iconSize;
+            float iconBottom = midY + iconSize / 2f;
+            android.graphics.drawable.Drawable drawable = androidx.appcompat.content.res.AppCompatResources.getDrawable(getContext(), getBristolIconRes(type));
+            if (drawable != null) {
+                drawable.setTint(0xFF8A8276); // Match label paint color
+                drawable.setBounds((int) iconLeft, (int) iconTop, (int) iconRight, (int) iconBottom);
+                drawable.draw(canvas);
+            }
+
             // Label - 柔灰褐字色
             labelPaint.setColor(0xFF8A8276);
-            canvas.drawText(TYPE_NAMES[type], paddingLeft - 8, midY + 8, labelPaint);
+            canvas.drawText(TYPE_NAMES[type], iconRight + 12, midY + 8, labelPaint);
 
             // Bar background - 升级为平滑内敛的淡暖米灰槽
             barPaint.setColor(0xFFF4F0E6);
@@ -120,6 +134,18 @@ public class BristolChartView extends View {
                 textPaint.setColor(0xFFC5BEB5);
                 canvas.drawText("0", paddingLeft + 8, midY + 10, textPaint);
             }
+        }
+    }
+    private int getBristolIconRes(int type) {
+        switch (type) {
+            case 1: return R.drawable.ic_bristol_1;
+            case 2: return R.drawable.ic_bristol_2;
+            case 3: return R.drawable.ic_bristol_3;
+            case 4: return R.drawable.ic_bristol_4;
+            case 5: return R.drawable.ic_bristol_5;
+            case 6: return R.drawable.ic_bristol_6;
+            case 7: return R.drawable.ic_bristol_7;
+            default: return R.drawable.ic_hero_bowel;
         }
     }
 }

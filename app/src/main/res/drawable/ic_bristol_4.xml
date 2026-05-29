@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Bristol Type 4: Like a sausage or snake, smooth and soft -->
+    <path
+        android:strokeColor="#8D6E63"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M 4,15 C 3.5,13 5,10 9,8.5 C 13.5,7 18,9 20,11 C 21,12 21,13 19,14 C 16.5,15.5 12.5,15.5 9.5,16.5 C 6.5,17.5 4.5,17 4,15 Z M 7,12.5 C 11.5,11.5 15.5,12.5 17.5,13.5" />
+</vector>

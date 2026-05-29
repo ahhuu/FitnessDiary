@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Bristol Type 5: Soft blobs with clear-cut edges -->
+    <path
+        android:strokeColor="#8D6E63"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M 6,11 C 4.5,11 3.5,12.5 4,14 C 4.5,15.5 7,16 8,14.5 C 9,13 7.5,11 6,11 Z M 13,8 C 11,8 9.5,9.5 10,12 C 10.5,14.5 14.5,15 15,12 C 15.5,9 14.5,8 13,8 Z M 19,12 C 18,12 17,13 17,14.5 C 17,16 19,17.5 20,16 C 21,14.5 20,12 19,12 Z" />
+</vector>
