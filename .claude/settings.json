@@ -9,7 +9,9 @@
       "PowerShell(git -C \"d:\\\\code\\\\JaProject\\\\FitnessDiary\" ls-files --cached \"docs/\" \"gradle/\")",
       "PowerShell(New-Item -ItemType Directory -Force -Path \"d:\\\\code\\\\JaProject\\\\FitnessDiary\\\\docs\\\\plans\")",
       "Read(//c/Users/hhgg/AppData/Local/Temp/**)",
-      "PowerShell(node \"d:\\\\code\\\\JaProject\\\\FitnessDiary\\\\docs\\\\translate-template.js\")"
+      "PowerShell(node \"d:\\\\code\\\\JaProject\\\\FitnessDiary\\\\docs\\\\translate-template.js\")",
+      "Bash(Select-Object -Last 20)",
+      "PowerShell(.\\\\gradlew.bat assembleDebug 2>&1)"
     ]
   }
 }
