@@ -117,4 +117,9 @@
         android:id="@+id/menstrualRecordDetailFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.MenstrualRecordDetailFragment"
         android:label="经期记录明细" />
+
+    <fragment
+        android:id="@+id/stepRecordDetailFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.StepRecordDetailFragment"
+        android:label="步数记录明细" />
 </navigation>

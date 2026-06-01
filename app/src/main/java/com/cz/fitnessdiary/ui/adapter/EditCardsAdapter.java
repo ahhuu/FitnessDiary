@@ -98,6 +98,12 @@ public class EditCardsAdapter extends RecyclerView.Adapter<EditCardsAdapter.View
         if ("menstrual".equals(id)) {
             return R.drawable.ic_hero_menstrual;
         }
+        if ("step".equals(id)) {
+            return R.drawable.ic_hero_step;
+        }
+        if ("mood".equals(id)) {
+            return R.drawable.ic_hero_mood;
+        }
         return R.drawable.ic_hero_dumbbell;
     }
 

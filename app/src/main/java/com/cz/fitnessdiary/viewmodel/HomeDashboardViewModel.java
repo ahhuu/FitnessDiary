@@ -15,9 +15,13 @@ import com.cz.fitnessdiary.database.entity.HabitRecord;
 import com.cz.fitnessdiary.database.entity.MedicationRecord;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
+import com.cz.fitnessdiary.database.entity.StepRecord;
+import com.cz.fitnessdiary.database.entity.MoodRecord;
 import com.cz.fitnessdiary.repository.HomeDashboardRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
+
+import android.content.SharedPreferences;
 
 import java.util.List;
 
@@ -239,6 +243,62 @@ public class HomeDashboardViewModel extends AndroidViewModel {
         MutableLiveData<Long> result = new MutableLiveData<>();
         new Thread(() -> result.postValue(repository.getLatestMenstrualTime())).start();
         return result;
+    }
+
+    // ── Step card data ──
+
+    public LiveData<StepRecord> getTodayStep() {
+        return Transformations.switchMap(dayStart, date -> repository.getStepByDate(date));
+    }
+
+    public void setTodaySteps(int steps, int source) {
+        new Thread(() -> {
+            Long date = selectedDate.getValue();
+            long day = date != null ? DateUtils.getDayStartTimestamp(date) : DateUtils.getTodayStartTimestamp();
+            StepRecord existing = repository.getStepByDateSync(day);
+            if (existing != null) {
+                existing.setSteps(steps);
+                existing.setSource(source);
+                existing.setCreateTime(System.currentTimeMillis());
+                repository.insertOrUpdateStep(existing);
+            } else {
+                repository.insertOrUpdateStep(
+                        new StepRecord(day, steps, source, System.currentTimeMillis()));
+            }
+        }).start();
+    }
+
+    public int getStepTarget() {
+        SharedPreferences sp = getApplication().getSharedPreferences(
+                "fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+        return sp.getInt("step_target", 8000);
+    }
+
+    public void setStepTarget(int target) {
+        getApplication().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE)
+                .edit().putInt("step_target", target).apply();
+    }
+
+    public LiveData<Integer> getTodayStepCalories() {
+        return Transformations.map(getTodayStep(), step -> {
+            if (step == null || step.getSteps() <= 0) return 0;
+            return (int) (step.getSteps() * 0.04);
+        });
+    }
+
+    // ── Mood card data ──
+
+    public LiveData<MoodRecord> getTodayMood() {
+        return Transformations.switchMap(dayStart, date -> repository.getMoodByDate(date));
+    }
+
+    public void setTodayMood(String moodCode) {
+        new Thread(() -> {
+            Long date = selectedDate.getValue();
+            long day = date != null ? DateUtils.getDayStartTimestamp(date) : DateUtils.getTodayStartTimestamp();
+            MoodRecord record = new MoodRecord(day, moodCode, null, System.currentTimeMillis());
+            repository.insertOrUpdateMood(record);
+        }).start();
     }
 
     private long buildRecordTimestampForSelectedDate() {

@@ -14,6 +14,8 @@ import com.cz.fitnessdiary.database.entity.HabitRecord;
 import com.cz.fitnessdiary.database.entity.MedicationRecord;
 import com.cz.fitnessdiary.database.entity.MenstrualCycle;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
+import com.cz.fitnessdiary.database.entity.StepRecord;
+import com.cz.fitnessdiary.database.entity.MoodRecord;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 
 import java.util.List;
@@ -29,6 +31,8 @@ public class HomeDashboardRepository {
     private final BodyMeasurementRepository bodyMeasurementRepository;
     private final BowelMovementRepository bowelMovementRepository;
     private final MenstrualCycleRepository menstrualCycleRepository;
+    private final StepRecordRepository stepRecordRepository;
+    private final MoodRecordRepository moodRecordRepository;
 
     public HomeDashboardRepository(Application application) {
         this.weightRecordRepository = new WeightRecordRepository(application);
@@ -40,6 +44,8 @@ public class HomeDashboardRepository {
         this.bodyMeasurementRepository = new BodyMeasurementRepository(application);
         this.bowelMovementRepository = new BowelMovementRepository(application);
         this.menstrualCycleRepository = new MenstrualCycleRepository(application);
+        this.stepRecordRepository = new StepRecordRepository(application);
+        this.moodRecordRepository = new MoodRecordRepository(application);
     }
 
     public LiveData<WeightRecord> getLatestWeight() {
@@ -225,5 +231,33 @@ public class HomeDashboardRepository {
     public Long getLatestMenstrualTime() {
         MenstrualCycle latest = menstrualCycleRepository.getLatestSync();
         return latest != null ? latest.getTimestamp() : null;
+    }
+
+    // ── Step Record ──
+
+    public LiveData<StepRecord> getStepByDate(long date) {
+        return stepRecordRepository.getByDate(date);
+    }
+
+    public void insertOrUpdateStep(StepRecord record) {
+        stepRecordRepository.insertOrUpdate(record);
+    }
+
+    public StepRecord getStepByDateSync(long date) {
+        return stepRecordRepository.getByDateSync(date);
+    }
+
+    // ── Mood Record ──
+
+    public LiveData<MoodRecord> getMoodByDate(long date) {
+        return moodRecordRepository.getByDate(date);
+    }
+
+    public void insertOrUpdateMood(MoodRecord record) {
+        moodRecordRepository.insertOrUpdate(record);
+    }
+
+    public MoodRecord getMoodByDateSync(long date) {
+        return moodRecordRepository.getByDateSync(date);
     }
 }

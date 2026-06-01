@@ -37,6 +37,8 @@ import com.cz.fitnessdiary.database.dao.HabitRecordDao;
 import com.cz.fitnessdiary.database.dao.BodyMeasurementDao;
 import com.cz.fitnessdiary.database.dao.BowelMovementDao;
 import com.cz.fitnessdiary.database.dao.MenstrualCycleDao;
+import com.cz.fitnessdiary.database.dao.StepRecordDao;
+import com.cz.fitnessdiary.database.dao.MoodRecordDao;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.database.entity.MedicationRecord;
@@ -48,6 +50,8 @@ import com.cz.fitnessdiary.database.entity.HabitRecord;
 import com.cz.fitnessdiary.database.entity.BodyMeasurement;
 import com.cz.fitnessdiary.database.entity.BowelMovement;
 import com.cz.fitnessdiary.database.entity.MenstrualCycle;
+import com.cz.fitnessdiary.database.entity.StepRecord;
+import com.cz.fitnessdiary.database.entity.MoodRecord;
 
 import java.util.concurrent.Executors;
 
@@ -60,7 +64,7 @@ import java.util.concurrent.Executors;
         ChatSessionEntity.class, WeightRecord.class, WaterRecord.class, MedicationRecord.class, CustomTracker.class,
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
         HabitRecord.class, BodyMeasurement.class, BowelMovement.class,
-        MenstrualCycle.class }, version = 21, exportSchema = true)
+        MenstrualCycle.class, StepRecord.class, MoodRecord.class }, version = 22, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -109,6 +113,10 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract BowelMovementDao bowelMovementDao();
 
     public abstract MenstrualCycleDao menstrualCycleDao();
+
+    public abstract StepRecordDao stepRecordDao();
+
+    public abstract MoodRecordDao moodRecordDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -469,6 +477,27 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    static final Migration MIGRATION_21_22 = new Migration(21, 22) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `step_record` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`date` INTEGER NOT NULL, " +
+                    "`steps` INTEGER NOT NULL DEFAULT 0, " +
+                    "`source` INTEGER NOT NULL DEFAULT 0, " +
+                    "`create_time` INTEGER NOT NULL)");
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_step_record_date` ON `step_record` (`date`)");
+
+            database.execSQL("CREATE TABLE IF NOT EXISTS `mood_record` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`date` INTEGER NOT NULL, " +
+                    "`mood_code` TEXT, " +
+                    "`note` TEXT, " +
+                    "`create_time` INTEGER NOT NULL)");
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_mood_record_date` ON `mood_record` (`date`)");
+        }
+    };
+
     /**
      * 获取数据库实例（单例模式）
      */
@@ -484,7 +513,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-                                    MIGRATION_20_21)
+                                    MIGRATION_20_21, MIGRATION_21_22)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。

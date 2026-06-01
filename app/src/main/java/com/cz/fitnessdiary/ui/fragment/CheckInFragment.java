@@ -61,6 +61,8 @@ public class CheckInFragment extends Fragment {
     private static final String KEY_SHOW_MEASUREMENT = "show_measurement";
     private static final String KEY_SHOW_BOWEL = "show_bowel";
     private static final String KEY_SHOW_MENSTRUAL = "show_menstrual";
+    private static final String KEY_SHOW_STEP = "show_step";
+    private static final String KEY_SHOW_MOOD = "show_mood";
     private static final String KEY_SMALL_ORDER = "small_order";
 
     private static final String CARD_WATER = "water";
@@ -71,6 +73,8 @@ public class CheckInFragment extends Fragment {
     private static final String CARD_MEASUREMENT = "measurement";
     private static final String CARD_BOWEL = "bowel";
     private static final String CARD_MENSTRUAL = "menstrual";
+    private static final String CARD_STEP = "step";
+    private static final String CARD_MOOD = "mood";
 
     private FragmentCheckinBinding binding;
     private CheckInViewModel checkInViewModel;
@@ -91,6 +95,7 @@ public class CheckInFragment extends Fragment {
     private int currentWaterTotal = 0;
     private RestTimerManager restTimerManager;
     private int timerSelectedSeconds = 60;
+    private com.cz.fitnessdiary.utils.StepSensorHelper stepSensorHelper;
 
     public CheckInFragment() {
         super();
@@ -112,6 +117,7 @@ public class CheckInFragment extends Fragment {
         dietViewModel = new ViewModelProvider(this).get(DietViewModel.class);
         achievementCenterViewModel = new ViewModelProvider(requireActivity()).get(AchievementCenterViewModel.class);
         restTimerManager = new RestTimerManager();
+        stepSensorHelper = new com.cz.fitnessdiary.utils.StepSensorHelper(requireContext());
         setupActions();
         setupRestTimer();
         cacheCards();
@@ -134,6 +140,36 @@ public class CheckInFragment extends Fragment {
                     achievementCenterViewModel.refreshAll();
                 }
             }, 260L);
+        }
+        if (stepSensorHelper != null && stepSensorHelper.isSensorAvailable()) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                if (requireContext().checkSelfPermission(android.Manifest.permission.ACTIVITY_RECOGNITION)
+                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(
+                            new String[]{android.Manifest.permission.ACTIVITY_RECOGNITION}, 1001);
+                    return;
+                }
+            }
+            stepSensorHelper.start();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode == 1001 && grantResults.length > 0
+                && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (stepSensorHelper != null && stepSensorHelper.isSensorAvailable()) {
+                stepSensorHelper.start();
+            }
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (stepSensorHelper != null) {
+            stepSensorHelper.stop();
         }
     }
 
@@ -221,6 +257,8 @@ public class CheckInFragment extends Fragment {
         cachedCards.put(CARD_MEASUREMENT, pool.findViewById(R.id.card_measure_small));
         cachedCards.put(CARD_BOWEL, pool.findViewById(R.id.card_bowel_small));
         cachedCards.put(CARD_MENSTRUAL, pool.findViewById(R.id.card_menstrual_small));
+        cachedCards.put(CARD_STEP, pool.findViewById(R.id.card_step));
+        cachedCards.put(CARD_MOOD, pool.findViewById(R.id.card_mood));
         // [v2.2] 饮食摘要观察
         // 这里的观察已移至底部逻辑
         dietViewModel.getTodayTotalCalories().observe(getViewLifecycleOwner(), calories -> {
@@ -247,6 +285,11 @@ public class CheckInFragment extends Fragment {
             updateDietProgress();
             updateOverallProgress();
         });
+
+        // 饮食宏量营养素观察
+        dietViewModel.getTodayTotalCarbs().observe(getViewLifecycleOwner(), carbs -> updateDietMacros());
+        dietViewModel.getTodayTotalProtein().observe(getViewLifecycleOwner(), protein -> updateDietMacros());
+        dietViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> updateDietMacros());
     }
 
     private void updateDietProgress() {
@@ -298,6 +341,10 @@ public class CheckInFragment extends Fragment {
         v(R.id.card_measure_small).setOnClickListener(v -> openDetail(R.id.bodyMeasurementDetailFragment));
         v(R.id.card_bowel_small).setOnClickListener(v -> openDetail(R.id.bowelMovementDetailFragment));
         v(R.id.card_menstrual_small).setOnClickListener(v -> openDetail(R.id.menstrualRecordDetailFragment));
+        v(R.id.card_step).setOnClickListener(v2 -> openDetail(R.id.stepRecordDetailFragment));
+        v(R.id.card_step).setOnLongClickListener(v2 -> { showStepTargetDialog(); return true; });
+        v(R.id.card_mood).setOnClickListener(v2 -> showMoodPicker());
+        v(R.id.btn_add_step).setOnClickListener(v2 -> showStepInputDialog());
 
         View btnAiQuick = v(R.id.btn_ai_quick);
         if (btnAiQuick != null) {
@@ -392,7 +439,7 @@ public class CheckInFragment extends Fragment {
             updateOverallProgress();
         });
         checkInViewModel.getConsecutiveDays().observe(getViewLifecycleOwner(),
-                days -> binding.tvConsecutiveDays.setText("连续打卡 " + (days == null ? 0 : days) + " 天 🔥"));
+                days -> binding.tvConsecutiveDays.setText("连续打卡 " + (days == null ? 0 : days) + " 天"));
         checkInViewModel.getThisWeekCheckedDates(checkedDays -> {
             int weekly = 0;
             for (boolean checked : checkedDays)
@@ -892,6 +939,50 @@ public class CheckInFragment extends Fragment {
                 }).start();
             }
         });
+
+        // 步数卡片观察
+        homeDashboardViewModel.getTodayStep().observe(getViewLifecycleOwner(), step -> {
+            if (step != null && step.getSteps() > 0) {
+                int steps = step.getSteps();
+                setTextIfExists(R.id.tv_step_value, String.valueOf(steps));
+                setTextIfExists(R.id.tv_step_update, getSelectedDateUpdateText(step.getCreateTime()));
+                int target = homeDashboardViewModel.getStepTarget();
+                int pct = target > 0 ? Math.min(steps * 100 / target, 100) : 0;
+                int cal = (int) (steps * 0.04);
+                setTextIfExists(R.id.tv_step_summary,
+                        "≈" + cal + "千卡 | 目标" + target + "步");
+                View card = cachedCards.get(CARD_STEP);
+                if (card != null) {
+                    android.widget.ProgressBar p = card.findViewById(R.id.progress_step);
+                    if (p != null) p.setProgress(pct);
+                }
+            } else {
+                setTextIfExists(R.id.tv_step_value, "0");
+                setTextIfExists(R.id.tv_step_update, "暂无更新");
+                int target = homeDashboardViewModel.getStepTarget();
+                setTextIfExists(R.id.tv_step_summary, "目标 " + target + " 步");
+                View card = cachedCards.get(CARD_STEP);
+                if (card != null) {
+                    android.widget.ProgressBar p = card.findViewById(R.id.progress_step);
+                    if (p != null) p.setProgress(0);
+                }
+            }
+        });
+
+        // 情绪卡片观察
+        homeDashboardViewModel.getTodayMood().observe(getViewLifecycleOwner(), mood -> {
+            if (mood != null && mood.getMoodCode() != null) {
+                String emoji = MoodPickerBottomSheet.getMoodEmoji(mood.getMoodCode());
+                String summary = MoodPickerBottomSheet.getMoodSummary(mood.getMoodCode());
+                setTextIfExists(R.id.tv_mood_emoji, emoji);
+                setTextIfExists(R.id.tv_mood_summary, summary);
+                setTextIfExists(R.id.tv_mood_update, getSelectedDateUpdateText(mood.getCreateTime()));
+            } else {
+                setTextIfExists(R.id.tv_mood_emoji, "—");
+                setTextIfExists(R.id.tv_mood_summary, "记录每日心情");
+                setTextIfExists(R.id.tv_mood_update, "暂无更新");
+            }
+        });
     }
 
     private void renderDailyMissions(List<DailyMission> missions) {
@@ -1270,6 +1361,7 @@ public class CheckInFragment extends Fragment {
                 done++;
         // 已完成数已在 tv_sport_update 中体现
         binding.tvSportUpdate.setText("已完成今日 " + done + " 个运动计划");
+        computeAndDisplayExerciseCalories();
     }
 
     private void refreshHabitCard() {
@@ -1569,6 +1661,12 @@ public class CheckInFragment extends Fragment {
             } else if (CARD_MENSTRUAL.equals(id)) {
                 name = "经期记录";
                 visible = isCardEnabled(KEY_SHOW_MENSTRUAL, true);
+            } else if (CARD_STEP.equals(id)) {
+                name = "步数记录";
+                visible = isCardEnabled(KEY_SHOW_STEP, true);
+            } else if (CARD_MOOD.equals(id)) {
+                name = "情绪记录";
+                visible = isCardEnabled(KEY_SHOW_MOOD, true);
             }
             configs.add(new EditCardsAdapter.CardConfig(id, name, visible));
         }
@@ -1616,6 +1714,10 @@ public class CheckInFragment extends Fragment {
                             editor.putBoolean(KEY_SHOW_BOWEL, cfg.visible);
                         else if (CARD_MENSTRUAL.equals(cfg.id))
                             editor.putBoolean(KEY_SHOW_MENSTRUAL, cfg.visible);
+                        else if (CARD_STEP.equals(cfg.id))
+                            editor.putBoolean(KEY_SHOW_STEP, cfg.visible);
+                        else if (CARD_MOOD.equals(cfg.id))
+                            editor.putBoolean(KEY_SHOW_MOOD, cfg.visible);
                     }
                     editor.putString(KEY_SMALL_ORDER, String.join(",", newOrder)).apply();
                     loadCardConfig();
@@ -1627,7 +1729,8 @@ public class CheckInFragment extends Fragment {
         SharedPreferences sp = requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE);
         String raw = sp.getString(KEY_SMALL_ORDER,
                 CARD_WATER + "," + CARD_SLEEP + "," + CARD_HABIT + "," + CARD_MEDICATION + "," + CARD_WEIGHT + ","
-                        + CARD_MEASUREMENT + "," + CARD_BOWEL + "," + CARD_MENSTRUAL);
+                        + CARD_MEASUREMENT + "," + CARD_BOWEL + "," + CARD_MENSTRUAL
+                        + "," + CARD_STEP + "," + CARD_MOOD);
         smallCardOrder.clear();
         if (raw != null) {
             for (String s : raw.split(",")) {
@@ -1652,6 +1755,10 @@ public class CheckInFragment extends Fragment {
             smallCardOrder.add(CARD_BOWEL);
         if (!smallCardOrder.contains(CARD_MENSTRUAL))
             smallCardOrder.add(CARD_MENSTRUAL);
+        if (!smallCardOrder.contains(CARD_STEP))
+            smallCardOrder.add(CARD_STEP);
+        if (!smallCardOrder.contains(CARD_MOOD))
+            smallCardOrder.add(CARD_MOOD);
     }
 
     private void applyCardConfig() {
@@ -1676,6 +1783,10 @@ public class CheckInFragment extends Fragment {
             if (CARD_BOWEL.equals(id) && isCardEnabled(KEY_SHOW_BOWEL, true))
                 enabled.add(id);
             if (CARD_MENSTRUAL.equals(id) && isCardEnabled(KEY_SHOW_MENSTRUAL, true))
+                enabled.add(id);
+            if (CARD_STEP.equals(id) && isCardEnabled(KEY_SHOW_STEP, true))
+                enabled.add(id);
+            if (CARD_MOOD.equals(id) && isCardEnabled(KEY_SHOW_MOOD, true))
                 enabled.add(id);
         }
 
@@ -1779,6 +1890,201 @@ public class CheckInFragment extends Fragment {
         if (t != null) {
             t.setText(text);
         }
+    }
+
+    // ── Diet macros display ──
+
+    private void updateDietMacros() {
+        Double carbs = dietViewModel.getTodayTotalCarbs().getValue();
+        Double protein = dietViewModel.getTodayTotalProtein().getValue();
+        User user = dietViewModel.getCurrentUser().getValue();
+
+        int carbsTarget = (user != null && user.getTargetCarbs() > 0) ? user.getTargetCarbs() : 250;
+        int proteinTarget = (user != null && user.getTargetProtein() > 0) ? user.getTargetProtein() : 60;
+
+        double carbsVal = carbs != null ? carbs : 0;
+        double proteinVal = protein != null ? protein : 0;
+
+        TextView tvCarbs = binding.getRoot().findViewById(R.id.tv_diet_carbs);
+        if (tvCarbs != null) {
+            tvCarbs.setText((int) carbsVal + "g / " + carbsTarget + "g");
+        }
+        ProgressBar pCarbs = binding.getRoot().findViewById(R.id.progress_diet_carbs);
+        if (pCarbs != null) {
+            pCarbs.setProgress(Math.min((int) (carbsVal * 100 / carbsTarget), 100));
+        }
+
+        TextView tvProtein = binding.getRoot().findViewById(R.id.tv_diet_protein);
+        if (tvProtein != null) {
+            tvProtein.setText((int) proteinVal + "g / " + proteinTarget + "g");
+        }
+        ProgressBar pProtein = binding.getRoot().findViewById(R.id.progress_diet_protein);
+        if (pProtein != null) {
+            pProtein.setProgress(Math.min((int) (proteinVal * 100 / proteinTarget), 100));
+        }
+    }
+
+    // ── Exercise calorie calculation ──
+
+    private void computeAndDisplayExerciseCalories() {
+        new Thread(() -> {
+            int totalCal = 0;
+            if (!currentPlans.isEmpty()) {
+                java.util.HashSet<Integer> donePlanIds = new java.util.HashSet<>();
+                for (DailyLog log : currentLogs) {
+                    if (log.isCompleted()) donePlanIds.add(log.getPlanId());
+                }
+                float weightKg = 70f;
+                try {
+                    com.cz.fitnessdiary.database.AppDatabase db =
+                            com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                    com.cz.fitnessdiary.database.entity.WeightRecord latestW =
+                            db.weightRecordDao().getLatestRecordSync();
+                    if (latestW != null && latestW.getWeight() > 0) weightKg = latestW.getWeight();
+                    else {
+                        com.cz.fitnessdiary.database.entity.User u = db.userDao().getUserSync();
+                        if (u != null && u.getWeight() > 0) weightKg = u.getWeight();
+                    }
+                } catch (Exception ignored) {}
+
+                for (TrainingPlan plan : currentPlans) {
+                    if (!donePlanIds.contains(plan.getPlanId())) continue;
+                    int durationSec = 0;
+                    for (DailyLog log : currentLogs) {
+                        if (log.getPlanId() == plan.getPlanId() && log.isCompleted()) {
+                            durationSec = log.getDuration() > 0 ? log.getDuration() : plan.getDuration();
+                            break;
+                        }
+                    }
+                    if (durationSec <= 0) durationSec = 1800;
+                    double met = getMetForCategory(plan.getCategory());
+                    double cal = met * 3.5 * weightKg * durationSec / (200.0 * 60.0);
+                    totalCal += (int) cal;
+                }
+            }
+            // Step calories
+            long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+            com.cz.fitnessdiary.database.entity.StepRecord step = null;
+            try {
+                com.cz.fitnessdiary.database.AppDatabase db =
+                        com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                step = db.stepRecordDao().getByDateSync(today);
+            } catch (Exception ignored) {}
+            int stepCal = 0;
+            if (step != null && step.getSteps() > 0) {
+                stepCal = (int) (step.getSteps() * 0.04);
+                totalCal += stepCal;
+            }
+
+            int workoutCal = totalCal - stepCal;
+            final int finalTotal = totalCal;
+            final int finalWorkout = workoutCal;
+            final int finalStepCal = stepCal;
+
+            requireActivity().runOnUiThread(() -> {
+                setTextIfExists(R.id.tv_sport_calories, finalTotal + " 千卡");
+                if (finalWorkout > 0 && finalStepCal > 0) {
+                    setTextIfExists(R.id.tv_sport_cal_breakdown,
+                            "运动" + finalWorkout + " + 步数" + finalStepCal);
+                } else if (finalWorkout > 0) {
+                    setTextIfExists(R.id.tv_sport_cal_breakdown,
+                            "运动消耗 " + finalWorkout + " 千卡");
+                } else if (finalStepCal > 0) {
+                    setTextIfExists(R.id.tv_sport_cal_breakdown,
+                            "步数消耗 " + finalStepCal + " 千卡");
+                } else {
+                    setTextIfExists(R.id.tv_sport_cal_breakdown, "");
+                }
+            });
+        }).start();
+    }
+
+    private double getMetForCategory(String category) {
+        if (category == null) return 4.0;
+        String cat = category.toLowerCase();
+        if (cat.contains("有氧") || cat.contains("cardio") || cat.contains("跑步") || cat.contains("骑行"))
+            return 7.0;
+        if (cat.contains("hiit")) return 8.0;
+        if (cat.contains("瑜伽") || cat.contains("拉伸") || cat.contains("yoga")) return 2.5;
+        if (cat.contains("力量") || cat.contains("strength")) return 3.5;
+        return 4.0;
+    }
+
+    // ── Step & mood dialogs ──
+
+    private void showStepInputDialog() {
+        android.widget.EditText et = new android.widget.EditText(requireContext());
+        et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        et.setHint("输入今日步数");
+        com.cz.fitnessdiary.database.entity.StepRecord existing =
+                homeDashboardViewModel.getTodayStep().getValue();
+        if (existing != null && existing.getSteps() > 0) {
+            et.setText(String.valueOf(existing.getSteps()));
+        }
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("记录步数")
+                .setView(et)
+                .setPositiveButton("保存", (d, w) -> {
+                    try {
+                        int steps = Integer.parseInt(et.getText().toString().trim());
+                        int source = (existing != null && existing.getSource() == 0) ? 2 : 1;
+                        homeDashboardViewModel.setTodaySteps(steps, source);
+                        computeAndDisplayExerciseCalories();
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(getContext(), "请输入正确数字",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showStepTargetDialog() {
+        android.widget.EditText et = new android.widget.EditText(requireContext());
+        et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        et.setHint("目标步数");
+        et.setText(String.valueOf(homeDashboardViewModel.getStepTarget()));
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("设置步数目标")
+                .setView(et)
+                .setPositiveButton("保存", (d, w) -> {
+                    try {
+                        int target = Integer.parseInt(et.getText().toString().trim());
+                        if (target > 0) {
+                            homeDashboardViewModel.setStepTarget(target);
+                            com.cz.fitnessdiary.database.entity.StepRecord existing =
+                                    homeDashboardViewModel.getTodayStep().getValue();
+                            if (existing != null) {
+                                int pct = Math.min(existing.getSteps() * 100 / target, 100);
+                                setTextIfExists(R.id.tv_step_summary,
+                                        "≈" + (int) (existing.getSteps() * 0.04) + "千卡 | 目标" + target + "步");
+                                View card = cachedCards.get(CARD_STEP);
+                                if (card != null) {
+                                    android.widget.ProgressBar p = card.findViewById(R.id.progress_step);
+                                    if (p != null) p.setProgress(pct);
+                                }
+                            } else {
+                                setTextIfExists(R.id.tv_step_summary, "目标 " + target + " 步");
+                            }
+                        }
+                    } catch (Exception e) {
+                        android.widget.Toast.makeText(getContext(), "请输入正确数字",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showMoodPicker() {
+        com.cz.fitnessdiary.database.entity.MoodRecord existing =
+                homeDashboardViewModel.getTodayMood().getValue();
+        String currentCode = existing != null ? existing.getMoodCode() : null;
+        MoodPickerBottomSheet sheet = MoodPickerBottomSheet.newInstance(currentCode);
+        sheet.setOnMoodSelectedListener(code -> homeDashboardViewModel.setTodayMood(code));
+        sheet.show(getParentFragmentManager(), "MOOD_PICKER");
     }
 
     @Override
