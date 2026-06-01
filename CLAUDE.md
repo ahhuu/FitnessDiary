@@ -41,8 +41,8 @@ API keys are loaded from `local.properties` into `BuildConfig`:
 Entity (@Entity table) → DAO (@Dao interface) → Repository (plain class) → ViewModel (AndroidViewModel)
 ```
 
-- **20 entities** in `database/entity/`, **20 DAOs** in `database/dao/`, **19 repositories** in `repository/`
-- `AppDatabase` is a Room singleton (DCL pattern), current version **21**
+- **22 entities** in `database/entity/`, **22 DAOs** in `database/dao/`, **21 repositories** in `repository/`
+- `AppDatabase` is a Room singleton (DCL pattern), current version **22**
 - Repository classes extend `AndroidViewModel` pattern — they take `Application` in constructor to get the DB instance
 - All DB operations run on `Executors.newSingleThreadExecutor()` — not on the main thread but also not via Room's built-in async support
 - **No reactive patterns** (LiveData only at the ViewModel→View boundary); Repository methods return plain lists/objects
@@ -71,16 +71,27 @@ Three AI providers, all in `service/`:
 
 The `AiCallback.kt` interface unifies callbacks across providers.
 
-### Background & Widgets
+### Background & Sensors
 
 - `ReminderReceiver` extends `BroadcastReceiver` — handles 6 custom actions (training reminder, record reminder, morning summary, evening reminder, inactivity nudge, weekly report) plus boot-completed to re-schedule alarms after reboot
 - `ReminderManager` is a static utility that schedules/cancels alarms via `AlarmManager`, stores preferences in `SharedPreferences`
 - `SmartReminderHelper` provides "smart push" logic with activity-based timing
 - `HomeWidgetProvider` is a home screen app widget, updated via `ACTION_WIDGET_REFRESH` broadcast
+- `StepSensorHelper` — listens to `Sensor.TYPE_STEP_COUNTER`, manages baseline via SharedPreferences, persists daily steps to `step_record` table. Requires `ACTIVITY_RECOGNITION` permission (runtime request on API 29+)
 
 ### Custom UI Widgets
 
 `ui/widget/` contains hand-drawn views: `StreakCalendarView`, `WaterCupProgressView`, `BristolChartView`, `GradientCircularProgressView`, measurement/sleep/weight chart views, and spark-line views.
+
+### Home Page Cards
+
+The `CheckInFragment` home page has 2 main cards (sport, diet) + 10 small cards in a 2-column GridLayout:
+- **Main cards**: sport (training check-in + calorie burn), diet (calories + carbs/protein macros)
+- **Small cards** (managed via "管理卡片" dialog, drag-reorder + toggle): water, sleep, habit, medication, weight, measurement, bowel, menstrual, step, mood
+- **Step card**: sensor auto-count + manual entry, configurable target (default 8000, SharedPreferences), detail page with edit/delete
+- **Mood card**: 5-emoji daily picker via `MoodPickerBottomSheet` (BottomSheetDialogFragment), shows selected emoji on card
+- Exercise calorie formula: `Σ(MET × 3.5 × weight(kg) × duration(s) / 200 / 60) + steps × 0.04 kcal`
+- Diet macros reuse existing `DietViewModel.getTodayTotalCarbs()` / `getTodayTotalProtein()`
 
 ## Key Patterns
 

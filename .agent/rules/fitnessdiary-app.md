@@ -17,6 +17,18 @@ Android 架构专家，协助开发 FitnessDiary 应用。
 - Java 17 + Gradle 8.0+ 编译环境，不兼容的高版本语法视为错误
 - 提交消息末尾不要加 Co-Authored-By 行
 
+# 文档维护规则
+以下变更在提交前**必须**同步更新对应文档：
+
+| 变更类型 | 需更新的文件 |
+|---------|-------------|
+| 新增/删除 Entity、DAO、Repository | CLAUDE.md（实体/DAO/仓库数量、数据库版本号） |
+| 数据库 Migration（版本号变更） | CLAUDE.md（版本号 + migrations） |
+| 新增功能模块（如步数、情绪） | CLAUDE.md（架构/新增文件） + README.md（核心功能） |
+| 新增第三方库/SDK | CLAUDE.md（Key libraries） |
+| minSdk / targetSdk 变更 | CLAUDE.md + AGENTS.md |
+| 仅修改方法实现细节（不改变接口和功能边界） | 无需更新
+
 # 开发流程规范
 - 涉及新功能开发，优先使用 `superpowers:using-git-worktrees` 创建隔离工作区
 - 重大修改（涉及多文件、新功能、架构变动）时：
