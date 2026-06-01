@@ -213,8 +213,7 @@ public class AIChatViewModel extends AndroidViewModel {
                 if (session == null) {
                     ChatSessionEntity newSession = new ChatSessionEntity(
                             content.length() > 20 ? content.substring(0, 20) + "..." : content,
-                            System.currentTimeMillis()
-                    );
+                            System.currentTimeMillis());
                     newSession.setId(finalSessionId);
                     repository.sessionDao.insert(newSession);
                 } else if ("新对话".equals(session.getTitle())) {
@@ -340,8 +339,14 @@ public class AIChatViewModel extends AndroidViewModel {
 
     private void sendToQwen(String content, String systemInstruction, android.graphics.Bitmap image,
             List<ChatMessageEntity> history) {
-        currentThinkingModel.postValue("Qwen-VL-Plus");
-        com.cz.fitnessdiary.service.QwenService.sendMessage(content, systemInstruction, image, history,
+        currentThinkingModel.postValue("Qwen3.6-Plus");
+
+        // 使用针对千问图像识别定制的极简系统提示词，进一步缩减文本 Token 消耗
+        User user = userRepository.getUserSync();
+        String qwenSystemInstruction = buildQwenSystemInstruction(user);
+
+        // 识图是独立的功能，无需携带历史对话，传入 null 可极大节省上下文的 Token 消耗
+        com.cz.fitnessdiary.service.QwenService.sendMessage(content, qwenSystemInstruction, image, null,
                 new AICallback() {
                     @Override
                     public void onSuccess(String response, String reasoning) {
@@ -357,6 +362,24 @@ public class AIChatViewModel extends AndroidViewModel {
                         handleError("千问私教连线失败: " + error);
                     }
                 });
+    }
+
+    /**
+     * 构建专门用于千问多模态识图的精简系统提示词，精简不必要的功能描述，节省 Token 消耗
+     */
+    private String buildQwenSystemInstruction(User user) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("你是 FitnessDiary 的 AI 助手。请优先识别用户上传图片中的所有食物，并评估其热量和营养素。\n");
+        sb.append("语气亲和、专业、克制。正文最多 100 字。\n");
+        if (user != null) {
+            sb.append("用户信息：身高 ").append(user.getHeight()).append("cm, 体重 ").append(user.getWeight()).append("kg, 目标 ")
+                    .append(user.getGoal()).append("。\n");
+        }
+        sb.append("\n【重要：智能功能识别】\n");
+        sb.append(
+                "必须在回复末尾附加标签：<action>{\"type\":\"FOOD\",\"items\":[{\"name\":\"食物名\",\"calories\":数值,\"protein\":数值,\"carbs\":数值,\"unit\":\"克\",\"category\":\"类别\"}, ...]}</action>\n");
+        sb.append("分类限选：").append(String.join("、", FoodCategoryUtils.getCanonicalCategories())).append("。\n");
+        return sb.toString();
     }
 
     private void addAiMessage(String response, String reasoning) {

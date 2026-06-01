@@ -22,7 +22,7 @@ import android.graphics.Bitmap
  * 专注于多模态任务（图片理解 + 文本），支持对话历史上下文
  */
 object QwenService {
-    private const val MODEL_NAME = "qwen3.5-plus" // 使用旗舰原生多模态模型
+    private const val MODEL_NAME = "qwen3.6-plus" // 使用旗舰原生多模态模型
     private const val API_KEY = BuildConfig.QWEN_API_KEY
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
@@ -76,7 +76,8 @@ object QwenService {
                 
                 // 如果有图片，先添加图片
                 if (image != null) {
-                    val base64Image = bitmapToBase64(image)
+                    val scaledImage = scaleBitmap(image, 512)
+                    val base64Image = bitmapToBase64(scaledImage)
                     userContentList.add(mapOf("image" to "data:image/jpeg;base64,$base64Image"))
                 }
                 
@@ -134,6 +135,27 @@ object QwenService {
                 android.util.Log.e("QwenService", "Unexpected error", e)
             }
         }
+    }
+
+    /**
+     * 等比例缩放 Bitmap，限制最大边长以降低视觉 Token 消耗
+     */
+    private fun scaleBitmap(bitmap: Bitmap, maxSide: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= maxSide && height <= maxSide) return bitmap
+
+        val ratio = width.toFloat() / height.toFloat()
+        val newWidth: Int
+        val newHeight: Int
+        if (width > height) {
+            newWidth = maxSide
+            newHeight = (maxSide / ratio).toInt()
+        } else {
+            newHeight = maxSide
+            newWidth = (maxSide * ratio).toInt()
+        }
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
     }
 
     /**
