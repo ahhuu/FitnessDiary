@@ -26,7 +26,17 @@
     <fragment
         android:id="@+id/planFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.PlanFragment"
-        android:label="训练计划" />
+        android:label="训练历史与统计" />
+
+    <fragment
+        android:id="@+id/planManageFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.PlanManageFragment"
+        android:label="训练计划管理" />
+
+    <fragment
+        android:id="@+id/planStatsFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.PlanStatsFragment"
+        android:label="历史累计与统计" />
 
     <fragment
         android:id="@+id/dietFragment"
@@ -122,4 +132,9 @@
         android:id="@+id/stepRecordDetailFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.StepRecordDetailFragment"
         android:label="步数记录明细" />
+
+    <fragment
+        android:id="@+id/exerciseLibraryFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.ExerciseLibraryFragment"
+        android:label="动作库" />
 </navigation>

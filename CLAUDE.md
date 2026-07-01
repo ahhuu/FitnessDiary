@@ -33,7 +33,21 @@ API keys are loaded from `local.properties` into `BuildConfig`:
 
 ### Single Activity + Navigation
 
-`MainActivity` is the only Activity. It dynamically sets the nav graph start destination based on whether the user is registered (`WelcomeFragment` vs `MainHomeFragment`). The launcher intent can carry a `shortcut_id` for app shortcuts or reminder routing extras (`EXTRA_MODULE_TYPE`, `EXTRA_TARGET_ID`) that `routeToReminderTargetIfNeeded()` resolves to the correct fragment.
+`MainActivity` is the only Activity. It dynamically sets the nav graph start destination based on whether the user is registered (`WelcomeFragment` vs `MainHomeFragment`). 
+
+`MainHomeFragment` contains a customized bottom navigation bar hosting five core functional tabs:
+1. `CheckInFragment` (记录) — Daily checklist for steps, water, sleep, habits, weight, mood, etc.
+2. `PlanFragment` (日历历史) — Monthly calendar view displaying workout logs, completed calories, steps, diet stats, and customizable color notes. Provides a setup Dialog to customize row display orders and entry buttons to navigate to `PlanManageFragment`, `PlanStatsFragment`, and `ExerciseLibraryFragment`.
+3. `DietFragment` (饮食记录) — Nutrients tracking and meal log.
+4. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/Qwen AI assistants.
+5. `ProfileFragment` (我的) — User profile and achievement settings.
+
+The original workout plan list manager and chart statistics are migrated to secondary pages:
+* `PlanManageFragment` (训练计划管理) — 三 Tab 视图（当前计划 / 探索计划库 / 个人计划），支持“基础/进阶/自定义”分类展示、官方多设备场景模板一键导入（含经典三分化等）及分步式 AI 智能制定计划。
+* `PlanStatsFragment` (历史累计与统计) — Displays recent 7-day training calories burn in a BarChart and total historical exercise statistics.
+* `ExerciseLibraryFragment` (动作库) — Provides dual-pane interaction with muscle category sidebar and exercises grid list. Supports fuzzy searching, equipment-based filtering, detailed tutorials inside a BottomSheet, and adding custom exercises.
+
+The launcher intent can carry a `shortcut_id` for app shortcuts or reminder routing extras (`EXTRA_MODULE_TYPE`, `EXTRA_TARGET_ID`) that `routeToReminderTargetIfNeeded()` resolves to the correct fragment.
 
 ### Data Layer
 
@@ -42,7 +56,7 @@ Entity (@Entity table) → DAO (@Dao interface) → Repository (plain class) →
 ```
 
 - **22 entities** in `database/entity/`, **22 DAOs** in `database/dao/`, **21 repositories** in `repository/`
-- `AppDatabase` is a Room singleton (DCL pattern), current version **22**
+- `AppDatabase` is a Room singleton (DCL pattern), current version **23**
 - Repository classes extend `AndroidViewModel` pattern — they take `Application` in constructor to get the DB instance
 - All DB operations run on `Executors.newSingleThreadExecutor()` — not on the main thread but also not via Room's built-in async support
 - **No reactive patterns** (LiveData only at the ViewModel→View boundary); Repository methods return plain lists/objects
@@ -58,7 +72,7 @@ When adding new entities or columns:
 
 ### Pre-filled Data
 
-`assets/food_library.json` (299 items) and `assets/exercise_library.json` (120 movements) are loaded on first DB creation via `FoodLibraryDataLoader` and `ExerciseLibraryDataLoader`. These use "insert if not exists by name" logic and can be re-synced by calling their `loadIfNeeded()` methods.
+`assets/food_library.json` (299 items) and `assets/exercise_library.json` (133 movements) are loaded on first DB creation via `FoodLibraryDataLoader` and `ExerciseLibraryDataLoader`. These use "insert if not exists by name" logic; `ExerciseLibraryDataLoader` now clears stale rows on version bump to ensure deleted exercises don't persist. Re-sync by calling their `loadIfNeeded()` methods.
 
 ### AI Services
 

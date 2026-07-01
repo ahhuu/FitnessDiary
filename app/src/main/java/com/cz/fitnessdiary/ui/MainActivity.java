@@ -207,4 +207,15 @@ public class MainActivity extends AppCompatActivity {
                 .setNegativeButton("我知道了", (dialog, which) -> ReminderManager.setAutoStartGuided(this, true))
                 .show();
     }
+
+    @Override
+    public void onBackPressed() {
+        // 直接操作 NavController 的返回栈，绕过 OnBackPressedDispatcher
+        // 解决部分设备/ROM 上 NavHostFragment 的 OnBackPressedCallback
+        // 未能正确拦截返回键导致直接 finish Activity 的问题
+        if (navController != null && navController.popBackStack()) {
+            return;
+        }
+        super.onBackPressed();
+    }
 }

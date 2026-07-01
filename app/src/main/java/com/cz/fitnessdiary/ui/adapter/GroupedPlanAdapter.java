@@ -106,7 +106,8 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                             TrainingPlan oldP = (TrainingPlan) oldItem;
                             TrainingPlan newP = (TrainingPlan) newItem;
                             return oldP.getName().equals(newP.getName()) && oldP.getSets() == newP.getSets()
-                                    && oldP.getReps() == newP.getReps() && oldP.getDuration() == newP.getDuration();
+                                    && oldP.getReps() == newP.getReps() && oldP.getDuration() == newP.getDuration()
+                                    && oldP.getWeight() == newP.getWeight();
                         }
                         return false;
                     }
@@ -263,12 +264,15 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         void bind(TrainingPlan plan, boolean isFirstInGroup, boolean isLastInGroup) {
             binding.tvPlanName.setText(plan.getName());
 
-            // 显示组数和次数/时长 (v1.2: 针对 1次 + 有时长的计划优化显示)
+            // 显示组数和次数/时长，含负重信息
             String setsReps;
             if (plan.getReps() == 1 && plan.getDuration() > 0) {
                 setsReps = plan.getSets() + " 组 × " + plan.getDuration() + "s";
             } else {
                 setsReps = plan.getSets() + " 组 × " + plan.getReps() + " 次";
+            }
+            if (plan.getWeight() > 0) {
+                setsReps += String.format(" (%.1f kg)", plan.getWeight());
             }
             binding.tvSetsReps.setText(setsReps);
             binding.tvSetsReps.setVisibility(View.VISIBLE);
@@ -314,16 +318,34 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                     binding.ivMediaThumbnail.setImageResource(R.drawable.ic_placeholder_plan);
                 }
             } else {
-                // 无图：恢复默认并着色
-                int primaryColor = ContextCompat.getColor(itemView.getContext(), R.color.plan_blue_primary);
-                binding.ivMediaThumbnail.setColorFilter(primaryColor);
-                binding.ivMediaThumbnail.setImageTintList(android.content.res.ColorStateList.valueOf(primaryColor));
-                binding.ivMediaThumbnail.setImageResource(R.drawable.ic_placeholder_plan);
+                // 无自定义图片：尝试从 assets/gifs/ 加载动作动图
+                binding.ivMediaThumbnail.setImageTintList(null);
+                binding.ivMediaThumbnail.setColorFilter(null);
+                binding.ivMediaThumbnail.clearColorFilter();
+                binding.ivMediaThumbnail.setBackground(null);
+                binding.ivMediaThumbnail.setPadding(0, 0, 0, 0);
+                binding.ivMediaThumbnail.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
 
-                // 恢复默认 Padding 和 ScaleType
-                int padding = (int) (12 * itemView.getContext().getResources().getDisplayMetrics().density);
-                binding.ivMediaThumbnail.setPadding(padding, padding, padding, padding);
-                binding.ivMediaThumbnail.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+                String gifPath = findGifForPlan(plan.getName(), plan.getCategory());
+                if (gifPath != null) {
+                    Glide.with(itemView.getContext())
+                            .asGif()
+                            .load(gifPath)
+                            .placeholder(R.drawable.ic_placeholder_plan)
+                            .error(R.drawable.ic_placeholder_plan)
+                            .centerCrop()
+                            .into(binding.ivMediaThumbnail);
+                } else {
+                    // 无 GIF：恢复默认占位图标
+                    int primaryColor = ContextCompat.getColor(itemView.getContext(), R.color.plan_blue_primary);
+                    binding.ivMediaThumbnail.setColorFilter(primaryColor);
+                    binding.ivMediaThumbnail.setImageTintList(android.content.res.ColorStateList.valueOf(primaryColor));
+                    binding.ivMediaThumbnail.setImageResource(R.drawable.ic_placeholder_plan);
+
+                    int padding = (int) (12 * itemView.getContext().getResources().getDisplayMetrics().density);
+                    binding.ivMediaThumbnail.setPadding(padding, padding, padding, padding);
+                    binding.ivMediaThumbnail.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+                }
             }
             binding.ivMediaThumbnail.setVisibility(View.VISIBLE);
 
@@ -356,6 +378,67 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                     listener.onPlanDelete(plan);
                 }
             });
+        }
+
+        // 缓存 assets/gifs 目录文件列表，避免每次调用都 list
+        private String[] cachedGifFiles = null;
+
+        /**
+         * 根据计划名称和分类查找对应的 GIF 动图路径。
+         * 使用 getAssets().list() + equalsIgnoreCase 与 ExerciseDetailBottomSheet 一致，避免中文文件名编码问题。
+         */
+        private String findGifForPlan(String planName, String category) {
+            if (cachedGifFiles == null) {
+                try {
+                    cachedGifFiles = itemView.getContext().getAssets().list("gifs");
+                } catch (java.io.IOException e) {
+                    cachedGifFiles = new String[0];
+                }
+            }
+
+            String targetGifName = planName + ".gif";
+            String gifUrl = null;
+
+            // 1. 精确匹配动作名称
+            for (String file : cachedGifFiles) {
+                if (file.equalsIgnoreCase(targetGifName)) {
+                    gifUrl = "file:///android_asset/gifs/" + file; // 保留原始大小写
+                    break;
+                }
+            }
+
+            // 2. 回退：按身体部位查找
+            if (gifUrl == null) {
+                String bodyPart = extractBodyPart(category);
+                if (bodyPart != null) {
+                    String fallbackName = bodyPart + ".gif";
+                    for (String file : cachedGifFiles) {
+                        if (file.equalsIgnoreCase(fallbackName)) {
+                            gifUrl = "file:///android_asset/gifs/" + file;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return gifUrl;
+        }
+
+        private String extractBodyPart(String category) {
+            if (category == null) return null;
+            String cat = category;
+            if (cat.contains("-")) {
+                cat = cat.split("-")[1];
+            }
+            switch (cat) {
+                case "胸部": return "胸部";
+                case "背部": return "背部";
+                case "肩部": return "肩部";
+                case "手臂": return "手臂";
+                case "腿部": case "臀部": return "腿部";
+                case "腹部": return "腹部";
+                default: return null;
+            }
         }
     }
 }

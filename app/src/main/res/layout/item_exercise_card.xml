@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_exercise"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:strokeColor="@color/divider"
+    app:strokeWidth="1dp"
+    app:cardBackgroundColor="@color/fitnessdiary_surface">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- 动作演示示意图区域 -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="110dp"
+            android:background="@color/plan_blue_container">
+
+            <!-- 备用抽象字母/汉字徽标占位图，非常清新大气 -->
+            <TextView
+                android:id="@+id/tv_exercise_avatar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:background="@drawable/shape_circle_plan_blue"
+                android:textColor="@color/plan_blue_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:text="推" />
+
+            <!-- GIF 动图展示播放，若有动图则直接覆盖播放 -->
+            <ImageView
+                android:id="@+id/iv_exercise_card_gif"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <!-- 左上角讲解标志 -->
+            <TextView
+                android:id="@+id/tv_tag_explain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|top"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_tag_sunken"
+                android:backgroundTint="@color/plan_blue_primary"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:text="讲解"
+                android:textColor="@color/white"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <!-- 文本区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:gravity="center_horizontal">
+
+            <TextView
+                android:id="@+id/tv_exercise_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="上斜杠铃卧推"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

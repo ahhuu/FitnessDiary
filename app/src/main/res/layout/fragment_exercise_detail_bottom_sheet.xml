@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_rounded"
+    android:padding="20dp">
+
+    <!-- 顶部拖拽条 -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@color/divider"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 动作名称 -->
+    <TextView
+        android:id="@+id/tv_detail_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="上斜杠铃卧推"
+        android:textColor="@color/plan_blue_primary"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp" />
+
+    <!-- 属性展示区 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <!-- 部位标签 -->
+        <TextView
+            android:id="@+id/tv_detail_body_part"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_tag_sunken"
+            android:backgroundTint="#F2EFE8"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:layout_marginEnd="8dp"
+            android:text="部位: 胸" />
+
+        <!-- 器械标签 -->
+        <TextView
+            android:id="@+id/tv_detail_equipment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_tag_sunken"
+            android:backgroundTint="#F2EFE8"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:layout_marginEnd="8dp"
+            android:text="器械: 杠铃" />
+
+        <!-- 难度标签 -->
+        <TextView
+            android:id="@+id/tv_detail_difficulty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/color_warning"
+            android:textSize="12sp"
+            android:text="难度: ★★☆" />
+    </LinearLayout>
+
+    <!-- 动作图示展示区域 (高颜值容器，自动适配 Lottie 和 GIF) -->
+    <FrameLayout
+        android:id="@+id/layout_media_container"
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/shape_circle_plan_blue"
+        android:backgroundTint="@color/plan_blue_container">
+
+        <!-- 默认离线首字艺术占位，100% 保证离线视觉效果 -->
+        <TextView
+            android:id="@+id/tv_detail_avatar"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:background="@drawable/shape_circle_plan_blue"
+            android:textColor="@color/plan_blue_primary"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:text="练" />
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/lav_exercise_anim"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:layout_gravity="center"
+            app:lottie_loop="true"
+            app:lottie_autoPlay="true"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/iv_exercise_gif"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 动作要领正文标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="动作要领与指南"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <!-- 详细描述滚动条 -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="200dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/tv_detail_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="详细要领与描述载入中..."
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:lineSpacingMultiplier="1.2" />
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- 关闭按钮 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_close_detail"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="我知道了"
+        android:textColor="@color/white"
+        app:backgroundTint="@color/plan_blue_primary"
+        app:cornerRadius="24dp" />
+</LinearLayout>

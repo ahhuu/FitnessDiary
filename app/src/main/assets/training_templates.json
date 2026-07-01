@@ -1,167 +1,289 @@
 {
-  "version": 1,
+  "version": 4,
   "templates": [
     {
-      "name": "推拉腿分化 (PPL)",
-      "shortDescription": "经典三分化，一周六练",
-      "description": "经典的 Push/Pull/Legs 三分化训练。每周6天，推日（胸+肩+三头）、拉日（背+二头）、腿日（腿+核心）各两次。适合中级以上训练者，训练量充足，增肌效果显著。",
-      "difficulty": 2,
-      "goal": "增肌",
-      "daysPerWeek": 6,
-      "exercises": [
-        { "name": "杠铃平板卧推", "sets": 4, "reps": 10, "duration": 0, "scheduledDays": "1,4", "category": "胸部", "description": "推日主项" },
-        { "name": "哑铃上斜卧推", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "1,4", "category": "胸部", "description": "上胸精雕" },
-        { "name": "哑铃侧平举", "sets": 4, "reps": 15, "duration": 0, "scheduledDays": "1,4", "category": "肩部", "description": "中束增宽" },
-        { "name": "绳索下压", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "1,4", "category": "手臂", "description": "三头肌孤立" },
-        { "name": "引体向上", "sets": 4, "reps": 8, "duration": 0, "scheduledDays": "2,5", "category": "背部", "description": "拉日主项" },
-        { "name": "杠铃划船", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "2,5", "category": "背部", "description": "增加背部厚度" },
-        { "name": "面拉", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "2,5", "category": "肩部", "description": "后束与肩袖" },
-        { "name": "杠铃弯举", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "2,5", "category": "手臂", "description": "二头肌" },
-        { "name": "杠铃深蹲", "sets": 4, "reps": 10, "duration": 0, "scheduledDays": "3,6", "category": "腿部", "description": "腿日主项" },
-        { "name": "罗马尼亚硬拉", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "3,6", "category": "腿部", "description": "腘绳肌与臀" },
-        { "name": "悬垂举腿", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "3,6", "category": "腹部", "description": "下腹核心" }
-      ]
-    },
-    {
-      "name": "上下肢二分化",
-      "shortDescription": "上下肢均衡，一周四练",
-      "description": "上肢日与下肢日交替进行，每周4天。上肢日覆盖胸背肩臂，下肢日覆盖腿臀核心。适合时间有限但不想偏科的训练者。",
-      "difficulty": 2,
-      "goal": "增肌",
-      "daysPerWeek": 4,
-      "exercises": [
-        { "name": "哑铃平板卧推", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "1,3", "category": "胸部", "description": "上肢推" },
-        { "name": "坐姿划船", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "1,3", "category": "背部", "description": "上肢拉" },
-        { "name": "哑铃推举", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "1,3", "category": "肩部", "description": "" },
-        { "name": "哑铃弯举", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "1,3", "category": "手臂", "description": "" },
-        { "name": "自重深蹲", "sets": 4, "reps": 15, "duration": 0, "scheduledDays": "2,4", "category": "腿部", "description": "下肢主项" },
-        { "name": "箭步蹲", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "2,4", "category": "腿部", "description": "" },
-        { "name": "臀桥", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "2,4", "category": "臀部", "description": "臀部激活" },
-        { "name": "平板支撑", "sets": 3, "reps": 1, "duration": 60, "scheduledDays": "2,4", "category": "腹部", "description": "核心收尾" }
-      ]
-    },
-    {
-      "name": "全身训练 (新手入门)",
-      "shortDescription": "一周三练，全身覆盖",
-      "description": "每周3次全身训练，覆盖胸背肩腿腹五大肌群。动作简单安全，以自身体重和哑铃为主。适合刚接触力量训练的新手，帮助建立运动习惯和神经肌肉连接。",
+      "name": "全身训练入门",
+      "shortDescription": "新手友好，三天全身训练",
+      "description": "适合刚接触健身的新手，每次训练覆盖全身主要肌群，建立基础力量和动作模式。",
       "difficulty": 1,
       "goal": "增肌",
       "daysPerWeek": 3,
-      "exercises": [
-        { "name": "标准俯卧撑", "sets": 3, "reps": 10, "duration": 0, "scheduledDays": "1,3,5", "category": "胸部", "description": "推力基础" },
-        { "name": "澳洲引体向上", "sets": 3, "reps": 10, "duration": 0, "scheduledDays": "1,3,5", "category": "背部", "description": "拉力入门" },
-        { "name": "自重深蹲", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "1,3,5", "category": "腿部", "description": "下肢训练" },
-        { "name": "哑铃推举", "sets": 3, "reps": 10, "duration": 0, "scheduledDays": "1,3,5", "category": "肩部", "description": "肩部训练" },
-        { "name": "平板支撑", "sets": 3, "reps": 1, "duration": 30, "scheduledDays": "1,3,5", "category": "腹部", "description": "核心激活" }
-      ]
+      "versions": {
+        "gym": {
+          "equipment": "健身房",
+          "exercises": [
+            {"name":"杠铃深蹲","sets":3,"reps":10,"duration":0,"scheduledDays":"1,3,5","category":"腿部","description":"下肢王牌动作"},
+            {"name":"杠铃平板卧推","sets":3,"reps":10,"duration":0,"scheduledDays":"1,3,5","category":"胸部","description":"上肢推力基础"},
+            {"name":"杠铃划船","sets":3,"reps":10,"duration":0,"scheduledDays":"1,3,5","category":"背部","description":"上肢拉力基础"},
+            {"name":"哑铃推举","sets":3,"reps":10,"duration":0,"scheduledDays":"1,3,5","category":"肩部","description":"肩部力量"},
+            {"name":"平板支撑","sets":3,"reps":1,"duration":60,"scheduledDays":"1,3,5","category":"腹部","description":"核心稳定"}
+          ]
+        },
+        "home": {
+          "equipment": "居家",
+          "exercises": [
+            {"name":"哑铃深蹲","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3,5","category":"腿部","description":"下肢力量"},
+            {"name":"哑铃平板卧推","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3,5","category":"胸部","description":"上肢推力"},
+            {"name":"哑铃双臂划船","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3,5","category":"背部","description":"上肢拉力"},
+            {"name":"哑铃推举","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3,5","category":"肩部","description":"肩部力量"},
+            {"name":"平板支撑","sets":3,"reps":1,"duration":60,"scheduledDays":"1,3,5","category":"腹部","description":"核心稳定"}
+          ]
+        },
+        "bodyweight": {
+          "equipment": "自重",
+          "exercises": [
+            {"name":"自重深蹲","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"腿部","description":"下肢基础"},
+            {"name":"标准俯卧撑","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3,5","category":"胸部","description":"上肢推力"},
+            {"name":"澳洲引体向上","sets":3,"reps":10,"duration":0,"scheduledDays":"1,3,5","category":"背部","description":"上肢拉力"},
+            {"name":"平板支撑","sets":3,"reps":1,"duration":60,"scheduledDays":"1,3,5","category":"腹部","description":"核心稳定"},
+            {"name":"臀桥","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"臀部","description":"臀肌激活"}
+          ]
+        }
+      }
     },
     {
-      "name": "五分化健美训练",
-      "shortDescription": "一日一部位，精雕细琢",
-      "description": "经典健美五分化：胸/背/肩/腿/臂+腹各训练一天，每周5练。每个部位训练量充足，适合有一定基础、追求肌肉形态的训练者。",
-      "difficulty": 3,
+      "name": "上下肢二分化",
+      "shortDescription": "上肢下肢交替，四天循环",
+      "description": "将训练分为上肢日和下肢日，每次集中刺激特定区域，适合有一定基础的新手过渡。",
+      "difficulty": 1,
       "goal": "增肌",
-      "daysPerWeek": 5,
-      "exercises": [
-        { "name": "杠铃平板卧推", "sets": 4, "reps": 10, "duration": 0, "scheduledDays": "1", "category": "胸部", "description": "" },
-        { "name": "哑铃上斜卧推", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "1", "category": "胸部", "description": "" },
-        { "name": "哑铃飞鸟", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "1", "category": "胸部", "description": "" },
-        { "name": "引体向上", "sets": 4, "reps": 8, "duration": 0, "scheduledDays": "2", "category": "背部", "description": "" },
-        { "name": "杠铃划船", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "2", "category": "背部", "description": "" },
-        { "name": "坐姿高位下拉", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "2", "category": "背部", "description": "" },
-        { "name": "哑铃推举", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "3", "category": "肩部", "description": "" },
-        { "name": "哑铃侧平举", "sets": 4, "reps": 15, "duration": 0, "scheduledDays": "3", "category": "肩部", "description": "" },
-        { "name": "面拉", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "3", "category": "肩部", "description": "" },
-        { "name": "杠铃深蹲", "sets": 4, "reps": 10, "duration": 0, "scheduledDays": "4", "category": "腿部", "description": "" },
-        { "name": "罗马尼亚硬拉", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "4", "category": "腿部", "description": "" },
-        { "name": "坐姿腿屈伸", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "4", "category": "腿部", "description": "" },
-        { "name": "杠铃弯举", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "5", "category": "手臂", "description": "" },
-        { "name": "绳索下压", "sets": 4, "reps": 15, "duration": 0, "scheduledDays": "5", "category": "手臂", "description": "" },
-        { "name": "悬垂举腿", "sets": 4, "reps": 15, "duration": 0, "scheduledDays": "5", "category": "腹部", "description": "" }
-      ]
+      "daysPerWeek": 4,
+      "versions": {
+        "gym": {
+          "equipment": "健身房",
+          "exercises": [
+            {"name":"杠铃平板卧推","sets":4,"reps":10,"duration":0,"scheduledDays":"1,3","category":"胸部","description":"上肢推力"},
+            {"name":"杠铃划船","sets":4,"reps":10,"duration":0,"scheduledDays":"1,3","category":"背部","description":"上肢拉力"},
+            {"name":"哑铃推举","sets":4,"reps":10,"duration":0,"scheduledDays":"1,3","category":"肩部","description":"肩部"},
+            {"name":"哑铃弯举","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3","category":"手臂","description":"二头肌"},
+            {"name":"杠铃深蹲","sets":4,"reps":10,"duration":0,"scheduledDays":"2,4","category":"腿部","description":"下肢力量"},
+            {"name":"罗马尼亚硬拉","sets":4,"reps":10,"duration":0,"scheduledDays":"2,4","category":"背部","description":"后链"},
+            {"name":"坐姿腿屈伸","sets":3,"reps":12,"duration":0,"scheduledDays":"2,4","category":"腿部","description":"股四头肌"},
+            {"name":"卷腹","sets":3,"reps":15,"duration":0,"scheduledDays":"2,4","category":"腹部","description":"核心"}
+          ]
+        },
+        "home": {
+          "equipment": "居家",
+          "exercises": [
+            {"name":"哑铃平板卧推","sets":4,"reps":12,"duration":0,"scheduledDays":"1,3","category":"胸部","description":"上肢推力"},
+            {"name":"哑铃双臂划船","sets":4,"reps":12,"duration":0,"scheduledDays":"1,3","category":"背部","description":"上肢拉力"},
+            {"name":"哑铃推举","sets":4,"reps":12,"duration":0,"scheduledDays":"1,3","category":"肩部","description":"肩部"},
+            {"name":"哑铃弯举","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3","category":"手臂","description":"二头肌"},
+            {"name":"哑铃深蹲","sets":4,"reps":12,"duration":0,"scheduledDays":"2,4","category":"腿部","description":"下肢力量"},
+            {"name":"哑铃罗马尼亚硬拉","sets":4,"reps":12,"duration":0,"scheduledDays":"2,4","category":"背部","description":"后链"},
+            {"name":"箭步蹲","sets":3,"reps":12,"duration":0,"scheduledDays":"2,4","category":"腿部","description":"下肢"},
+            {"name":"卷腹","sets":3,"reps":15,"duration":0,"scheduledDays":"2,4","category":"腹部","description":"核心"}
+          ]
+        },
+        "bodyweight": {
+          "equipment": "自重",
+          "exercises": [
+            {"name":"标准俯卧撑","sets":4,"reps":15,"duration":0,"scheduledDays":"1,3","category":"胸部","description":"上肢推力"},
+            {"name":"澳洲引体向上","sets":4,"reps":12,"duration":0,"scheduledDays":"1,3","category":"背部","description":"上肢拉力"},
+            {"name":"臀桥","sets":4,"reps":15,"duration":0,"scheduledDays":"2,4","category":"臀部","description":"臀肌"},
+            {"name":"自重深蹲","sets":4,"reps":15,"duration":0,"scheduledDays":"2,4","category":"腿部","description":"下肢"},
+            {"name":"平板支撑","sets":3,"reps":1,"duration":60,"scheduledDays":"1,3,2,4","category":"腹部","description":"核心"},
+            {"name":"箭步蹲","sets":3,"reps":12,"duration":0,"scheduledDays":"2,4","category":"腿部","description":"下肢"}
+          ]
+        }
+      }
     },
     {
-      "name": "徒手居家训练",
-      "shortDescription": "无需器械，随时开练",
-      "description": "纯自重训练，无需任何器械，在家即可完成。以俯卧撑、深蹲、卷腹为核心，配合有氧动作提升心率。适合出差、居家或不想去健身房的训练者。",
+      "name": "经典三分化训练",
+      "shortDescription": "推拉腿三肢分化，经典高效",
+      "description": "健美界最经典的分化方案：推日（胸/肩/三头）、拉日（背/二头）、腿腹日。让各肌群有足够强度与恢复期，适合进阶级增肌人群。",
+      "difficulty": 2,
+      "goal": "增肌",
+      "daysPerWeek": 3,
+      "versions": {
+        "gym": {
+          "equipment": "健身房",
+          "exercises": [
+            {"name":"杠铃平板卧推","sets":4,"reps":8,"duration":0,"scheduledDays":"1","category":"胸部","description":"推日：胸部主发力"},
+            {"name":"哑铃上斜卧推","sets":4,"reps":10,"duration":0,"scheduledDays":"1","category":"胸部","description":"推日：上胸刺激"},
+            {"name":"杠铃推举","sets":4,"reps":8,"duration":0,"scheduledDays":"1","category":"肩部","description":"推日：肩部力量"},
+            {"name":"绳索下压","sets":3,"reps":12,"duration":0,"scheduledDays":"1","category":"手臂","description":"推日：三头肌孤立"},
+            {"name":"引体向上","sets":4,"reps":8,"duration":0,"scheduledDays":"3","category":"背部","description":"拉日：背部宽度"},
+            {"name":"杠铃划船","sets":4,"reps":10,"duration":0,"scheduledDays":"3","category":"背部","description":"拉日：背部厚度"},
+            {"name":"哑铃弯举","sets":3,"reps":12,"duration":0,"scheduledDays":"3","category":"手臂","description":"拉日：二头肌"},
+            {"name":"面拉","sets":3,"reps":15,"duration":0,"scheduledDays":"3","category":"肩部","description":"拉日：后束与上背"},
+            {"name":"杠铃深蹲","sets":4,"reps":8,"duration":0,"scheduledDays":"5","category":"腿部","description":"腿日：王牌力量动作"},
+            {"name":"罗马尼亚硬拉","sets":4,"reps":10,"duration":0,"scheduledDays":"5","category":"腿部","description":"腿日：臀大肌与后链"},
+            {"name":"悬垂举腿","sets":3,"reps":15,"duration":0,"scheduledDays":"5","category":"腹部","description":"腿日：腹肌轰炸"}
+          ]
+        },
+        "home": {
+          "equipment": "居家",
+          "exercises": [
+            {"name":"哑铃平板卧推","sets":4,"reps":10,"duration":0,"scheduledDays":"1","category":"胸部","description":"推日：胸肌刺激"},
+            {"name":"哑铃推举","sets":4,"reps":10,"duration":0,"scheduledDays":"1","category":"肩部","description":"推日：三角肌前中束"},
+            {"name":"哑铃侧平举","sets":3,"reps":12,"duration":0,"scheduledDays":"1","category":"肩部","description":"推日：肩部宽度"},
+            {"name":"哑铃颈后臂屈伸","sets":3,"reps":12,"duration":0,"scheduledDays":"1","category":"手臂","description":"推日：三头肌精雕"},
+            {"name":"哑铃双臂划船","sets":4,"reps":12,"duration":0,"scheduledDays":"3","category":"背部","description":"拉日：背部厚度"},
+            {"name":"哑铃单臂划船","sets":3,"reps":12,"duration":0,"scheduledDays":"3","category":"背部","description":"拉日：孤立刺激"},
+            {"name":"哑铃弯举","sets":3,"reps":12,"duration":0,"scheduledDays":"3","category":"手臂","description":"拉日：二头肌"},
+            {"name":"哑铃俯身侧平举","sets":3,"reps":15,"duration":0,"scheduledDays":"3","category":"肩部","description":"拉日：三角肌后束"},
+            {"name":"哑铃深蹲","sets":4,"reps":12,"duration":0,"scheduledDays":"5","category":"腿部","description":"腿日：大腿力量"},
+            {"name":"哑铃罗马尼亚硬拉","sets":4,"reps":12,"duration":0,"scheduledDays":"5","category":"腿部","description":"腿日：臀部后链"},
+            {"name":"卷腹","sets":3,"reps":15,"duration":0,"scheduledDays":"5","category":"腹部","description":"腿日：核心激活"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "新手自重燃脂循环",
+      "shortDescription": "自重徒手，全身减脂塑形",
+      "description": "无需任何器械，利用循环自重动作提高心率、燃烧热量，同时建立全身核心稳定性，适合减脂新手建立日常运动习惯。",
       "difficulty": 1,
       "goal": "减脂",
-      "daysPerWeek": 5,
-      "exercises": [
-        { "name": "标准俯卧撑", "sets": 4, "reps": 15, "duration": 0, "scheduledDays": "1,3,5", "category": "胸部", "description": "" },
-        { "name": "宽距俯卧撑", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "1,3,5", "category": "胸部", "description": "外侧刺激" },
-        { "name": "自重深蹲", "sets": 4, "reps": 20, "duration": 0, "scheduledDays": "1,3,5", "category": "腿部", "description": "" },
-        { "name": "箭步蹲", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "1,3,5", "category": "腿部", "description": "" },
-        { "name": "平板支撑", "sets": 3, "reps": 1, "duration": 45, "scheduledDays": "1,2,3,4,5", "category": "腹部", "description": "每日核心" },
-        { "name": "卷腹", "sets": 4, "reps": 20, "duration": 0, "scheduledDays": "1,3,5", "category": "腹部", "description": "" },
-        { "name": "俯身T字伸展", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "2,4", "category": "背部", "description": "改善圆肩" },
-        { "name": "开合跳", "sets": 4, "reps": 1, "duration": 45, "scheduledDays": "2,4", "category": "全身", "description": "燃脂心率" }
-      ]
+      "daysPerWeek": 3,
+      "versions": {
+        "bodyweight": {
+          "equipment": "自重",
+          "exercises": [
+            {"name":"开合跳","sets":3,"reps":1,"duration":45,"scheduledDays":"1,3,5","category":"全身","description":"全身激活与快速燃脂"},
+            {"name":"自重深蹲","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"腿部","description":"下肢大肌群做功"},
+            {"name":"跪姿俯卧撑","sets":3,"reps":10,"duration":0,"scheduledDays":"1,3,5","category":"胸部","description":"上肢推力基础"},
+            {"name":"登山跑","sets":3,"reps":1,"duration":30,"scheduledDays":"1,3,5","category":"腹部","description":"核心与心肺挑战"},
+            {"name":"臀桥","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"臀部","description":"后链唤醒与臀肌"},
+            {"name":"平板支撑","sets":3,"reps":1,"duration":45,"scheduledDays":"1,3,5","category":"腹部","description":"静态核心巩固"}
+          ]
+        }
+      }
     },
     {
-      "name": "HIIT 高强度间歇",
-      "shortDescription": "高效燃脂，暴汗刷脂",
-      "description": "每周4天的高强度间歇训练。每个动作全力做30秒，组间休息30秒。燃脂效率极高，训练后持续消耗（后燃效应）。适合减脂期或想提升心肺功能的训练者。",
-      "difficulty": 2,
+      "name": "高强度 HIIT 极限燃脂",
+      "shortDescription": "高强度间歇，极限心肺轰炸",
+      "description": "结合间歇训练，在短时间内迅速拉高心率，创造持续的“后燃效应”，让身体在训练后继续燃脂。适合有一定体能基础的进阶减脂人群。",
+      "difficulty": 3,
       "goal": "减脂",
       "daysPerWeek": 4,
-      "exercises": [
-        { "name": "开合跳", "sets": 4, "reps": 1, "duration": 30, "scheduledDays": "1,3", "category": "全身", "description": "30秒全力" },
-        { "name": "高抬腿", "sets": 4, "reps": 1, "duration": 30, "scheduledDays": "1,3", "category": "全身", "description": "30秒全力" },
-        { "name": "波比跳", "sets": 4, "reps": 1, "duration": 30, "scheduledDays": "1,3", "category": "全身", "description": "30秒全力" },
-        { "name": "登山者", "sets": 4, "reps": 1, "duration": 30, "scheduledDays": "2,4", "category": "全身", "description": "30秒全力" },
-        { "name": "深蹲跳", "sets": 4, "reps": 1, "duration": 30, "scheduledDays": "2,4", "category": "腿部", "description": "30秒全力" },
-        { "name": "动态平板支撑", "sets": 4, "reps": 1, "duration": 30, "scheduledDays": "2,4", "category": "腹部", "description": "30秒全力" }
-      ]
+      "versions": {
+        "bodyweight": {
+          "equipment": "自重",
+          "exercises": [
+            {"name":"波比跳","sets":4,"reps":15,"duration":0,"scheduledDays":"1,2,4,5","category":"全身","description":"终极全身燃脂动作"},
+            {"name":"深蹲跳","sets":4,"reps":15,"duration":0,"scheduledDays":"1,2,4,5","category":"腿部","description":"下肢爆发力"},
+            {"name":"标准俯卧撑","sets":4,"reps":12,"duration":0,"scheduledDays":"1,2,4,5","category":"胸部","description":"上肢推力"},
+            {"name":"高抬腿跑","sets":4,"reps":1,"duration":30,"scheduledDays":"1,2,4,5","category":"全身","description":"极速心率拉升"},
+            {"name":"俄罗斯转体","sets":3,"reps":20,"duration":0,"scheduledDays":"1,2,4,5","category":"腹部","description":"腹内外斜肌刺激"},
+            {"name":"动态平板支撑","sets":3,"reps":1,"duration":45,"scheduledDays":"1,2,4,5","category":"腹部","description":"核心耐力训练"}
+          ]
+        },
+        "gym": {
+          "equipment": "健身房",
+          "exercises": [
+            {"name":"跑步机冲刺","sets":4,"reps":1,"duration":60,"scheduledDays":"1,2,4,5","category":"全身","description":"高低强度间歇跑"},
+            {"name":"杠铃深蹲推举","sets":4,"reps":12,"duration":0,"scheduledDays":"1,2,4,5","category":"全身","description":"全身联合力量释放"},
+            {"name":"壶铃摆动","sets":4,"reps":15,"duration":0,"scheduledDays":"1,2,4,5","category":"全身","description":"后链爆发力与燃脂"},
+            {"name":"战绳双臂甩动","sets":4,"reps":1,"duration":30,"scheduledDays":"1,2,4,5","category":"全身","description":"上半身极致心肺"},
+            {"name":"悬垂举腿","sets":3,"reps":12,"duration":0,"scheduledDays":"1,2,4,5","category":"腹部","description":"下腹核心精雕"}
+          ]
+        }
+      }
     },
     {
-      "name": "力量举专项",
-      "shortDescription": "聚焦三大项，冲击极限",
-      "description": "聚焦杠铃深蹲、卧推、硬拉三大力量举动作。采用5x5低次数大重量训练模式，每周4练。适合以提升绝对力量为目标的训练者。",
+      "name": "核心与线条塑形",
+      "shortDescription": "精雕腹肌与身体线条",
+      "description": "专为塑形人群设计，通过中等强度的全身循环，结合多部位的孤立刺激，雕刻肌肉线条并增强核心稳定性。",
+      "difficulty": 2,
+      "goal": "塑形",
+      "daysPerWeek": 3,
+      "versions": {
+        "gym": {
+          "equipment": "健身房",
+          "exercises": [
+            {"name":"拉力器夹胸","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"胸部","description":"雕刻胸肌中缝与线条"},
+            {"name":"哑铃侧平举","sets":4,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"肩部","description":"精雕肩膀侧束"},
+            {"name":"坐姿拉力器划船","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3,5","category":"背部","description":"背部线条塑造"},
+            {"name":"绳索面拉","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"肩部","description":"肩后束与上背稳定"},
+            {"name":"负重臀桥","sets":4,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"臀部","description":"臀部线条与力量"}
+          ]
+        },
+        "home": {
+          "equipment": "居家",
+          "exercises": [
+            {"name":"哑铃侧平举","sets":4,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"肩部","description":"塑造肩部弧线"},
+            {"name":"哑铃深蹲推举","sets":3,"reps":12,"duration":0,"scheduledDays":"1,3,5","category":"全身","description":"全身爆发与燃脂塑形"},
+            {"name":"哑铃弯举","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"手臂","description":"手臂线条刻画"},
+            {"name":"俄罗斯转体","sets":3,"reps":20,"duration":0,"scheduledDays":"1,3,5","category":"腹部","description":"腹内外斜肌雕刻"},
+            {"name":"自重臀桥","sets":4,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"臀部","description":"翘臀塑形"}
+          ]
+        },
+        "bodyweight": {
+          "equipment": "自重",
+          "exercises": [
+            {"name":"自重深蹲","sets":4,"reps":20,"duration":0,"scheduledDays":"1,3,5","category":"腿部","description":"下肢塑形"},
+            {"name":"上斜俯卧撑","sets":3,"reps":15,"duration":0,"scheduledDays":"1,3,5","category":"胸部","description":"胸肌塑形"},
+            {"name":"平板支撑","sets":3,"reps":1,"duration":60,"scheduledDays":"1,3,5","category":"腹部","description":"核心线条"},
+            {"name":"俄罗斯转体","sets":3,"reps":25,"duration":0,"scheduledDays":"1,3,5","category":"腹部","description":"马甲线精雕"},
+            {"name":"臀桥","sets":4,"reps":20,"duration":0,"scheduledDays":"1,3,5","category":"臀部","description":"臀部紧致"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "极限大重量五分化",
+      "shortDescription": "高强度多关节增肌训练",
+      "description": "专为高级健身者设计，五天分化极高强度轰炸单部位肌肉，适用于需要突破力量与围度瓶颈的训练者。",
       "difficulty": 3,
-      "goal": "增力",
-      "daysPerWeek": 4,
-      "exercises": [
-        { "name": "杠铃深蹲", "sets": 5, "reps": 5, "duration": 0, "scheduledDays": "1,4", "category": "腿部", "description": "深蹲日主项" },
-        { "name": "杠铃卧推", "sets": 5, "reps": 5, "duration": 0, "scheduledDays": "2", "category": "胸部", "description": "卧推日" },
-        { "name": "杠铃划船", "sets": 4, "reps": 8, "duration": 0, "scheduledDays": "2", "category": "背部", "description": "卧推日副项" },
-        { "name": "杠铃硬拉", "sets": 3, "reps": 5, "duration": 0, "scheduledDays": "4", "category": "背部", "description": "硬拉日" },
-        { "name": "哑铃推举", "sets": 4, "reps": 8, "duration": 0, "scheduledDays": "1", "category": "肩部", "description": "深蹲日副项" }
-      ]
+      "goal": "增肌",
+      "daysPerWeek": 5,
+      "versions": {
+        "gym": {
+          "equipment": "健身房",
+          "exercises": [
+            {"name":"杠铃卧推","sets":4,"reps":8,"duration":0,"scheduledDays":"1","category":"胸部","description":"胸部力量基石"},
+            {"name":"哑铃上斜卧推","sets":4,"reps":10,"duration":0,"scheduledDays":"1","category":"胸部","description":"上胸饱满度提升"},
+            {"name":"杠铃硬拉","sets":4,"reps":6,"duration":0,"scheduledDays":"2","category":"背部","description":"后侧链核心与力量"},
+            {"name":"引体向上","sets":4,"reps":10,"duration":0,"scheduledDays":"2","category":"背部","description":"背部宽度拓展"},
+            {"name":"杠铃深蹲","sets":4,"reps":8,"duration":0,"scheduledDays":"3","category":"腿部","description":"下肢王牌力量动作"},
+            {"name":"直腿硬拉","sets":3,"reps":10,"duration":0,"scheduledDays":"3","category":"臀腿","description":"股二头肌与臀大肌拉伸"},
+            {"name":"哑铃推举","sets":4,"reps":8,"duration":0,"scheduledDays":"4","category":"肩部","description":"塑造虎头肩"},
+            {"name":"杠铃弯举","sets":4,"reps":10,"duration":0,"scheduledDays":"5","category":"手臂","description":"二头肌厚度"},
+            {"name":"仰卧杠铃臂屈伸","sets":4,"reps":10,"duration":0,"scheduledDays":"5","category":"手臂","description":"三头肌马蹄铁雕刻"}
+          ]
+        },
+        "home": {
+          "equipment": "居家",
+          "exercises": [
+            {"name":"哑铃卧推","sets":4,"reps":10,"duration":0,"scheduledDays":"1","category":"胸部","description":"胸大肌力量"},
+            {"name":"哑铃俯身划船","sets":4,"reps":10,"duration":0,"scheduledDays":"2","category":"背部","description":"背阔肌与大圆肌"},
+            {"name":"哑铃深蹲","sets":4,"reps":12,"duration":0,"scheduledDays":"3","category":"腿部","description":"大腿股四头肌"},
+            {"name":"哑铃侧平举","sets":4,"reps":12,"duration":0,"scheduledDays":"4","category":"肩部","description":"中束宽度"},
+            {"name":"哑铃双臂弯举","sets":4,"reps":12,"duration":0,"scheduledDays":"5","category":"手臂","description":"手臂二头肌雕刻"}
+          ]
+        }
+      }
     },
     {
-      "name": "上肢推拉分化",
-      "shortDescription": "上肢精细化，塑造倒三角",
-      "description": "上肢训练细分为推日（胸+肩+三头）和拉日（背+二头），每周4练。针对性强化上半身，打造宽肩厚背的倒三角体型。",
-      "difficulty": 2,
-      "goal": "增肌",
+      "name": "极限全身复合耐力循环",
+      "shortDescription": "全身复合高心肺减脂",
+      "description": "专为高级减脂人群设计的复合动作循环，将力量动作与高心肺动作结合，极大提高热量消耗并保留肌肉。",
+      "difficulty": 3,
+      "goal": "减脂",
       "daysPerWeek": 4,
-      "exercises": [
-        { "name": "杠铃平板卧推", "sets": 4, "reps": 10, "duration": 0, "scheduledDays": "1,3", "category": "胸部", "description": "推日主项" },
-        { "name": "哑铃推举", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "1,3", "category": "肩部", "description": "" },
-        { "name": "双杠臂屈伸", "sets": 3, "reps": 10, "duration": 0, "scheduledDays": "1,3", "category": "胸部", "description": "下胸+三头" },
-        { "name": "绳索下压", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "1,3", "category": "手臂", "description": "三头收尾" },
-        { "name": "引体向上", "sets": 4, "reps": 8, "duration": 0, "scheduledDays": "2,4", "category": "背部", "description": "拉日主项" },
-        { "name": "杠铃划船", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "2,4", "category": "背部", "description": "" },
-        { "name": "面拉", "sets": 3, "reps": 15, "duration": 0, "scheduledDays": "2,4", "category": "肩部", "description": "" },
-        { "name": "杠铃弯举", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "2,4", "category": "手臂", "description": "二头收尾" }
-      ]
-    },
-    {
-      "name": "下肢强化训练",
-      "shortDescription": "强化下肢，稳固根基",
-      "description": "专注下肢力量与围度发展，每周4练。覆盖股四头肌、腘绳肌、臀大肌和小腿。深蹲和硬拉为核心，辅以单腿和辅助动作。适合想提升下肢力量和围度的训练者。",
-      "difficulty": 2,
-      "goal": "增肌",
-      "daysPerWeek": 4,
-      "exercises": [
-        { "name": "杠铃深蹲", "sets": 4, "reps": 10, "duration": 0, "scheduledDays": "1,3", "category": "腿部", "description": "股四头肌主项" },
-        { "name": "罗马尼亚硬拉", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "1,3", "category": "腿部", "description": "腘绳肌+臀" },
-        { "name": "箭步蹲", "sets": 3, "reps": 12, "duration": 0, "scheduledDays": "1,3", "category": "腿部", "description": "单腿稳定性" },
-        { "name": "保加利亚分腿蹲", "sets": 3, "reps": 10, "duration": 0, "scheduledDays": "2,4", "category": "腿部", "description": "单腿力量" },
-        { "name": "杠铃臀推", "sets": 4, "reps": 12, "duration": 0, "scheduledDays": "2,4", "category": "臀部", "description": "臀部主项" },
-        { "name": "站姿提踵", "sets": 4, "reps": 15, "duration": 0, "scheduledDays": "2,4", "category": "腿部", "description": "小腿训练" }
-      ]
+      "versions": {
+        "gym": {
+          "equipment": "健身房",
+          "exercises": [
+            {"name":"高翻推举","sets":4,"reps":10,"duration":0,"scheduledDays":"1,3","category":"全身","description":"全身爆发力与心肺"},
+            {"name":"杠铃深蹲","sets":4,"reps":12,"duration":0,"scheduledDays":"1,3","category":"腿部","description":"大负能消耗"},
+            {"name":"悬垂举腿","sets":4,"reps":15,"duration":0,"scheduledDays":"1,3","category":"腹部","description":"深层核心力量"},
+            {"name":"波比跳","sets":4,"reps":15,"duration":0,"scheduledDays":"2,4","category":"全身","description":"心肺极限挑战"},
+            {"name":"哑铃摇摆","sets":4,"reps":20,"duration":0,"scheduledDays":"2,4","category":"全身","description":"后侧链爆发力燃脂"}
+          ]
+        },
+        "home": {
+          "equipment": "居家",
+          "exercises": [
+            {"name":"波比跳","sets":4,"reps":15,"duration":0,"scheduledDays":"1,3","category":"全身","description":"徒手极限减脂"},
+            {"name":"哑铃深蹲推举","sets":4,"reps":12,"duration":0,"scheduledDays":"1,3","category":"全身","description":"居家复合动作"},
+            {"name":"登山跑","sets":4,"reps":30,"duration":0,"scheduledDays":"2,4","category":"腹部","description":"高心肺核心训练"},
+            {"name":"俯卧撑","sets":4,"reps":15,"duration":0,"scheduledDays":"2,4","category":"胸部","description":"上肢力量耐力"}
+          ]
+        }
+      }
     }
   ]
 }

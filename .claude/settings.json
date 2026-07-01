@@ -11,7 +11,9 @@
       "Read(//c/Users/hhgg/AppData/Local/Temp/**)",
       "PowerShell(node \"d:\\\\code\\\\JaProject\\\\FitnessDiary\\\\docs\\\\translate-template.js\")",
       "Bash(Select-Object -Last 20)",
-      "PowerShell(.\\\\gradlew.bat assembleDebug 2>&1)"
+      "PowerShell(.\\\\gradlew.bat assembleDebug 2>&1)",
+      "Bash(py --version)",
+      "Bash(git stash *)"
     ]
   }
 }

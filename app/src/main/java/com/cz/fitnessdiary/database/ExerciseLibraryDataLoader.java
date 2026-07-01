@@ -48,6 +48,8 @@ public final class ExerciseLibraryDataLoader {
 
         AppDatabase db = AppDatabase.getInstance(context);
         ExerciseLibraryDao dao = db.exerciseLibraryDao();
+        // 版本更新时先清空旧数据再导入，确保删除的动作不会残留
+        dao.deleteAll();
         dao.insertAll(exercises);
 
         prefs.edit().putInt(KEY_EXERCISE_LIBRARY_VERSION, jsonVersion).apply();

@@ -1,152 +1,1202 @@
-{
-  "version": 1,
+﻿{
+  "version": 4,
   "exercises": [
-    {"name":"标准俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"经典胸肌与三头肌训练动作，注意核心收紧身体呈一条直线","difficulty":1,"equipment":"无","category":"胸部: 徒手"},
-    {"name":"宽距俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"双手间距加宽，侧重胸大肌外侧刺激","difficulty":1,"equipment":"无","category":"胸部: 徒手"},
-    {"name":"窄距俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"双手靠近，侧重肱三头肌和胸肌内侧","difficulty":2,"equipment":"无","category":"胸部: 徒手"},
-    {"name":"下斜俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"双脚垫高，侧重上胸肌训练","difficulty":2,"equipment":"无","category":"胸部: 徒手"},
-    {"name":"上斜俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"双手撑于高处，降低难度适合新手","difficulty":1,"equipment":"无","category":"胸部: 徒手"},
-    {"name":"钻石俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"双手拇指食指相触呈钻石形，强力刺激肱三头肌","difficulty":3,"equipment":"无","category":"胸部: 徒手"},
-    {"name":"击掌俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"爆发力推起身体并在空中击掌，提升爆发力","difficulty":3,"equipment":"无","category":"胸部: 徒手"},
-    {"name":"射手俯卧撑","bodyPart":"胸部","subCategory":"徒手","description":"单侧手臂为主要发力侧，大幅提升单侧力量","difficulty":3,"equipment":"无","category":"胸部: 徒手"},
-
-    {"name":"哑铃平板卧推","bodyPart":"胸部","subCategory":"哑铃","description":"哑铃卧推增加肌肉拉伸幅度，更好刺激胸大肌","difficulty":2,"equipment":"哑铃","category":"胸部: 哑铃"},
-    {"name":"哑铃上斜卧推","bodyPart":"胸部","subCategory":"哑铃","description":"上斜角度侧重上胸肌发展","difficulty":2,"equipment":"哑铃","category":"胸部: 哑铃"},
-    {"name":"哑铃下斜卧推","bodyPart":"胸部","subCategory":"哑铃","description":"下斜角度侧重下胸肌轮廓","difficulty":2,"equipment":"哑铃","category":"胸部: 哑铃"},
-    {"name":"哑铃飞鸟","bodyPart":"胸部","subCategory":"哑铃","description":"仰卧飞鸟拉伸胸大肌，增加胸肌宽度","difficulty":2,"equipment":"哑铃","category":"胸部: 哑铃"},
-    {"name":"哑铃上斜飞鸟","bodyPart":"胸部","subCategory":"哑铃","description":"上斜角度飞鸟，针对上胸肌塑形","difficulty":2,"equipment":"哑铃","category":"胸部: 哑铃"},
-    {"name":"哑铃仰卧直臂上拉","bodyPart":"胸部","subCategory":"哑铃","description":"刺激胸大肌与前锯肌，扩大胸腔","difficulty":2,"equipment":"哑铃","category":"胸部: 哑铃"},
-
-    {"name":"杠铃平板卧推","bodyPart":"胸部","subCategory":"杠铃","description":"经典力量训练动作，全面提升胸大肌","difficulty":2,"equipment":"杠铃","category":"胸部: 杠铃"},
-    {"name":"杠铃上斜卧推","bodyPart":"胸部","subCategory":"杠铃","description":"上斜杠铃卧推，重点发展上胸","difficulty":2,"equipment":"杠铃","category":"胸部: 杠铃"},
-    {"name":"杠铃下斜卧推","bodyPart":"胸部","subCategory":"杠铃","description":"下斜杠铃卧推，塑造下胸线条","difficulty":3,"equipment":"杠铃","category":"胸部: 杠铃"},
-
-    {"name":"坐姿器械推胸","bodyPart":"胸部","subCategory":"器械","description":"固定轨迹推胸，安全稳定适合新手","difficulty":1,"equipment":"器械","category":"胸部: 器械"},
-    {"name":"坐姿器械夹胸","bodyPart":"胸部","subCategory":"器械","description":"蝴蝶机夹胸，孤立刺激胸大肌中缝","difficulty":1,"equipment":"器械","category":"胸部: 器械"},
-    {"name":"龙门架夹胸","bodyPart":"胸部","subCategory":"器械","description":"绳索十字夹胸，精细雕刻胸肌线条","difficulty":2,"equipment":"龙门架","category":"胸部: 器械"},
-    {"name":"双杠臂屈伸","bodyPart":"胸部","subCategory":"徒手","description":"身体前倾侧重胸部，直立侧重三头肌","difficulty":2,"equipment":"双杠","category":"胸部: 徒手"},
-
-    {"name":"引体向上","bodyPart":"背部","subCategory":"徒手","description":"背部训练王牌动作，全面打造V字背","difficulty":2,"equipment":"单杠","category":"背部: 徒手"},
-    {"name":"宽距引体向上","bodyPart":"背部","subCategory":"徒手","description":"加宽握距强化背阔肌外侧","difficulty":3,"equipment":"单杠","category":"背部: 徒手"},
-    {"name":"反握引体向上","bodyPart":"背部","subCategory":"徒手","description":"掌心朝自己，更多动用肱二头肌","difficulty":2,"equipment":"单杠","category":"背部: 徒手"},
-    {"name":"澳洲引体向上","bodyPart":"背部","subCategory":"徒手","description":"低位单杠水平拉，背部入门首选","difficulty":1,"equipment":"单杠","category":"背部: 徒手"},
-    {"name":"俯身T字伸展","bodyPart":"背部","subCategory":"徒手","description":"俯身双臂向两侧伸展呈T形，改善圆肩","difficulty":1,"equipment":"无","category":"背部: 徒手"},
-    {"name":"俯身Y字伸展","bodyPart":"背部","subCategory":"徒手","description":"俯身双臂向前上方伸展呈Y形，强化上背","difficulty":1,"equipment":"无","category":"背部: 徒手"},
-    {"name":"超人式伸展","bodyPart":"背部","subCategory":"徒手","description":"俯卧同时抬起四肢，强化下背竖脊肌","difficulty":1,"equipment":"无","category":"背部: 徒手"},
-
-    {"name":"哑铃单臂划船","bodyPart":"背部","subCategory":"哑铃","description":"单手撑凳划船，精准刺激背阔肌","difficulty":1,"equipment":"哑铃","category":"背部: 哑铃"},
-    {"name":"哑铃双臂划船","bodyPart":"背部","subCategory":"哑铃","description":"俯身双臂同时划船，增强背部厚度","difficulty":2,"equipment":"哑铃","category":"背部: 哑铃"},
-    {"name":"哑铃直腿硬拉","bodyPart":"背部","subCategory":"哑铃","description":"哑铃版硬拉，强化下背与竖脊肌","difficulty":2,"equipment":"哑铃","category":"背部: 哑铃"},
-
-    {"name":"杠铃划船","bodyPart":"背部","subCategory":"杠铃","description":"俯身杠铃划船，背部整体厚度核心动作","difficulty":2,"equipment":"杠铃","category":"背部: 杠铃"},
-    {"name":"杠铃硬拉","bodyPart":"背部","subCategory":"杠铃","description":"三大项之一，全面强化后链肌群","difficulty":2,"equipment":"杠铃","category":"背部: 杠铃"},
-    {"name":"罗马尼亚硬拉","bodyPart":"背部","subCategory":"杠铃","description":"直腿硬拉变式，侧重腘绳肌和下背","difficulty":2,"equipment":"杠铃","category":"背部: 杠铃"},
-    {"name":"相扑硬拉","bodyPart":"背部","subCategory":"杠铃","description":"宽站距硬拉，减少下背压力更侧重腿部","difficulty":3,"equipment":"杠铃","category":"背部: 杠铃"},
-
-    {"name":"坐姿高位下拉","bodyPart":"背部","subCategory":"器械","description":"模拟引体向上，可调节重量循序渐进","difficulty":1,"equipment":"器械","category":"背部: 器械"},
-    {"name":"坐姿窄距下拉","bodyPart":"背部","subCategory":"器械","description":"V把下拉，强化背阔肌下部","difficulty":1,"equipment":"器械","category":"背部: 器械"},
-    {"name":"坐姿划船","bodyPart":"背部","subCategory":"器械","description":"绳索坐姿划船，增加背部厚度","difficulty":1,"equipment":"器械","category":"背部: 器械"},
-    {"name":"直臂下压","bodyPart":"背部","subCategory":"器械","description":"龙门架直臂下压，孤立刺激背阔肌","difficulty":2,"equipment":"龙门架","category":"背部: 器械"},
-    {"name":"面拉","bodyPart":"背部","subCategory":"器械","description":"绳索面拉，强化上背与肩袖肌群","difficulty":2,"equipment":"龙门架","category":"背部: 器械"},
-
-    {"name":"哑铃推举","bodyPart":"肩部","subCategory":"哑铃","description":"坐姿哑铃推举，全面刺激三角肌","difficulty":2,"equipment":"哑铃","category":"肩部: 哑铃"},
-    {"name":"阿诺德推举","bodyPart":"肩部","subCategory":"哑铃","description":"旋转式推举，全方位雕刻三角肌","difficulty":2,"equipment":"哑铃","category":"肩部: 哑铃"},
-    {"name":"哑铃前平举","bodyPart":"肩部","subCategory":"哑铃","description":"双手交替前平举，孤立三角肌前束","difficulty":1,"equipment":"哑铃","category":"肩部: 哑铃"},
-    {"name":"哑铃侧平举","bodyPart":"肩部","subCategory":"哑铃","description":"侧平举增加肩宽，针对三角肌中束","difficulty":1,"equipment":"哑铃","category":"肩部: 哑铃"},
-    {"name":"哑铃俯身侧平举","bodyPart":"肩部","subCategory":"哑铃","description":"俯身飞鸟，强化三角肌后束","difficulty":2,"equipment":"哑铃","category":"肩部: 哑铃"},
-    {"name":"哑铃提拉","bodyPart":"肩部","subCategory":"哑铃","description":"直立划船，刺激三角肌中束与斜方肌","difficulty":1,"equipment":"哑铃","category":"肩部: 哑铃"},
-
-    {"name":"杠铃推举","bodyPart":"肩部","subCategory":"杠铃","description":"站立杠铃推举，最强肩部力量动作","difficulty":2,"equipment":"杠铃","category":"肩部: 杠铃"},
-    {"name":"杠铃坐姿推举","bodyPart":"肩部","subCategory":"杠铃","description":"坐姿杠铃推举，更稳定更专注肩部","difficulty":2,"equipment":"杠铃","category":"肩部: 杠铃"},
-    {"name":"杠铃提拉","bodyPart":"肩部","subCategory":"杠铃","description":"杠铃直立划船，增加三角肌中束体积","difficulty":2,"equipment":"杠铃","category":"肩部: 杠铃"},
-
-    {"name":"器械推举","bodyPart":"肩部","subCategory":"器械","description":"坐姿器械推举，固定轨迹安全稳定","difficulty":1,"equipment":"器械","category":"肩部: 器械"},
-    {"name":"绳索侧平举","bodyPart":"肩部","subCategory":"器械","description":"龙门架绳索侧平举，维持持续张力","difficulty":2,"equipment":"龙门架","category":"肩部: 器械"},
-    {"name":"跪姿面拉","bodyPart":"肩部","subCategory":"器械","description":"绳索面拉变式，强化肩袖与后束","difficulty":1,"equipment":"龙门架","category":"肩部: 器械"},
-
-    {"name":"哑铃弯举","bodyPart":"手臂","subCategory":"哑铃","description":"标准二头肌弯举，肱二头肌基础动作","difficulty":1,"equipment":"哑铃","category":"手臂: 哑铃"},
-    {"name":"锤式弯举","bodyPart":"手臂","subCategory":"哑铃","description":"掌心相对弯举，强化肱肌和前臂","difficulty":1,"equipment":"哑铃","category":"手臂: 哑铃"},
-    {"name":"集中弯举","bodyPart":"手臂","subCategory":"哑铃","description":"坐姿单臂集中弯举，孤立二头肌顶峰","difficulty":1,"equipment":"哑铃","category":"手臂: 哑铃"},
-    {"name":"上斜哑铃弯举","bodyPart":"手臂","subCategory":"哑铃","description":"仰卧弯举，拉伸位强化二头肌长头","difficulty":2,"equipment":"哑铃","category":"手臂: 哑铃"},
-    {"name":"哑铃颈后臂屈伸","bodyPart":"手臂","subCategory":"哑铃","description":"单臂颈后屈伸，孤立肱三头肌长头","difficulty":1,"equipment":"哑铃","category":"手臂: 哑铃"},
-    {"name":"哑铃俯身臂屈伸","bodyPart":"手臂","subCategory":"哑铃","description":"俯身臂屈伸，雕塑三头肌马蹄形","difficulty":1,"equipment":"哑铃","category":"手臂: 哑铃"},
-    {"name":"哑铃腕弯举","bodyPart":"手臂","subCategory":"哑铃","description":"前臂腕弯举，强化前臂抓握力","difficulty":1,"equipment":"哑铃","category":"手臂: 哑铃"},
-
-    {"name":"杠铃弯举","bodyPart":"手臂","subCategory":"杠铃","description":"杠铃弯举，二头肌最大负重动作","difficulty":1,"equipment":"杠铃","category":"手臂: 杠铃"},
-    {"name":"窄距卧推","bodyPart":"手臂","subCategory":"杠铃","description":"窄握杠铃卧推，三头肌最强增肌动作","difficulty":2,"equipment":"杠铃","category":"手臂: 杠铃"},
-    {"name":"杠铃腕弯举","bodyPart":"手臂","subCategory":"杠铃","description":"杠铃腕弯举，大幅提升前臂围度","difficulty":1,"equipment":"杠铃","category":"手臂: 杠铃"},
-
-    {"name":"绳索弯举","bodyPart":"手臂","subCategory":"器械","description":"龙门架绳索弯举，全程持续张力","difficulty":1,"equipment":"龙门架","category":"手臂: 器械"},
-    {"name":"绳索下压","bodyPart":"手臂","subCategory":"器械","description":"龙门架三头下压，最佳三头肌塑形动作","difficulty":1,"equipment":"龙门架","category":"手臂: 器械"},
-    {"name":"单臂绳索下压","bodyPart":"手臂","subCategory":"器械","description":"单臂反握下压，精细雕刻三头肌","difficulty":2,"equipment":"龙门架","category":"手臂: 器械"},
-    {"name":"凳上臂屈伸","bodyPart":"手臂","subCategory":"徒手","description":"双凳臂屈伸，自重训练三头肌","difficulty":1,"equipment":"凳子","category":"手臂: 徒手"},
-
-    {"name":"杠铃深蹲","bodyPart":"腿部","subCategory":"杠铃","description":"三大项之一，下肢力量之王","difficulty":2,"equipment":"杠铃","category":"腿部: 杠铃"},
-    {"name":"杠铃前蹲","bodyPart":"腿部","subCategory":"杠铃","description":"杠铃胸前深蹲，更强调股四头肌","difficulty":3,"equipment":"杠铃","category":"腿部: 杠铃"},
-    {"name":"保加利亚分腿蹲","bodyPart":"腿部","subCategory":"杠铃","description":"后脚垫高分腿蹲，精准刺激臀腿","difficulty":2,"equipment":"杠铃","category":"腿部: 杠铃"},
-
-    {"name":"自重深蹲","bodyPart":"腿部","subCategory":"徒手","description":"下肢力量训练根基，随时随地可做","difficulty":1,"equipment":"无","category":"腿部: 徒手"},
-    {"name":"箭步蹲","bodyPart":"腿部","subCategory":"徒手","description":"单腿稳定性与臀部刺激核心动作","difficulty":1,"equipment":"无","category":"腿部: 徒手"},
-    {"name":"保加利亚分腿蹲","bodyPart":"腿部","subCategory":"徒手","description":"后脚垫高单腿蹲，徒手版同样高效","difficulty":2,"equipment":"凳子","category":"腿部: 徒手"},
-    {"name":"深蹲跳","bodyPart":"腿部","subCategory":"徒手","description":"爆发力深蹲跳，提升腿部爆发力","difficulty":2,"equipment":"无","category":"腿部: 徒手"},
-    {"name":"手枪深蹲","bodyPart":"腿部","subCategory":"徒手","description":"单腿深蹲，终极自重腿部挑战","difficulty":3,"equipment":"无","category":"腿部: 徒手"},
-    {"name":"臀桥","bodyPart":"腿部","subCategory":"徒手","description":"仰卧臀桥，激活臀大肌和核心","difficulty":1,"equipment":"无","category":"腿部: 徒手"},
-    {"name":"单腿臀桥","bodyPart":"腿部","subCategory":"徒手","description":"单腿支撑臀桥，强化臀部不对称力量","difficulty":2,"equipment":"无","category":"腿部: 徒手"},
-    {"name":"靠墙静蹲","bodyPart":"腿部","subCategory":"徒手","description":"背靠墙半蹲，增强股四头肌耐力","difficulty":1,"equipment":"无","category":"腿部: 徒手"},
-
-    {"name":"哑铃深蹲","bodyPart":"腿部","subCategory":"哑铃","description":"双手持哑铃深蹲，家用腿部训练","difficulty":1,"equipment":"哑铃","category":"腿部: 哑铃"},
-    {"name":"哑铃箭步蹲","bodyPart":"腿部","subCategory":"哑铃","description":"负重箭步蹲，增加臀腿训练强度","difficulty":1,"equipment":"哑铃","category":"腿部: 哑铃"},
-    {"name":"哑铃罗马尼亚硬拉","bodyPart":"腿部","subCategory":"哑铃","description":"哑铃直腿硬拉，侧重腘绳肌","difficulty":1,"equipment":"哑铃","category":"腿部: 哑铃"},
-    {"name":"哑铃提踵","bodyPart":"腿部","subCategory":"哑铃","description":"负重提踵，强化小腿腓肠肌","difficulty":1,"equipment":"哑铃","category":"腿部: 哑铃"},
-
-    {"name":"倒蹬机","bodyPart":"腿部","subCategory":"器械","description":"腿部推举，大重量安全训练下肢","difficulty":1,"equipment":"器械","category":"腿部: 器械"},
-    {"name":"坐姿腿屈伸","bodyPart":"腿部","subCategory":"器械","description":"孤立刺激股四头肌","difficulty":1,"equipment":"器械","category":"腿部: 器械"},
-    {"name":"俯卧腿弯举","bodyPart":"腿部","subCategory":"器械","description":"孤立刺激腘绳肌","difficulty":1,"equipment":"器械","category":"腿部: 器械"},
-    {"name":"坐姿提踵","bodyPart":"腿部","subCategory":"器械","description":"坐姿小腿提踵，针对比目鱼肌","difficulty":1,"equipment":"器械","category":"腿部: 器械"},
-    {"name":"站姿提踵","bodyPart":"腿部","subCategory":"器械","description":"站姿提踵，发展腓肠肌","difficulty":1,"equipment":"器械","category":"腿部: 器械"},
-    {"name":"髋外展机","bodyPart":"腿部","subCategory":"器械","description":"坐姿髋外展，针对臀中肌","difficulty":1,"equipment":"器械","category":"腿部: 器械"},
-    {"name":"髋内收机","bodyPart":"腿部","subCategory":"器械","description":"坐姿髋内收，强化大腿内侧","difficulty":1,"equipment":"器械","category":"腿部: 器械"},
-    {"name":"史密斯深蹲","bodyPart":"腿部","subCategory":"器械","description":"史密斯机深蹲，固定轨迹更安全","difficulty":1,"equipment":"史密斯机","category":"腿部: 器械"},
-
-    {"name":"平板支撑","bodyPart":"腹部","subCategory":"徒手","description":"核心稳定性训练基础，每天坚持","difficulty":1,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"卷腹","bodyPart":"腹部","subCategory":"徒手","description":"腹直肌上部孤立，比仰卧起坐更安全","difficulty":1,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"反向卷腹","bodyPart":"腹部","subCategory":"徒手","description":"仰卧抬腿卷腹，针对下腹部","difficulty":1,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"俄罗斯转体","bodyPart":"腹部","subCategory":"徒手","description":"坐姿转体，强化腹斜肌和旋转核心","difficulty":1,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"自行车卷腹","bodyPart":"腹部","subCategory":"徒手","description":"交替肘触膝，同时刺激腹直肌和腹斜肌","difficulty":2,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"仰卧举腿","bodyPart":"腹部","subCategory":"徒手","description":"仰卧直腿上抬，下腹核心经典动作","difficulty":2,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"动态平板支撑","bodyPart":"腹部","subCategory":"徒手","description":"平板支撑交替抬手/脚，动态核心训练","difficulty":2,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"登山者","bodyPart":"腹部","subCategory":"徒手","description":"平板姿态下交替提膝，核心加心肺","difficulty":2,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"V字卷腹","bodyPart":"腹部","subCategory":"徒手","description":"手脚同时上抬呈V形，全面刺激腹直肌","difficulty":2,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"死虫式","bodyPart":"腹部","subCategory":"徒手","description":"仰卧对侧手脚交替伸展，深层核心控制","difficulty":1,"equipment":"无","category":"腹部: 徒手"},
-    {"name":"鸟狗式","bodyPart":"腹部","subCategory":"徒手","description":"四足跪姿对侧伸展，核心稳定性训练","difficulty":1,"equipment":"无","category":"腹部: 徒手"},
-
-    {"name":"悬垂举腿","bodyPart":"腹部","subCategory":"器械","description":"单杠悬挂举腿，下腹王牌动作","difficulty":3,"equipment":"单杠","category":"腹部: 器械"},
-    {"name":"龙旗","bodyPart":"腹部","subCategory":"徒手","description":"李小龙同款核心训练，全身核心极致挑战","difficulty":3,"equipment":"凳子","category":"腹部: 徒手"},
-    {"name":"绳索卷腹","bodyPart":"腹部","subCategory":"器械","description":"龙门架跪姿绳索卷腹，可负重渐进","difficulty":2,"equipment":"龙门架","category":"腹部: 器械"},
-    {"name":"健腹轮","bodyPart":"腹部","subCategory":"器械","description":"健腹轮前推，全面激活核心肌群","difficulty":2,"equipment":"健腹轮","category":"腹部: 器械"},
-    {"name":"罗马椅侧屈","bodyPart":"腹部","subCategory":"器械","description":"罗马椅侧身屈伸，针对腹斜肌","difficulty":2,"equipment":"罗马椅","category":"腹部: 器械"},
-
-    {"name":"支撑抬腿","bodyPart":"臀部","subCategory":"徒手","description":"四足跪姿后抬腿，激活臀部","difficulty":1,"equipment":"无","category":"臀部: 徒手"},
-    {"name":"蚌式开合","bodyPart":"臀部","subCategory":"徒手","description":"侧卧屈膝开合，激活臀中肌","difficulty":1,"equipment":"无","category":"臀部: 徒手"},
-    {"name":"驴踢","bodyPart":"臀部","subCategory":"徒手","description":"四足跪姿后踢腿，翘臀必练","difficulty":1,"equipment":"无","category":"臀部: 徒手"},
-    {"name":"蛙式臀桥","bodyPart":"臀部","subCategory":"徒手","description":"脚底相对臀桥，强化臀部收缩感","difficulty":1,"equipment":"无","category":"臀部: 徒手"},
-
-    {"name":"杠铃臀推","bodyPart":"臀部","subCategory":"杠铃","description":"臀部推力之王，最大负重刺激臀大肌","difficulty":2,"equipment":"杠铃","category":"臀部: 杠铃"},
-    {"name":"哑铃臀推","bodyPart":"臀部","subCategory":"哑铃","description":"哑铃版臀推，家用替代方案","difficulty":1,"equipment":"哑铃","category":"臀部: 哑铃"},
-    {"name":"绳索后踢","bodyPart":"臀部","subCategory":"器械","description":"龙门架绳索后踢，孤立臀部发力","difficulty":1,"equipment":"龙门架","category":"臀部: 器械"},
-
-    {"name":"开合跳","bodyPart":"全身","subCategory":"有氧","description":"经典热身动作，提升心率和协调性","difficulty":1,"equipment":"无","category":"全身: 有氧"},
-    {"name":"波比跳","bodyPart":"全身","subCategory":"有氧","description":"全身燃脂王牌，结合深蹲俯卧撑跳跃","difficulty":2,"equipment":"无","category":"全身: 有氧"},
-    {"name":"高抬腿","bodyPart":"全身","subCategory":"有氧","description":"原地高抬腿跑，快速提升心率","difficulty":1,"equipment":"无","category":"全身: 有氧"},
-    {"name":"战绳","bodyPart":"全身","subCategory":"有氧","description":"双手交替鞭打战绳，全身爆发力训练","difficulty":2,"equipment":"战绳","category":"全身: 有氧"},
-    {"name":"壶铃摇摆","bodyPart":"全身","subCategory":"有氧","description":"壶铃胯下摇摆，全身爆发力与心肺","difficulty":2,"equipment":"壶铃","category":"全身: 有氧"},
-    {"name":"农夫行走","bodyPart":"全身","subCategory":"有氧","description":"双手持重物行走，全身稳定性与握力","difficulty":1,"equipment":"哑铃","category":"全身: 有氧"},
-
-    {"name":"瑜伽拜日式","bodyPart":"全身","subCategory":"柔韧","description":"瑜伽经典序列，提升全身柔韧性","difficulty":1,"equipment":"瑜伽垫","category":"全身: 柔韧"},
-    {"name":"猫牛式","bodyPart":"背部","subCategory":"柔韧","description":"脊柱屈伸交替，缓解腰背紧张","difficulty":1,"equipment":"瑜伽垫","category":"背部: 柔韧"},
-    {"name":"婴儿式","bodyPart":"全身","subCategory":"柔韧","description":"放松全身，拉伸背部与肩部","difficulty":1,"equipment":"瑜伽垫","category":"全身: 柔韧"},
-    {"name":"下犬式","bodyPart":"全身","subCategory":"柔韧","description":"拉伸后链肌群，缓解全身紧张","difficulty":1,"equipment":"瑜伽垫","category":"全身: 柔韧"},
-    {"name":"鸽式","bodyPart":"臀部","subCategory":"柔韧","description":"深度拉伸臀部与髋屈肌","difficulty":2,"equipment":"瑜伽垫","category":"臀部: 柔韧"},
-    {"name":"蝴蝶拉伸","bodyPart":"腿部","subCategory":"柔韧","description":"坐姿脚底相对，拉伸大腿内侧","difficulty":1,"equipment":"瑜伽垫","category":"腿部: 柔韧"}
+    {
+      "name": "标准俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "经典胸肌与三头肌训练动作，注意核心收紧身体呈一条直线",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "宽距俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "双手间距加宽，侧重胸大肌外侧刺激",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "窄距俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "双手靠近，侧重肱三头肌和胸肌内侧",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "下斜俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "双脚垫高，侧重上胸肌训练",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "上斜俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "双手撑于高处，降低难度适合新手",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "钻石俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "双手拇指食指相触呈钻石形，强力刺激肱三头肌",
+      "difficulty": 3,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "击掌俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "爆发力推起身体并在空中击掌，提升爆发力",
+      "difficulty": 3,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "射手俯卧撑",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "单侧手臂为主要发力侧，大幅提升单侧力量",
+      "difficulty": 3,
+      "equipment": "无",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "哑铃平板卧推",
+      "bodyPart": "胸部",
+      "subCategory": "哑铃",
+      "description": "哑铃卧推增加肌肉拉伸幅度，更好刺激胸大肌",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "胸部: 哑铃"
+    },
+    {
+      "name": "哑铃上斜卧推",
+      "bodyPart": "胸部",
+      "subCategory": "哑铃",
+      "description": "上斜角度侧重上胸肌发展",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "胸部: 哑铃"
+    },
+    {
+      "name": "哑铃下斜卧推",
+      "bodyPart": "胸部",
+      "subCategory": "哑铃",
+      "description": "下斜角度侧重下胸肌轮廓",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "胸部: 哑铃"
+    },
+    {
+      "name": "哑铃飞鸟",
+      "bodyPart": "胸部",
+      "subCategory": "哑铃",
+      "description": "仰卧飞鸟拉伸胸大肌，增加胸肌宽度",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "胸部: 哑铃"
+    },
+    {
+      "name": "哑铃上斜飞鸟",
+      "bodyPart": "胸部",
+      "subCategory": "哑铃",
+      "description": "上斜角度飞鸟，针对上胸肌塑形",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "胸部: 哑铃"
+    },
+    {
+      "name": "哑铃仰卧直臂上拉",
+      "bodyPart": "胸部",
+      "subCategory": "哑铃",
+      "description": "刺激胸大肌与前锯肌，扩大胸腔",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "胸部: 哑铃"
+    },
+    {
+      "name": "杠铃平板卧推",
+      "bodyPart": "胸部",
+      "subCategory": "杠铃",
+      "description": "经典力量训练动作，全面提升胸大肌",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "胸部: 杠铃"
+    },
+    {
+      "name": "杠铃上斜卧推",
+      "bodyPart": "胸部",
+      "subCategory": "杠铃",
+      "description": "上斜杠铃卧推，重点发展上胸",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "胸部: 杠铃"
+    },
+    {
+      "name": "杠铃下斜卧推",
+      "bodyPart": "胸部",
+      "subCategory": "杠铃",
+      "description": "下斜杠铃卧推，塑造下胸线条",
+      "difficulty": 3,
+      "equipment": "杠铃",
+      "category": "胸部: 杠铃"
+    },
+    {
+      "name": "坐姿器械推胸",
+      "bodyPart": "胸部",
+      "subCategory": "器械",
+      "description": "固定轨迹推胸，安全稳定适合新手",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "胸部: 器械"
+    },
+    {
+      "name": "坐姿器械夹胸",
+      "bodyPart": "胸部",
+      "subCategory": "器械",
+      "description": "蝴蝶机夹胸，孤立刺激胸大肌中缝",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "胸部: 器械"
+    },
+    {
+      "name": "龙门架夹胸",
+      "bodyPart": "胸部",
+      "subCategory": "器械",
+      "description": "绳索十字夹胸，精细雕刻胸肌线条",
+      "difficulty": 2,
+      "equipment": "龙门架",
+      "category": "胸部: 器械"
+    },
+    {
+      "name": "双杠臂屈伸",
+      "bodyPart": "胸部",
+      "subCategory": "徒手",
+      "description": "身体前倾侧重胸部，直立侧重三头肌",
+      "difficulty": 2,
+      "equipment": "双杠",
+      "category": "胸部: 徒手"
+    },
+    {
+      "name": "引体向上",
+      "bodyPart": "背部",
+      "subCategory": "徒手",
+      "description": "背部训练王牌动作，全面打造V字背",
+      "difficulty": 2,
+      "equipment": "单杠",
+      "category": "背部: 徒手"
+    },
+    {
+      "name": "宽距引体向上",
+      "bodyPart": "背部",
+      "subCategory": "徒手",
+      "description": "加宽握距强化背阔肌外侧",
+      "difficulty": 3,
+      "equipment": "单杠",
+      "category": "背部: 徒手"
+    },
+    {
+      "name": "反握引体向上",
+      "bodyPart": "背部",
+      "subCategory": "徒手",
+      "description": "掌心朝自己，更多动用肱二头肌",
+      "difficulty": 2,
+      "equipment": "单杠",
+      "category": "背部: 徒手"
+    },
+    {
+      "name": "澳洲引体向上",
+      "bodyPart": "背部",
+      "subCategory": "徒手",
+      "description": "低位单杠水平拉，背部入门首选",
+      "difficulty": 1,
+      "equipment": "单杠",
+      "category": "背部: 徒手"
+    },
+    {
+      "name": "俯身T字伸展",
+      "bodyPart": "背部",
+      "subCategory": "徒手",
+      "description": "俯身双臂向两侧伸展呈T形，改善圆肩",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "背部: 徒手"
+    },
+    {
+      "name": "俯身Y字伸展",
+      "bodyPart": "背部",
+      "subCategory": "徒手",
+      "description": "俯身双臂向前上方伸展呈Y形，强化上背",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "背部: 徒手"
+    },
+    {
+      "name": "超人式伸展",
+      "bodyPart": "背部",
+      "subCategory": "徒手",
+      "description": "俯卧同时抬起四肢，强化下背竖脊肌",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "背部: 徒手"
+    },
+    {
+      "name": "哑铃单臂划船",
+      "bodyPart": "背部",
+      "subCategory": "哑铃",
+      "description": "单手撑凳划船，精准刺激背阔肌",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "背部: 哑铃"
+    },
+    {
+      "name": "哑铃双臂划船",
+      "bodyPart": "背部",
+      "subCategory": "哑铃",
+      "description": "俯身双臂同时划船，增强背部厚度",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "背部: 哑铃"
+    },
+    {
+      "name": "哑铃直腿硬拉",
+      "bodyPart": "背部",
+      "subCategory": "哑铃",
+      "description": "哑铃版硬拉，强化下背与竖脊肌",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "背部: 哑铃"
+    },
+    {
+      "name": "杠铃划船",
+      "bodyPart": "背部",
+      "subCategory": "杠铃",
+      "description": "俯身杠铃划船，背部整体厚度核心动作",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "背部: 杠铃"
+    },
+    {
+      "name": "杠铃硬拉",
+      "bodyPart": "背部",
+      "subCategory": "杠铃",
+      "description": "三大项之一，全面强化后链肌群",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "背部: 杠铃"
+    },
+    {
+      "name": "罗马尼亚硬拉",
+      "bodyPart": "背部",
+      "subCategory": "杠铃",
+      "description": "直腿硬拉变式，侧重腘绳肌和下背",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "背部: 杠铃"
+    },
+    {
+      "name": "相扑硬拉",
+      "bodyPart": "背部",
+      "subCategory": "杠铃",
+      "description": "宽站距硬拉，减少下背压力更侧重腿部",
+      "difficulty": 3,
+      "equipment": "杠铃",
+      "category": "背部: 杠铃"
+    },
+    {
+      "name": "坐姿高位下拉",
+      "bodyPart": "背部",
+      "subCategory": "器械",
+      "description": "模拟引体向上，可调节重量循序渐进",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "背部: 器械"
+    },
+    {
+      "name": "坐姿窄距下拉",
+      "bodyPart": "背部",
+      "subCategory": "器械",
+      "description": "V把下拉，强化背阔肌下部",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "背部: 器械"
+    },
+    {
+      "name": "坐姿划船",
+      "bodyPart": "背部",
+      "subCategory": "器械",
+      "description": "绳索坐姿划船，增加背部厚度",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "背部: 器械"
+    },
+    {
+      "name": "直臂下压",
+      "bodyPart": "背部",
+      "subCategory": "器械",
+      "description": "龙门架直臂下压，孤立刺激背阔肌",
+      "difficulty": 2,
+      "equipment": "龙门架",
+      "category": "背部: 器械"
+    },
+    {
+      "name": "面拉",
+      "bodyPart": "背部",
+      "subCategory": "器械",
+      "description": "绳索面拉，强化上背与肩袖肌群",
+      "difficulty": 2,
+      "equipment": "龙门架",
+      "category": "背部: 器械"
+    },
+    {
+      "name": "哑铃推举",
+      "bodyPart": "肩部",
+      "subCategory": "哑铃",
+      "description": "坐姿哑铃推举，全面刺激三角肌",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "肩部: 哑铃"
+    },
+    {
+      "name": "阿诺德推举",
+      "bodyPart": "肩部",
+      "subCategory": "哑铃",
+      "description": "旋转式推举，全方位雕刻三角肌",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "肩部: 哑铃"
+    },
+    {
+      "name": "哑铃前平举",
+      "bodyPart": "肩部",
+      "subCategory": "哑铃",
+      "description": "双手交替前平举，孤立三角肌前束",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "肩部: 哑铃"
+    },
+    {
+      "name": "哑铃侧平举",
+      "bodyPart": "肩部",
+      "subCategory": "哑铃",
+      "description": "侧平举增加肩宽，针对三角肌中束",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "肩部: 哑铃"
+    },
+    {
+      "name": "哑铃俯身侧平举",
+      "bodyPart": "肩部",
+      "subCategory": "哑铃",
+      "description": "俯身飞鸟，强化三角肌后束",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "肩部: 哑铃"
+    },
+    {
+      "name": "哑铃提拉",
+      "bodyPart": "肩部",
+      "subCategory": "哑铃",
+      "description": "直立划船，刺激三角肌中束与斜方肌",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "肩部: 哑铃"
+    },
+    {
+      "name": "杠铃推举",
+      "bodyPart": "肩部",
+      "subCategory": "杠铃",
+      "description": "站立杠铃推举，最强肩部力量动作",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "肩部: 杠铃"
+    },
+    {
+      "name": "杠铃坐姿推举",
+      "bodyPart": "肩部",
+      "subCategory": "杠铃",
+      "description": "坐姿杠铃推举，更稳定更专注肩部",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "肩部: 杠铃"
+    },
+    {
+      "name": "杠铃提拉",
+      "bodyPart": "肩部",
+      "subCategory": "杠铃",
+      "description": "杠铃直立划船，增加三角肌中束体积",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "肩部: 杠铃"
+    },
+    {
+      "name": "器械推举",
+      "bodyPart": "肩部",
+      "subCategory": "器械",
+      "description": "坐姿器械推举，固定轨迹安全稳定",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "肩部: 器械"
+    },
+    {
+      "name": "绳索侧平举",
+      "bodyPart": "肩部",
+      "subCategory": "器械",
+      "description": "龙门架绳索侧平举，维持持续张力",
+      "difficulty": 2,
+      "equipment": "龙门架",
+      "category": "肩部: 器械"
+    },
+    {
+      "name": "跪姿面拉",
+      "bodyPart": "肩部",
+      "subCategory": "器械",
+      "description": "绳索面拉变式，强化肩袖与后束",
+      "difficulty": 1,
+      "equipment": "龙门架",
+      "category": "肩部: 器械"
+    },
+    {
+      "name": "哑铃弯举",
+      "bodyPart": "手臂",
+      "subCategory": "哑铃",
+      "description": "标准二头肌弯举，肱二头肌基础动作",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "手臂: 哑铃"
+    },
+    {
+      "name": "锤式弯举",
+      "bodyPart": "手臂",
+      "subCategory": "哑铃",
+      "description": "掌心相对弯举，强化肱肌和前臂",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "手臂: 哑铃"
+    },
+    {
+      "name": "集中弯举",
+      "bodyPart": "手臂",
+      "subCategory": "哑铃",
+      "description": "坐姿单臂集中弯举，孤立二头肌顶峰",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "手臂: 哑铃"
+    },
+    {
+      "name": "上斜哑铃弯举",
+      "bodyPart": "手臂",
+      "subCategory": "哑铃",
+      "description": "仰卧弯举，拉伸位强化二头肌长头",
+      "difficulty": 2,
+      "equipment": "哑铃",
+      "category": "手臂: 哑铃"
+    },
+    {
+      "name": "哑铃颈后臂屈伸",
+      "bodyPart": "手臂",
+      "subCategory": "哑铃",
+      "description": "单臂颈后屈伸，孤立肱三头肌长头",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "手臂: 哑铃"
+    },
+    {
+      "name": "哑铃俯身臂屈伸",
+      "bodyPart": "手臂",
+      "subCategory": "哑铃",
+      "description": "俯身臂屈伸，雕塑三头肌马蹄形",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "手臂: 哑铃"
+    },
+    {
+      "name": "哑铃腕弯举",
+      "bodyPart": "手臂",
+      "subCategory": "哑铃",
+      "description": "前臂腕弯举，强化前臂抓握力",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "手臂: 哑铃"
+    },
+    {
+      "name": "杠铃弯举",
+      "bodyPart": "手臂",
+      "subCategory": "杠铃",
+      "description": "杠铃弯举，二头肌最大负重动作",
+      "difficulty": 1,
+      "equipment": "杠铃",
+      "category": "手臂: 杠铃"
+    },
+    {
+      "name": "窄距卧推",
+      "bodyPart": "手臂",
+      "subCategory": "杠铃",
+      "description": "窄握杠铃卧推，三头肌最强增肌动作",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "手臂: 杠铃"
+    },
+    {
+      "name": "杠铃腕弯举",
+      "bodyPart": "手臂",
+      "subCategory": "杠铃",
+      "description": "杠铃腕弯举，大幅提升前臂围度",
+      "difficulty": 1,
+      "equipment": "杠铃",
+      "category": "手臂: 杠铃"
+    },
+    {
+      "name": "绳索弯举",
+      "bodyPart": "手臂",
+      "subCategory": "器械",
+      "description": "龙门架绳索弯举，全程持续张力",
+      "difficulty": 1,
+      "equipment": "龙门架",
+      "category": "手臂: 器械"
+    },
+    {
+      "name": "绳索下压",
+      "bodyPart": "手臂",
+      "subCategory": "器械",
+      "description": "龙门架三头下压，最佳三头肌塑形动作",
+      "difficulty": 1,
+      "equipment": "龙门架",
+      "category": "手臂: 器械"
+    },
+    {
+      "name": "单臂绳索下压",
+      "bodyPart": "手臂",
+      "subCategory": "器械",
+      "description": "单臂反握下压，精细雕刻三头肌",
+      "difficulty": 2,
+      "equipment": "龙门架",
+      "category": "手臂: 器械"
+    },
+    {
+      "name": "凳上臂屈伸",
+      "bodyPart": "手臂",
+      "subCategory": "徒手",
+      "description": "双凳臂屈伸，自重训练三头肌",
+      "difficulty": 1,
+      "equipment": "凳子",
+      "category": "手臂: 徒手"
+    },
+    {
+      "name": "杠铃深蹲",
+      "bodyPart": "腿部",
+      "subCategory": "杠铃",
+      "description": "三大项之一，下肢力量之王",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "腿部: 杠铃"
+    },
+    {
+      "name": "杠铃前蹲",
+      "bodyPart": "腿部",
+      "subCategory": "杠铃",
+      "description": "杠铃胸前深蹲，更强调股四头肌",
+      "difficulty": 3,
+      "equipment": "杠铃",
+      "category": "腿部: 杠铃"
+    },
+    {
+      "name": "保加利亚分腿蹲",
+      "bodyPart": "腿部",
+      "subCategory": "杠铃",
+      "description": "后脚垫高分腿蹲，精准刺激臀腿",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "腿部: 杠铃"
+    },
+    {
+      "name": "自重深蹲",
+      "bodyPart": "腿部",
+      "subCategory": "徒手",
+      "description": "下肢力量训练根基，随时随地可做",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腿部: 徒手"
+    },
+    {
+      "name": "箭步蹲",
+      "bodyPart": "腿部",
+      "subCategory": "徒手",
+      "description": "单腿稳定性与臀部刺激核心动作",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腿部: 徒手"
+    },
+    {
+      "name": "深蹲跳",
+      "bodyPart": "腿部",
+      "subCategory": "徒手",
+      "description": "爆发力深蹲跳，提升腿部爆发力",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "腿部: 徒手"
+    },
+    {
+      "name": "手枪深蹲",
+      "bodyPart": "腿部",
+      "subCategory": "徒手",
+      "description": "单腿深蹲，终极自重腿部挑战",
+      "difficulty": 3,
+      "equipment": "无",
+      "category": "腿部: 徒手"
+    },
+    {
+      "name": "臀桥",
+      "bodyPart": "腿部",
+      "subCategory": "徒手",
+      "description": "仰卧臀桥，激活臀大肌和核心",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腿部: 徒手"
+    },
+    {
+      "name": "单腿臀桥",
+      "bodyPart": "腿部",
+      "subCategory": "徒手",
+      "description": "单腿支撑臀桥，强化臀部不对称力量",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "腿部: 徒手"
+    },
+    {
+      "name": "靠墙静蹲",
+      "bodyPart": "腿部",
+      "subCategory": "徒手",
+      "description": "背靠墙半蹲，增强股四头肌耐力",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腿部: 徒手"
+    },
+    {
+      "name": "哑铃深蹲",
+      "bodyPart": "腿部",
+      "subCategory": "哑铃",
+      "description": "双手持哑铃深蹲，家用腿部训练",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "腿部: 哑铃"
+    },
+    {
+      "name": "哑铃箭步蹲",
+      "bodyPart": "腿部",
+      "subCategory": "哑铃",
+      "description": "负重箭步蹲，增加臀腿训练强度",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "腿部: 哑铃"
+    },
+    {
+      "name": "哑铃罗马尼亚硬拉",
+      "bodyPart": "腿部",
+      "subCategory": "哑铃",
+      "description": "哑铃直腿硬拉，侧重腘绳肌",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "腿部: 哑铃"
+    },
+    {
+      "name": "哑铃提踵",
+      "bodyPart": "腿部",
+      "subCategory": "哑铃",
+      "description": "负重提踵，强化小腿腓肠肌",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "腿部: 哑铃"
+    },
+    {
+      "name": "倒蹬机",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "腿部推举，大重量安全训练下肢",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "坐姿腿屈伸",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "孤立刺激股四头肌",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "俯卧腿弯举",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "孤立刺激腘绳肌",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "坐姿提踵",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "坐姿小腿提踵，针对比目鱼肌",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "站姿提踵",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "站姿提踵，发展腓肠肌",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "髋外展机",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "坐姿髋外展，针对臀中肌",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "髋内收机",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "坐姿髋内收，强化大腿内侧",
+      "difficulty": 1,
+      "equipment": "器械",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "史密斯深蹲",
+      "bodyPart": "腿部",
+      "subCategory": "器械",
+      "description": "史密斯机深蹲，固定轨迹更安全",
+      "difficulty": 1,
+      "equipment": "史密斯机",
+      "category": "腿部: 器械"
+    },
+    {
+      "name": "平板支撑",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "核心稳定性训练基础，每天坚持",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "卷腹",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "腹直肌上部孤立，比仰卧起坐更安全",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "反向卷腹",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "仰卧抬腿卷腹，针对下腹部",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "俄罗斯转体",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "坐姿转体，强化腹斜肌和旋转核心",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "自行车卷腹",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "交替肘触膝，同时刺激腹直肌和腹斜肌",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "仰卧举腿",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "仰卧直腿上抬，下腹核心经典动作",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "动态平板支撑",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "平板支撑交替抬手/脚，动态核心训练",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "登山者",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "平板姿态下交替提膝，核心加心肺",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "V字卷腹",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "手脚同时上抬呈V形，全面刺激腹直肌",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "死虫式",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "仰卧对侧手脚交替伸展，深层核心控制",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "鸟狗式",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "四足跪姿对侧伸展，核心稳定性训练",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "悬垂举腿",
+      "bodyPart": "腹部",
+      "subCategory": "器械",
+      "description": "单杠悬挂举腿，下腹王牌动作",
+      "difficulty": 3,
+      "equipment": "单杠",
+      "category": "腹部: 器械"
+    },
+    {
+      "name": "龙旗",
+      "bodyPart": "腹部",
+      "subCategory": "徒手",
+      "description": "李小龙同款核心训练，全身核心极致挑战",
+      "difficulty": 3,
+      "equipment": "凳子",
+      "category": "腹部: 徒手"
+    },
+    {
+      "name": "绳索卷腹",
+      "bodyPart": "腹部",
+      "subCategory": "器械",
+      "description": "龙门架跪姿绳索卷腹，可负重渐进",
+      "difficulty": 2,
+      "equipment": "龙门架",
+      "category": "腹部: 器械"
+    },
+    {
+      "name": "健腹轮",
+      "bodyPart": "腹部",
+      "subCategory": "器械",
+      "description": "健腹轮前推，全面激活核心肌群",
+      "difficulty": 2,
+      "equipment": "健腹轮",
+      "category": "腹部: 器械"
+    },
+    {
+      "name": "罗马椅侧屈",
+      "bodyPart": "腹部",
+      "subCategory": "器械",
+      "description": "罗马椅侧身屈伸，针对腹斜肌",
+      "difficulty": 2,
+      "equipment": "罗马椅",
+      "category": "腹部: 器械"
+    },
+    {
+      "name": "支撑抬腿",
+      "bodyPart": "臀部",
+      "subCategory": "徒手",
+      "description": "四足跪姿后抬腿，激活臀部",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "臀部: 徒手"
+    },
+    {
+      "name": "蚌式开合",
+      "bodyPart": "臀部",
+      "subCategory": "徒手",
+      "description": "侧卧屈膝开合，激活臀中肌",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "臀部: 徒手"
+    },
+    {
+      "name": "驴踢",
+      "bodyPart": "臀部",
+      "subCategory": "徒手",
+      "description": "四足跪姿后踢腿，翘臀必练",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "臀部: 徒手"
+    },
+    {
+      "name": "蛙式臀桥",
+      "bodyPart": "臀部",
+      "subCategory": "徒手",
+      "description": "脚底相对臀桥，强化臀部收缩感",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "臀部: 徒手"
+    },
+    {
+      "name": "杠铃臀推",
+      "bodyPart": "臀部",
+      "subCategory": "杠铃",
+      "description": "臀部推力之王，最大负重刺激臀大肌",
+      "difficulty": 2,
+      "equipment": "杠铃",
+      "category": "臀部: 杠铃"
+    },
+    {
+      "name": "哑铃臀推",
+      "bodyPart": "臀部",
+      "subCategory": "哑铃",
+      "description": "哑铃版臀推，家用替代方案",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "臀部: 哑铃"
+    },
+    {
+      "name": "绳索后踢",
+      "bodyPart": "臀部",
+      "subCategory": "器械",
+      "description": "龙门架绳索后踢，孤立臀部发力",
+      "difficulty": 1,
+      "equipment": "龙门架",
+      "category": "臀部: 器械"
+    },
+    {
+      "name": "开合跳",
+      "bodyPart": "全身",
+      "subCategory": "有氧",
+      "description": "站姿双脚并拢双手垂放，跳起双脚分开同时双手过头拍掌，再跳回起始。高效燃脂热身，锻炼全身协调与心肺耐力，注意落地屈膝缓冲",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "全身: 有氧"
+    },
+    {
+      "name": "波比跳",
+      "bodyPart": "全身",
+      "subCategory": "有氧",
+      "description": "站姿→蹲下→双手撑地→双腿后跳至俯卧撑位→俯卧撑→收腿→爆发跳起。全身复合燃脂王牌。初学者可省略俯卧撑或跳起步骤",
+      "difficulty": 2,
+      "equipment": "无",
+      "category": "全身: 有氧"
+    },
+    {
+      "name": "高抬腿",
+      "bodyPart": "全身",
+      "subCategory": "有氧",
+      "description": "原地交替抬高大腿至水平，摆臂配合节奏，前脚掌着地。强化髋屈肌、核心稳定与下肢爆发力，可作为热身或HIIT动作",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "全身: 有氧"
+    },
+    {
+      "name": "战绳",
+      "bodyPart": "全身",
+      "subCategory": "有氧",
+      "description": "双手各持战绳一端，半蹲站姿，交替上下/左右/画圈甩动绳索。高强度间歇有氧，训练全身协调、核心稳定与上肢耐力",
+      "difficulty": 2,
+      "equipment": "战绳",
+      "category": "全身: 有氧"
+    },
+    {
+      "name": "壶铃摇摆",
+      "bodyPart": "全身",
+      "subCategory": "有氧",
+      "description": "双手持壶铃，屈髋后坐（非蹲），髋部爆发前推带动壶铃摆至肩高。锻炼臀大肌、腘绳肌后链爆发力，手臂仅作传递不发力",
+      "difficulty": 2,
+      "equipment": "壶铃",
+      "category": "全身: 有氧"
+    },
+    {
+      "name": "农夫行走",
+      "bodyPart": "全身",
+      "subCategory": "有氧",
+      "description": "双手各持重物（哑铃/壶铃），挺胸收腹，肩胛后收，小步慢走保持躯干稳定。训练全身稳定性、核心抗旋与握力",
+      "difficulty": 1,
+      "equipment": "哑铃",
+      "category": "全身: 有氧"
+    },
+    {
+      "name": "瑜伽拜日式",
+      "bodyPart": "拉伸",
+      "subCategory": "全身拉伸",
+      "description": "瑜伽经典序列，提升全身柔韧性",
+      "difficulty": 1,
+      "equipment": "瑜伽垫",
+      "category": "拉伸: 全身拉伸"
+    },
+    {
+      "name": "猫牛式",
+      "bodyPart": "拉伸",
+      "subCategory": "脊柱拉伸",
+      "description": "脊柱屈伸交替，缓解腰背紧张",
+      "difficulty": 1,
+      "equipment": "瑜伽垫",
+      "category": "拉伸: 脊柱拉伸"
+    },
+    {
+      "name": "婴儿式",
+      "bodyPart": "拉伸",
+      "subCategory": "全身拉伸",
+      "description": "放松全身，拉伸背部与肩部",
+      "difficulty": 1,
+      "equipment": "瑜伽垫",
+      "category": "拉伸: 全身拉伸"
+    },
+    {
+      "name": "下犬式",
+      "bodyPart": "拉伸",
+      "subCategory": "全身拉伸",
+      "description": "拉伸后链肌群，缓解全身紧张",
+      "difficulty": 1,
+      "equipment": "瑜伽垫",
+      "category": "拉伸: 全身拉伸"
+    },
+    {
+      "name": "鸽式",
+      "bodyPart": "拉伸",
+      "subCategory": "下身拉伸",
+      "description": "深度拉伸臀部与髋屈肌",
+      "difficulty": 2,
+      "equipment": "瑜伽垫",
+      "category": "拉伸: 下身拉伸"
+    },
+    {
+      "name": "蝴蝶拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "下身拉伸",
+      "description": "坐姿脚底相对，拉伸大腿内侧",
+      "difficulty": 1,
+      "equipment": "瑜伽垫",
+      "category": "拉伸: 下身拉伸"
+    },
+    {
+      "name": "大腿后侧拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "下身拉伸",
+      "description": "站姿或坐姿拉伸腘绳肌，改善前屈柔韧度",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 下身拉伸"
+    },
+    {
+      "name": "小腿拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "下身拉伸",
+      "description": "推墙小腿拉伸，缓解腓肠肌紧绷",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 下身拉伸"
+    },
+    {
+      "name": "髋屈肌拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "下身拉伸",
+      "description": "跪姿向前弓步，拉伸髂腰肌，改善久坐姿势",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 下身拉伸"
+    },
+    {
+      "name": "大腿内侧拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "下身拉伸",
+      "description": "侧弓步或坐姿拉伸大腿内收肌群",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 下身拉伸"
+    },
+    {
+      "name": "臀部拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "下身拉伸",
+      "description": "坐姿翘腿拉伸臀大肌，缓解臀部紧绷",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 下身拉伸"
+    },
+    {
+      "name": "肩膀拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "上身拉伸",
+      "description": "手臂横跨胸前拉伸三角肌与肩关节",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 上身拉伸"
+    },
+    {
+      "name": "胸部拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "上身拉伸",
+      "description": "双臂后展开胸拉伸，改善含胸驼背",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 上身拉伸"
+    },
+    {
+      "name": "颈部拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "上身拉伸",
+      "description": "手轻压头侧，拉伸颈部斜方肌，缓解颈部酸痛",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 上身拉伸"
+    },
+    {
+      "name": "背部拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "上身拉伸",
+      "description": "抱膝或双手向前伸，拉伸整个背部肌群",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 上身拉伸"
+    },
+    {
+      "name": "躯干转体拉伸",
+      "bodyPart": "拉伸",
+      "subCategory": "脊柱拉伸",
+      "description": "坐姿向后转体，拉伸背部与腰部旋转肌群",
+      "difficulty": 1,
+      "equipment": "无",
+      "category": "拉伸: 脊柱拉伸"
+    }
   ]
 }

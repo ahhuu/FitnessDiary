@@ -457,8 +457,10 @@ public class CheckInFragment extends Fragment {
                 setTextIfExists(R.id.tv_weight_summary, "已记录当日体重");
                 // Compute detailed weight analysis (delta + BMI + 7-day trend)
                 new Thread(() -> {
+                    Context context = getContext();
+                    if (context == null) return;
                     com.cz.fitnessdiary.database.AppDatabase db =
-                            com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                            com.cz.fitnessdiary.database.AppDatabase.getInstance(context);
                     StringBuilder analysis = new StringBuilder();
                     // Weight delta vs previous record
                     com.cz.fitnessdiary.database.entity.WeightRecord prevRecord =
@@ -504,8 +506,10 @@ public class CheckInFragment extends Fragment {
                 // Fallback to latest overall weight using direct query to prevent LiveData latency/null issues
                 new Thread(() -> {
                     try {
+                        Context context = getContext();
+                        if (context == null) return;
                         com.cz.fitnessdiary.database.AppDatabase db =
-                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(context);
                         com.cz.fitnessdiary.database.entity.WeightRecord latest =
                                 db.weightRecordDao().getLatestRecordSync();
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
@@ -531,8 +535,10 @@ public class CheckInFragment extends Fragment {
             setTextIfExists(R.id.tv_water_value, String.valueOf(currentWaterTotal));
             // Show water progress toward user's target
             new Thread(() -> {
+                Context context = getContext();
+                if (context == null) return;
                 com.cz.fitnessdiary.database.AppDatabase db =
-                        com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                        com.cz.fitnessdiary.database.AppDatabase.getInstance(context);
                 com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
                 int target = (user != null && user.getDailyWaterTarget() > 0) ? user.getDailyWaterTarget() : 2000;
                 String summary = currentWaterTotal > 0
@@ -588,8 +594,10 @@ public class CheckInFragment extends Fragment {
             } else {
                 new Thread(() -> {
                     try {
+                        Context context = getContext();
+                        if (context == null) return;
                         com.cz.fitnessdiary.database.AppDatabase db =
-                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(context);
                         java.util.List<com.cz.fitnessdiary.database.entity.MedicationRecord> recs =
                                 db.medicationRecordDao().getRecentRecordsSync(1);
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
@@ -826,7 +834,8 @@ public class CheckInFragment extends Fragment {
         homeDashboardViewModel.getSelectedDateLatestBowelTime().observe(getViewLifecycleOwner(), ts -> {
             if (ts != null && ts > 0) {
                 setTextIfExists(R.id.tv_bowel_update, getSelectedDateUpdateText(ts));
-                final Context ctx = requireContext();
+                final Context ctx = getContext();
+                if (ctx == null) return;
                 final Long selectedDate = checkInViewModel.getSelectedDate().getValue();
                 final long date = selectedDate != null ? selectedDate : com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
                 new Thread(() -> {
@@ -853,7 +862,8 @@ public class CheckInFragment extends Fragment {
                     } catch (Exception ignored) {}
                 }).start();
             } else {
-                final Context ctx = requireContext();
+                final Context ctx = getContext();
+                if (ctx == null) return;
                 new Thread(() -> {
                     try {
                         com.cz.fitnessdiary.database.AppDatabase db =
@@ -921,8 +931,10 @@ public class CheckInFragment extends Fragment {
             } else {
                 new Thread(() -> {
                     try {
+                        Context context = getContext();
+                        if (context == null) return;
                         com.cz.fitnessdiary.database.AppDatabase db =
-                                com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                                com.cz.fitnessdiary.database.AppDatabase.getInstance(context);
                         com.cz.fitnessdiary.database.entity.MenstrualCycle latest =
                                 db.menstrualCycleDao().getLatestSync();
                         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
@@ -1119,12 +1131,14 @@ public class CheckInFragment extends Fragment {
         // Compute health score on background thread (Room requires async)
         new Thread(() -> {
             try {
+                Context context = getContext();
+                if (context == null) return;
                 Long selectedDate = checkInViewModel.getSelectedDate().getValue();
                 long date = selectedDate != null ? selectedDate : DateUtils.getTodayStartTimestamp();
-                int score = com.cz.fitnessdiary.utils.HealthScoreCalculator.calculateForDate(getContext(), date);
-                com.cz.fitnessdiary.utils.HealthScoreCalculator.saveTodayScore(getContext(), score);
-                android.os.Handler mainHandler = new android.os.Handler(
-                        requireActivity().getMainLooper());
+                int score = com.cz.fitnessdiary.utils.HealthScoreCalculator.calculateForDate(context, date);
+                com.cz.fitnessdiary.utils.HealthScoreCalculator.saveTodayScore(context, score);
+                android.os.Looper mainLooper = android.os.Looper.getMainLooper();
+                android.os.Handler mainHandler = new android.os.Handler(mainLooper);
                 mainHandler.post(() -> {
                     if (isAdded() && binding != null) {
                         binding.progressTotalCircle.setProgress(score);
@@ -1421,7 +1435,19 @@ public class CheckInFragment extends Fragment {
                 .setPopEnterAnim(R.anim.fade_in_fast)
                 .setPopExitAnim(R.anim.slide_out_right)
                 .build();
-        NavHostFragment.findNavController(this).navigate(destination, args, navOptions);
+
+        // 通过 Activity 的 FragmentManager 直接找到顶层 NavHostFragment，
+        // 避免 ViewPager2 内部 NavHostFragment.findNavController(this) 的缓存脱链问题
+        try {
+            androidx.navigation.fragment.NavHostFragment navHostFragment =
+                    (androidx.navigation.fragment.NavHostFragment) requireActivity()
+                            .getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+            if (navHostFragment != null) {
+                navHostFragment.getNavController().navigate(destination, args, navOptions);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void showHeatmapDialog() {

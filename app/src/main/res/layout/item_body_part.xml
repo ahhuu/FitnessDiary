@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/layout_item_root"
+    android:layout_width="match_parent"
+    android:layout_height="52dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- 选中时的左侧指示条 -->
+    <View
+        android:id="@+id/view_indicator"
+        android:layout_width="4dp"
+        android:layout_height="24dp"
+        android:layout_gravity="start|center_vertical"
+        android:background="@color/plan_blue_primary"
+        android:visibility="invisible" />
+
+    <!-- 类别名字 -->
+    <TextView
+        android:id="@+id/tv_body_part_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="胸"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</FrameLayout>

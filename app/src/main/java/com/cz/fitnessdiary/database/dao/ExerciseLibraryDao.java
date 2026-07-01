@@ -54,4 +54,7 @@ public interface ExerciseLibraryDao {
 
     @Query("SELECT * FROM exercise_library WHERE body_part = :bodyPart AND sub_category = :subCategory ORDER BY name")
     List<ExerciseLibrary> getExercisesByCategory(String bodyPart, String subCategory);
+
+    @Query("DELETE FROM exercise_library")
+    void deleteAll();
 }

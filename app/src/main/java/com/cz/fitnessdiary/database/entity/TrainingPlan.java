@@ -125,6 +125,9 @@ public class TrainingPlan implements java.io.Serializable {
     @ColumnInfo(name = "duration", defaultValue = "0")
     private int duration; // 预设时长 (单位：秒)
 
+    @ColumnInfo(name = "weight", defaultValue = "0")
+    private float weight; // 负重 (单位: kg), 0=自重/无负重
+
     public String getCategory() {
         return category;
     }
@@ -147,5 +150,13 @@ public class TrainingPlan implements java.io.Serializable {
 
     public void setDuration(int duration) {
         this.duration = duration;
+    }
+
+    public float getWeight() {
+        return weight;
+    }
+
+    public void setWeight(float weight) {
+        this.weight = weight;
     }
 }

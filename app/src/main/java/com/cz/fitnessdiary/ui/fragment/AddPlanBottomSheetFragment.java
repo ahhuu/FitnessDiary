@@ -138,6 +138,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
             binding.etPlanDescription.setText(existingPlan.getDescription());
             binding.etSets.setText(String.valueOf(existingPlan.getSets()));
             binding.etReps.setText(String.valueOf(existingPlan.getReps()));
+            binding.etWeight.setText(String.valueOf(existingPlan.getWeight()));
 
             // [v1.2] 显示时去掉模式前缀 (基础-/进阶-)
             String displayCat = existingPlan.getCategory();
@@ -220,6 +221,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
         String description = binding.etPlanDescription.getText().toString().trim();
         String setsStr = binding.etSets.getText().toString().trim();
         String repsStr = binding.etReps.getText().toString().trim();
+        String weightStr = binding.etWeight.getText().toString().trim();
         String category = binding.etPlanCategory.getText().toString().trim();
         String durationStr = binding.etDuration.getText().toString().trim();
 
@@ -231,6 +233,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
         try {
             int sets = setsStr.isEmpty() ? 0 : Integer.parseInt(setsStr);
             int reps = repsStr.isEmpty() ? 0 : Integer.parseInt(repsStr);
+            float weight = weightStr.isEmpty() ? 0f : Float.parseFloat(weightStr);
             int duration = durationStr.isEmpty() ? 0 : Integer.parseInt(durationStr);
 
             // 获取排期
@@ -259,6 +262,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                 newPlan.setCategory(finalCategory);
                 newPlan.setScheduledDays(scheduledDays);
                 newPlan.setDuration(duration);
+                newPlan.setWeight(weight);
                 viewModel.addPlan(newPlan);
                 Toast.makeText(getContext(), "添加成功", Toast.LENGTH_SHORT).show();
             } else {
@@ -270,6 +274,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                 existingPlan.setScheduledDays(scheduledDays);
                 existingPlan.setMediaUri(selectedMediaUri);
                 existingPlan.setDuration(duration);
+                existingPlan.setWeight(weight);
                 viewModel.updatePlan(existingPlan);
                 Toast.makeText(getContext(), "修改成功", Toast.LENGTH_SHORT).show();
             }

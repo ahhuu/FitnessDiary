@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -43,6 +44,9 @@ public class BodyMeasurementDetailFragment extends Fragment {
     private DetailRecordAdapter adapter;
     private MeasurementChartView chartView;
     private TextView tvHeaderSummary, tvWhr, tvBodyfatZone, tvEmpty, tvMeasureMethod;
+    private TextView tvWhtr, tvFfmi, tvCorrelationCalories, tvCorrelationProtein, tvCorrelationBurned, tvCorrelationExtraLabel, tvCorrelationExtraValue, tvAiReportContent;
+    private MaterialButton btnGenerateAiReport;
+    private ProgressBar progressAiReport;
     private MaterialButton btnTabWeek, btnTabMonth, btnTabYear;
     private ChipGroup chipTypeGroup;
     private int selectedTab = 0;
@@ -73,6 +77,16 @@ public class BodyMeasurementDetailFragment extends Fragment {
         tvHeaderSummary = view.findViewById(R.id.tv_header_summary);
         tvWhr = view.findViewById(R.id.tv_whr);
         tvBodyfatZone = view.findViewById(R.id.tv_bodyfat_zone);
+        tvWhtr = view.findViewById(R.id.tv_whtr);
+        tvFfmi = view.findViewById(R.id.tv_ffmi);
+        tvCorrelationCalories = view.findViewById(R.id.tv_correlation_calories);
+        tvCorrelationProtein = view.findViewById(R.id.tv_correlation_protein);
+        tvCorrelationBurned = view.findViewById(R.id.tv_correlation_burned);
+        tvCorrelationExtraLabel = view.findViewById(R.id.tv_correlation_extra_label);
+        tvCorrelationExtraValue = view.findViewById(R.id.tv_correlation_extra_value);
+        tvAiReportContent = view.findViewById(R.id.tv_ai_report_content);
+        btnGenerateAiReport = view.findViewById(R.id.btn_generate_ai_report);
+        progressAiReport = view.findViewById(R.id.progress_ai_report);
         tvEmpty = view.findViewById(R.id.tv_empty);
         tvMeasureMethod = view.findViewById(R.id.tv_measure_method);
         chipTypeGroup = view.findViewById(R.id.chip_measure_type);
@@ -125,6 +139,7 @@ public class BodyMeasurementDetailFragment extends Fragment {
             chartView.setUnit(TYPE_UNITS[idx]);
             chartView.setLineColor(TYPE_COLORS[idx]);
             tvMeasureMethod.setText(com.cz.fitnessdiary.utils.AnalysisUtils.getMeasurementMethod(TYPES[idx]));
+            updateCorrelationPanel();
         });
 
         // Observe chart data
@@ -154,6 +169,30 @@ public class BodyMeasurementDetailFragment extends Fragment {
             }
         });
         viewModel.getLatestValues().observe(getViewLifecycleOwner(), this::updateLatestGrid);
+
+        viewModel.getWaistHeightRatio().observe(getViewLifecycleOwner(), whtr -> {
+            String zone = viewModel.getWhtrZone().getValue();
+            if (whtr != null && whtr > 0) {
+                tvWhtr.setText(String.format(Locale.getDefault(), "腰高比：%.2f (%s)", whtr, zone != null ? zone : ""));
+                tvWhtr.setVisibility(View.VISIBLE);
+            } else {
+                tvWhtr.setVisibility(View.GONE);
+            }
+        });
+
+        viewModel.getFfmiValue().observe(getViewLifecycleOwner(), ffmi -> {
+            String zone = viewModel.getFfmiZone().getValue();
+            if (ffmi != null && ffmi > 0) {
+                tvFfmi.setText(String.format(Locale.getDefault(), "无脂肪重量指数 (FFMI)：%.1f (%s)", ffmi, zone != null ? zone : ""));
+                tvFfmi.setVisibility(View.VISIBLE);
+            } else {
+                tvFfmi.setVisibility(View.GONE);
+            }
+        });
+
+        btnGenerateAiReport.setOnClickListener(v -> generateAiReport());
+
+        updateCorrelationPanel();
     }
 
     private void updateChart(List<Float> values) {
@@ -345,5 +384,130 @@ public class BodyMeasurementDetailFragment extends Fragment {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    private void updateCorrelationPanel() {
+        String type = viewModel.getSelectedType().getValue();
+        if (type == null) return;
+
+        tvAiReportContent.setText("点击右上方“生成评估”，AI 教练将综合最近两周的运动容量、热量与蛋白质摄入以及围度变化，为你生成多维度塑形建议报告。");
+
+        viewModel.loadCorrelationData(type, (avgCalories, avgProtein, avgBurnedCalories, avgSteps, targetVolumeSets) -> {
+            if (!isAdded()) return;
+            tvCorrelationCalories.setText(avgCalories + " kcal");
+            tvCorrelationProtein.setText(String.format(java.util.Locale.getDefault(), "%.1f g", avgProtein));
+            tvCorrelationBurned.setText(avgBurnedCalories + " kcal");
+
+            if ("WAIST".equals(type) || "BODY_FAT".equals(type) || "HIP".equals(type)) {
+                tvCorrelationExtraLabel.setText("日均有氧步数");
+                tvCorrelationExtraValue.setText(avgSteps + " 步");
+            } else {
+                String typeName = "关联部位";
+                for (int i = 0; i < TYPES.length; i++) {
+                    if (TYPES[i].equals(type)) {
+                        typeName = TYPE_NAMES[i];
+                        break;
+                    }
+                }
+                tvCorrelationExtraLabel.setText(typeName + "训练周组数");
+                tvCorrelationExtraValue.setText(targetVolumeSets + " 组");
+            }
+        });
+    }
+
+    private void generateAiReport() {
+        String type = viewModel.getSelectedType().getValue();
+        if (type == null) return;
+
+        btnGenerateAiReport.setEnabled(false);
+        progressAiReport.setVisibility(View.VISIBLE);
+        tvAiReportContent.setText("AI 正在结合近14天的饮食记录、运动打卡和围度变化进行智能联动分析，请稍后...");
+
+        viewModel.loadCorrelationData(type, (avgCalories, avgProtein, avgBurnedCalories, avgSteps, targetVolumeSets) -> {
+            List<BodyMeasurement> records = viewModel.getRecordsByType(type).getValue();
+            float diff = 0f;
+            float latestVal = 0f;
+            String unit = "cm";
+            if ("BODY_FAT".equals(type)) unit = "%";
+
+            if (records != null && records.size() >= 2) {
+                latestVal = records.get(0).getValue();
+                long targetTime = System.currentTimeMillis() - 14 * 24 * 60 * 60 * 1000L;
+                BodyMeasurement oldest = records.get(records.size() - 1);
+                for (int i = records.size() - 1; i >= 0; i--) {
+                    if (records.get(i).getTimestamp() >= targetTime) {
+                        oldest = records.get(i);
+                        break;
+                    }
+                }
+                diff = latestVal - oldest.getValue();
+            } else if (records != null && records.size() == 1) {
+                latestVal = records.get(0).getValue();
+            }
+
+            String typeName = "体脂率";
+            for (int i = 0; i < TYPES.length; i++) {
+                if (TYPES[i].equals(type)) {
+                    typeName = TYPE_NAMES[i];
+                    break;
+                }
+            }
+
+            StringBuilder promptBuilder = new StringBuilder();
+            promptBuilder.append("我的当前塑形分析请求如下：\n");
+            promptBuilder.append("分析指标：").append(typeName).append("\n");
+            if (latestVal > 0) {
+                promptBuilder.append("最新测量值：").append(latestVal).append(unit).append("\n");
+                promptBuilder.append("近两周指标变化：").append(diff > 0 ? "+" : "").append(String.format(java.util.Locale.getDefault(), "%.1f", diff)).append(unit).append("\n");
+            } else {
+                promptBuilder.append("最新测量值：暂无数据\n");
+            }
+            promptBuilder.append("近14天日均卡路里摄入：").append(avgCalories).append(" kcal\n");
+            promptBuilder.append("近14天日均蛋白质摄入：").append(String.format(java.util.Locale.getDefault(), "%.1f", avgProtein)).append(" g\n");
+            promptBuilder.append("近14天日均运动消耗：").append(avgBurnedCalories).append(" kcal\n");
+            
+            if ("WAIST".equals(type) || "BODY_FAT".equals(type) || "HIP".equals(type)) {
+                promptBuilder.append("近14天日均有氧步数：").append(avgSteps).append(" 步\n");
+            } else {
+                promptBuilder.append("近14天关联部位训练周组数负荷：").append(targetVolumeSets).append(" 组\n");
+            }
+
+            promptBuilder.append("\n请作为我的专业私人健身教练，字数控制在 150 字以内，简明扼要地分析饮食与运动对我该围度/指标变化的影响，并提供一两句下一步的改善或保持建议。");
+
+            String systemInstruction = "你端庄、耐心地扮演一位极其专业、用词精炼的私人健身与营养教练。请结合用户的围度变化、卡路里/蛋白质摄入以及训练量，用专业且有鼓励性的话语给出简短精炼的塑形分析建议。字数限制在 120 字到 150 字之间。不要说废话，直接给出分析与建议。";
+
+            com.cz.fitnessdiary.service.DeepSeekService.INSTANCE.sendMessage(
+                promptBuilder.toString(),
+                systemInstruction,
+                false,
+                null,
+                new com.cz.fitnessdiary.service.AICallback() {
+                    @Override
+                    public void onSuccess(@NonNull String response, @Nullable String reasoning) {
+                        if (isAdded()) {
+                            requireActivity().runOnUiThread(() -> {
+                                progressAiReport.setVisibility(View.GONE);
+                                btnGenerateAiReport.setEnabled(true);
+                                tvAiReportContent.setText(response);
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onPartialUpdate(@NonNull String content, @Nullable String reasoning) {}
+
+                    @Override
+                    public void onError(@NonNull String error) {
+                        if (isAdded()) {
+                            requireActivity().runOnUiThread(() -> {
+                                progressAiReport.setVisibility(View.GONE);
+                                btnGenerateAiReport.setEnabled(true);
+                                tvAiReportContent.setText("评估生成失败：" + error + "，请稍后再试。");
+                            });
+                        }
+                    }
+                }
+            );
+        });
     }
 }

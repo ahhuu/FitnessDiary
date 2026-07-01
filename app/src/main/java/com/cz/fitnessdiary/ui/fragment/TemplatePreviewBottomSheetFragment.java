@@ -53,6 +53,8 @@ public class TemplatePreviewBottomSheetFragment extends BottomSheetDialogFragmen
         return binding.getRoot();
     }
 
+    private String currentVersionKey = "gym";
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -75,20 +77,78 @@ public class TemplatePreviewBottomSheetFragment extends BottomSheetDialogFragmen
         binding.tvDays.setText(template.getDaysPerWeek() + "天/周");
         binding.tvDescription.setText(template.getDescription());
 
+        // 初始化 RecyclerView
         TemplateExerciseAdapter exerciseAdapter = new TemplateExerciseAdapter();
         binding.rvExercises.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvExercises.setAdapter(exerciseAdapter);
-        exerciseAdapter.setExercises(template.getExercises());
 
-        int exerciseCount = template.getExercises() != null ? template.getExercises().size() : 0;
-        binding.btnImport.setText("一键导入（" + exerciseCount + " 个动作）");
+        // 校验设备版本支持状态并设置默认选中
+        java.util.Map<String, com.cz.fitnessdiary.model.TrainingTemplate.TemplateVersion> versions = template.getVersions();
+        boolean hasGym = versions != null && versions.containsKey("gym");
+        boolean hasHome = versions != null && versions.containsKey("home");
+        boolean hasBodyweight = versions != null && versions.containsKey("bodyweight");
+
+        binding.btnGym.setEnabled(hasGym);
+        if (!hasGym) {
+            binding.btnGym.setText("健身房 (不支持)");
+        }
+        binding.btnHome.setEnabled(hasHome);
+        if (!hasHome) {
+            binding.btnHome.setText("居家 (不支持)");
+        }
+        binding.btnBodyweight.setEnabled(hasBodyweight);
+        if (!hasBodyweight) {
+            binding.btnBodyweight.setText("自重 (不支持)");
+        }
+
+        // 选择一个默认激活的版本
+        if (hasGym) {
+            currentVersionKey = "gym";
+            binding.toggleGroupEquipment.check(R.id.btn_gym);
+        } else if (hasHome) {
+            currentVersionKey = "home";
+            binding.toggleGroupEquipment.check(R.id.btn_home);
+        } else if (hasBodyweight) {
+            currentVersionKey = "bodyweight";
+            binding.toggleGroupEquipment.check(R.id.btn_bodyweight);
+        }
+
+        // 刷新列表显示
+        refreshExercises(exerciseAdapter);
+
+        // 绑定版本切换事件
+        binding.toggleGroupEquipment.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                if (checkedId == R.id.btn_gym) {
+                    currentVersionKey = "gym";
+                } else if (checkedId == R.id.btn_home) {
+                    currentVersionKey = "home";
+                } else if (checkedId == R.id.btn_bodyweight) {
+                    currentVersionKey = "bodyweight";
+                }
+                refreshExercises(exerciseAdapter);
+            }
+        });
 
         binding.btnImport.setOnClickListener(v -> {
+            java.util.List<com.cz.fitnessdiary.model.TemplateExercise> exercises = template.getExercisesForVersion(currentVersionKey);
+            int size = exercises != null ? exercises.size() : 0;
             PlanViewModel planViewModel = new ViewModelProvider(requireActivity()).get(PlanViewModel.class);
-            planViewModel.importTemplate(template.getExercises(), template.getDifficulty());
-            Toast.makeText(requireContext(), "成功导入 " + exerciseCount + " 个训练计划", Toast.LENGTH_SHORT).show();
+            planViewModel.importTemplate(exercises, template.getName());
+            Toast.makeText(requireContext(), "成功导入 " + size + " 个训练计划", Toast.LENGTH_SHORT).show();
+            
+            // 发送通知让计划页面切到“当前计划”Tab
+            getParentFragmentManager().setFragmentResult("plan_imported_request", new Bundle());
+            
             dismiss();
         });
+    }
+
+    private void refreshExercises(TemplateExerciseAdapter adapter) {
+        java.util.List<com.cz.fitnessdiary.model.TemplateExercise> exercises = template.getExercisesForVersion(currentVersionKey);
+        adapter.setExercises(exercises);
+        int exerciseCount = exercises != null ? exercises.size() : 0;
+        binding.btnImport.setText("一键导入（" + exerciseCount + " 个动作）");
     }
 
     @Override

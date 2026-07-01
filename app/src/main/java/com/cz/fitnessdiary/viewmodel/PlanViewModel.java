@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.Transformations;
 
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
@@ -23,76 +24,72 @@ import java.util.Map;
  * 新增计划库概览和分组展示功能
  */
 public class PlanViewModel extends AndroidViewModel {
-
+ 
     private TrainingPlanRepository repository;
     private LiveData<List<TrainingPlan>> allPlans;
-
-    // Plan 10 新增字段
+ 
+    // Plan 10 新增字段与多模板隔离控制
     private MutableLiveData<String> filterMode = new MutableLiveData<>("基础");
+    private MutableLiveData<String> activePersonalPlanName = new MutableLiveData<>("默认自定义计划");
+    private MediatorLiveData<List<TrainingPlan>> filteredPlans = new MediatorLiveData<>();
     private LiveData<Integer> totalPlanCount;
     private LiveData<String> coveredCategories;
     private LiveData<List<PlanGroup>> groupedPlans;
     private LiveData<List<String>> uniqueCategories;
-
+    private LiveData<List<String>> personalPlanNames;
+ 
     public PlanViewModel(@NonNull Application application) {
         super(application);
         repository = new TrainingPlanRepository(application);
         allPlans = repository.getAllPlans();
-
+ 
         // [v1.2] 从持久化存储读取模式，默认为基础
         android.content.SharedPreferences sp = application.getSharedPreferences("fitness_diary_prefs",
                 android.content.Context.MODE_PRIVATE);
         String savedMode = sp.getString("current_plan_mode", "基础");
         filterMode.setValue(savedMode);
-
+ 
+        String savedActivePlan = sp.getString("active_personal_plan_name", "默认自定义计划");
+        activePersonalPlanName.setValue(savedActivePlan);
+ 
         // [v1.2] 执行迁移：将无前缀的(老版本/备份恢复)分类归入自定义
         repository.migrateLegacyToCustom();
-
+ 
         // [v1.2] 检查并注入基础/进阶计划库
         checkAndSeedLibrary();
-
-        // 过滤后的计划列表 (根据当前模式前缀)
-        LiveData<List<TrainingPlan>> filteredPlans = Transformations.switchMap(filterMode, mode -> {
-            return Transformations.map(allPlans, plans -> {
-                List<TrainingPlan> filtered = new ArrayList<>();
-                if (plans != null) {
-                    for (TrainingPlan plan : plans) {
-                        String cat = plan.getCategory();
-                        if (cat != null && cat.startsWith(mode + "-")) {
-                            filtered.add(plan);
-                        }
-                    }
-                }
-                return filtered;
-            });
-        });
-
+ 
+        // 绑定多源 LiveData 驱动过滤计划列表
+        filteredPlans.addSource(allPlans, plans -> updateFilteredPlans());
+        filteredPlans.addSource(filterMode, mode -> updateFilteredPlans());
+        filteredPlans.addSource(activePersonalPlanName, name -> updateFilteredPlans());
+ 
         // 计算总计划数 (基于过滤后)
         totalPlanCount = Transformations.map(filteredPlans, plans -> {
             return plans == null ? 0 : plans.size();
         });
-
-        // 提取覆盖部位 (移除前缀显示更美白)
+ 
+        // 提取覆盖部位 (使用 parts.length - 1 兼容多段 Category)
         coveredCategories = Transformations.map(filteredPlans, plans -> {
             if (plans == null || plans.isEmpty()) {
                 return "暂无";
             }
-
+ 
             java.util.Set<String> categories = new java.util.LinkedHashSet<>();
             for (TrainingPlan plan : plans) {
                 String category = plan.getCategory();
                 if (category != null && category.contains("-")) {
-                    category = category.split("-")[1]; // 去掉前缀
+                    String[] parts = category.split("-");
+                    category = parts[parts.length - 1]; // 提取最后一段部位名
                 }
                 if (category != null && !category.trim().isEmpty() && !category.equals("未分类")) {
                     categories.add(category.trim());
                 }
             }
-
+ 
             if (categories.isEmpty()) {
                 return "未分类";
             }
-
+ 
             StringBuilder sb = new StringBuilder();
             for (String cat : categories) {
                 if (sb.length() > 0)
@@ -101,44 +98,46 @@ public class PlanViewModel extends AndroidViewModel {
             }
             return sb.toString();
         });
-
-        // 分组计划列表 (展示时去掉前缀)
+ 
+        // 分组计划列表 (展示时去掉前缀，取最后一段部位)
         groupedPlans = Transformations.map(filteredPlans, plans -> {
             List<PlanGroup> groups = new ArrayList<>();
             if (plans == null || plans.isEmpty()) {
                 return groups;
             }
-
+ 
             Map<String, PlanGroup> groupMap = new LinkedHashMap<>();
             for (TrainingPlan plan : plans) {
                 String fullCategory = plan.getCategory();
                 String displayCategory = fullCategory;
                 if (fullCategory != null && fullCategory.contains("-")) {
-                    displayCategory = fullCategory.split("-")[1];
+                    String[] parts = fullCategory.split("-");
+                    displayCategory = parts[parts.length - 1];
                 }
-
+ 
                 if (displayCategory == null || displayCategory.trim().isEmpty()) {
                     displayCategory = "未分类";
                 }
-
+ 
                 if (!groupMap.containsKey(displayCategory)) {
                     groupMap.put(displayCategory, new PlanGroup(displayCategory));
                 }
                 groupMap.get(displayCategory).addPlan(plan);
             }
-
+ 
             groups.addAll(groupMap.values());
             return groups;
         });
-
-        // 提取唯一分类列表 (用于联想，根据当前模式自动带上前缀)
+ 
+        // 提取唯一分类列表 (用于联想，取最后一段部位)
         uniqueCategories = Transformations.map(allPlans, plans -> {
             java.util.Set<String> categories = new java.util.LinkedHashSet<>();
             if (plans != null) {
                 for (TrainingPlan plan : plans) {
                     String category = plan.getCategory();
                     if (category != null && category.contains("-")) {
-                        category = category.split("-")[1];
+                        String[] parts = category.split("-");
+                        category = parts[parts.length - 1];
                     }
                     if (category != null && !category.trim().isEmpty() && !category.equals("无分类")) {
                         categories.add(category.trim());
@@ -147,6 +146,51 @@ public class PlanViewModel extends AndroidViewModel {
             }
             return new ArrayList<>(categories);
         });
+ 
+        // 提取所有的个人计划模板名称列表
+        personalPlanNames = Transformations.map(allPlans, plans -> {
+            java.util.Set<String> names = new java.util.LinkedHashSet<>();
+            if (plans != null) {
+                for (TrainingPlan plan : plans) {
+                    String cat = plan.getCategory();
+                    if (cat != null && cat.startsWith("自定义-")) {
+                        String[] parts = cat.split("-");
+                        if (parts.length >= 3) {
+                            names.add(parts[1]);
+                        } else {
+                            names.add("默认自定义计划");
+                        }
+                    }
+                }
+            }
+            return new ArrayList<>(names);
+        });
+    }
+ 
+    private void updateFilteredPlans() {
+        List<TrainingPlan> plans = allPlans.getValue();
+        String mode = filterMode.getValue();
+        String activePersonal = activePersonalPlanName.getValue();
+ 
+        List<TrainingPlan> filtered = new ArrayList<>();
+        if (plans != null && mode != null) {
+            for (TrainingPlan plan : plans) {
+                String cat = plan.getCategory();
+                if (cat == null) continue;
+ 
+                if ("基础".equals(mode) || "进阶".equals(mode)) {
+                    if (cat.startsWith(mode + "-")) {
+                        filtered.add(plan);
+                    }
+                } else if ("自定义".equals(mode)) {
+                    String prefix = "自定义-" + (activePersonal != null ? activePersonal : "默认自定义计划") + "-";
+                    if (cat.startsWith(prefix)) {
+                        filtered.add(plan);
+                    }
+                }
+            }
+        }
+        filteredPlans.setValue(filtered);
     }
 
     public LiveData<List<TrainingPlan>> getAllPlans() {
@@ -194,6 +238,93 @@ public class PlanViewModel extends AndroidViewModel {
     // Plan 28: 批量更新分类名称
     public void updateCategory(String oldCategory, String newCategory) {
         repository.updateCategory(oldCategory, newCategory);
+    }
+
+    public LiveData<String> getActivePersonalPlanName() {
+        return activePersonalPlanName;
+    }
+
+    public void setActivePersonalPlanName(String name) {
+        activePersonalPlanName.setValue(name);
+        android.content.SharedPreferences sp = getApplication().getSharedPreferences("fitness_diary_prefs",
+                android.content.Context.MODE_PRIVATE);
+        sp.edit().putString("active_personal_plan_name", name).apply();
+    }
+
+    public LiveData<List<String>> getPersonalPlanNames() {
+        return personalPlanNames;
+    }
+
+    public void deletePersonalPlan(String templateName) {
+        new Thread(() -> {
+            List<TrainingPlan> plans = repository.getAllPlansSync();
+            if (plans != null) {
+                String prefix = "自定义-" + templateName + "-";
+                for (TrainingPlan p : plans) {
+                    if (p.getCategory() != null && p.getCategory().startsWith(prefix)) {
+                        repository.delete(p);
+                    }
+                }
+            }
+        }).start();
+    }
+
+    public void renamePersonalPlan(String oldName, String newName) {
+        if (oldName == null || newName == null || newName.trim().isEmpty()) return;
+        new Thread(() -> {
+            List<TrainingPlan> plans = repository.getAllPlansSync();
+            if (plans != null) {
+                String oldPrefix = "自定义-" + oldName + "-";
+                String newPrefix = "自定义-" + newName.trim() + "-";
+                for (TrainingPlan p : plans) {
+                    if (p.getCategory() != null && p.getCategory().startsWith(oldPrefix)) {
+                        String suffix = p.getCategory().substring(oldPrefix.length());
+                        p.setCategory(newPrefix + suffix);
+                        repository.update(p);
+                    }
+                }
+            }
+            if (oldName.equals(activePersonalPlanName.getValue())) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                    setActivePersonalPlanName(newName.trim());
+                });
+            }
+        }).start();
+    }
+
+    /**
+     * 将模板导入为个人自定义计划模板，并自动设置为当前执行
+     */
+    public void importTemplate(List<TemplateExercise> exercises, String customName) {
+        if (exercises == null || exercises.isEmpty() || customName == null || customName.trim().isEmpty()) return;
+        String prefix = "自定义-" + customName.trim() + "-";
+        
+        // 覆盖式写入：先清空本模板下旧动作
+        repository.deleteByCategoryPrefix(prefix);
+
+        List<TrainingPlan> plans = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (TemplateExercise ex : exercises) {
+            String category = ex.getCategory();
+            String finalCategory = (category != null && !category.isEmpty())
+                    ? prefix + category
+                    : prefix + "无分类";
+
+            TrainingPlan plan = new TrainingPlan(
+                    ex.getName(),
+                    ex.getDescription() != null ? ex.getDescription() : "",
+                    now,
+                    ex.getSets(),
+                    ex.getReps(),
+                    null);
+            plan.setCategory(finalCategory);
+            plan.setScheduledDays(ex.getScheduledDays() != null ? ex.getScheduledDays() : "0");
+            plan.setDuration(ex.getDuration());
+            plans.add(plan);
+        }
+        repository.insertAll(plans);
+        setActivePersonalPlanName(customName.trim());
+        setFilterMode("自定义");
     }
 
     /**
@@ -326,5 +457,19 @@ public class PlanViewModel extends AndroidViewModel {
      */
     public void seedAdvancedPlans() {
         checkAndSeedLibrary();
+    }
+
+    public int getActionCountForPersonalPlan(String templateName) {
+        List<TrainingPlan> plans = allPlans.getValue();
+        int count = 0;
+        if (plans != null) {
+            String prefix = "自定义-" + templateName + "-";
+            for (TrainingPlan p : plans) {
+                if (p.getCategory() != null && p.getCategory().startsWith(prefix)) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }
