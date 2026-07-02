@@ -31,6 +31,7 @@ import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.databinding.FragmentProfileBinding;
 import com.cz.fitnessdiary.ui.MainActivity;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.utils.ShareUtils;
@@ -942,6 +943,13 @@ public class ProfileFragment extends Fragment {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    public void showPageGuide(GuideStateManager guideManager) {
+        String pageKey = "guide_profile";
+        if (guideManager.isPageGuideDone(pageKey)) return;
+        // Profile page guide not yet implemented
+        guideManager.markPageGuideDone(pageKey);
     }
 
     @Override

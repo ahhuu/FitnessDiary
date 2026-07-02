@@ -7,7 +7,7 @@
     android:background="@drawable/bg_bottom_sheet"
     android:paddingBottom="24dp">
 
-    <!-- 顶部拖拽条 -->
+    <!-- 拖拽条 -->
     <View
         android:layout_width="40dp"
         android:layout_height="4dp"
@@ -23,37 +23,37 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:textColor="@color/black"
-        android:layout_marginBottom="16dp" />
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="12dp" />
 
-    <!-- 顶部切换器 -->
+    <!-- 周/月切换 -->
     <com.google.android.material.button.MaterialButtonToggleGroup
         android:id="@+id/toggle_date_range"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
         app:singleSelection="true"
-        app:checkedButton="@id/btn_week"
-        android:layout_marginBottom="16dp">
+        app:checkedButton="@id/btn_week">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_week"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="本周"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            android:text="本周" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_month"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="本月"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            android:text="本月" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -61,14 +61,14 @@
             android:orientation="vertical"
             android:paddingHorizontal="16dp">
 
-            <!-- 模块 1：训练看板 -->
+            <!-- ====== 卡片1：训练 ====== -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                android:layout_marginBottom="12dp">
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -80,42 +80,253 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="1"
                             android:text="💪 训练强度"
                             android:textStyle="bold"
-                            android:textColor="@color/black"
+                            android:textColor="@color/text_primary"
                             android:textSize="14sp" />
-                        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
                         <TextView
                             android:id="@+id/tv_training_days_value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0天"
+                            android:text="0 天"
                             android:textColor="@color/fitnessdiary_primary"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <ProgressBar
-                        android:id="@+id/progress_training_days"
-                        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    <!-- 每日次数柱状图 -->
+                    <com.github.mikephil.charting.charts.BarChart
+                        android:id="@+id/chart_training"
                         android:layout_width="match_parent"
-                        android:layout_height="8dp"
-                        android:layout_marginTop="12dp"
-                        android:progressDrawable="@drawable/progress_rounded_primary" />
+                        android:layout_height="160dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 模块 2：饮食仪表盘 -->
+            <!-- ====== 卡片2：饮食热量折线图 ====== -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                android:layout_marginBottom="12dp">
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🥗 饮食热量（kcal）"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                        <TextView
+                            android:id="@+id/tv_calories_intake_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="均 0 kcal"
+                            android:textColor="@color/diet_primary"
+                            android:textStyle="bold"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- 每日热量折线图 -->
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/chart_calories"
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp" />
+
+                    <!-- 目标线说明 -->
+                    <TextView
+                        android:id="@+id/tv_calories_target_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="— 虚线为每日目标"
+                        android:textColor="@color/text_hint"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ====== 卡片3：体重趋势 ====== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="⚖️ 体重趋势（kg）"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                        <TextView
+                            android:id="@+id/tv_weight_bmi_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="BMI --"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/chart_weight"
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp" />
+
+                    <TextView
+                        android:id="@+id/tv_weight_empty"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:gravity="center"
+                        android:text="暂无体重记录，记录后即可查看趋势"
+                        android:textColor="@color/text_hint"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ====== 卡片4：睡眠质量柱状图 ====== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🌙 睡眠时长（小时）"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                        <TextView
+                            android:id="@+id/tv_sleep_avg_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="均 0.0 h"
+                            android:textColor="@color/fitnessdiary_primary"
+                            android:textStyle="bold"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.github.mikephil.charting.charts.BarChart
+                        android:id="@+id/chart_sleep"
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp" />
+
+                    <TextView
+                        android:id="@+id/tv_sleep_quality_avg_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="平均质量: --"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ====== 卡片5：步数柱状图 ====== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="👣 每日步数"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                        <TextView
+                            android:id="@+id/tv_steps_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="目标 10000 步"
+                            android:textColor="@color/text_hint"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <com.github.mikephil.charting.charts.BarChart
+                        android:id="@+id/chart_steps"
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ====== 卡片6：喝水达标率 ====== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -124,157 +335,70 @@
                     android:padding="16dp"
                     android:gravity="center_vertical">
 
-                    <!-- 热量文字信息 (左侧) -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:layout_marginEnd="24dp">
+                        android:layout_marginEnd="16dp">
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🥗 饮食热量"
+                            android:text="💧 喝水达标率"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
                         <TextView
-                            android:id="@+id/tv_calories_intake_value"
+                            android:id="@+id/tv_water_avg"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="摄入: 0"
-                            android:layout_marginTop="4dp"
-                            android:textSize="12sp"/>
+                            android:layout_marginTop="6dp"
+                            android:text="日均摄入: 0 ml"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
                         <TextView
-                            android:id="@+id/tv_calories_target_value"
+                            android:id="@+id/tv_water_target"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="目标: 2000"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary"/>
+                            android:layout_marginTop="2dp"
+                            android:text="每日目标: 2000 ml"
+                            android:textColor="@color/text_hint"
+                            android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- 圆形进度条区域 (右侧) -->
+                    <!-- 圆形进度条 -->
                     <FrameLayout
                         android:layout_width="80dp"
                         android:layout_height="80dp">
                         <ProgressBar
-                            android:id="@+id/progress_calories_circle"
+                            android:id="@+id/progress_water_circle"
                             style="?android:attr/progressBarStyleHorizontal"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:indeterminate="false"
                             android:max="100"
-                            android:progress="70"
+                            android:progress="0"
                             android:progressDrawable="@drawable/bg_circle_progress" />
-                        <LinearLayout
+                        <TextView
+                            android:id="@+id/tv_water_percent"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
-                            android:orientation="vertical"
-                            android:gravity="center">
-                            <TextView
-                                android:id="@+id/tv_calories_percent"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="70%"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                            android:text="0%"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
                     </FrameLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- 模块 3：体重 & BMI -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                android:layout_marginBottom="12dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-                    
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="⚖️ 体重分析"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:textSize="14sp" />
-                    
-                    <TextView
-                        android:id="@+id/tv_weight_bmi_value"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="65kg (Normal)"
-                        android:textColor="@color/text_primary"
-                        android:textSize="13sp"
-                        android:lineSpacingExtra="2dp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 模块 4：睡眠看板 (NEW) -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/fitnessdiary_surface_variant"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                android:layout_marginBottom="24dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🌙 睡眠质量"
-                            android:textStyle="bold"
-                            android:textColor="@color/black"
-                            android:textSize="14sp" />
-                        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                        <TextView
-                            android:id="@+id/tv_sleep_avg_value"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0.0 小时"
-                            android:textColor="@color/fitnessdiary_primary"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tv_sleep_quality_avg_value"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="平均质量: --"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 核心：智能分析区域 -->
+            <!-- ====== 核心：智能分析区域 ====== -->
             <FrameLayout
                 android:id="@+id/container_analysis"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="32dp">
 
-                <!-- 状态 A: 按钮 -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_generate_analysis"
                     android:layout_width="match_parent"
@@ -284,7 +408,6 @@
                     android:textSize="16sp"
                     android:visibility="visible" />
 
-                <!-- 状态 B: 结果卡片 -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_analysis_result"
                     android:layout_width="match_parent"
@@ -310,13 +433,12 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:text="正在分析您的运动与健康数据..."
+                            android:text="正在分析..."
                             android:textColor="#333333"
                             android:textSize="14sp"
                             android:lineSpacingExtra="4dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-
             </FrameLayout>
 
         </LinearLayout>

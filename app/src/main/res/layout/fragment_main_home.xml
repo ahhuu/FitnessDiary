@@ -100,12 +100,43 @@
         android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/bottom_nav_custom" />
 
+    <!-- 快速记录新拟态悬浮按钮 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/fab_quick_entry"
+        android:layout_width="54dp"
+        android:layout_height="54dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="18dp"
+        app:cardCornerRadius="27dp"
+        app:cardElevation="5dp"
+        app:cardBackgroundColor="@color/fitnessdiary_surface"
+        app:strokeWidth="0dp"
+        android:outlineSpotShadowColor="#4D3F3730"
+        android:outlineAmbientShadowColor="#4D3F3730"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackgroundBorderless"
+        android:visibility="visible"
+        android:contentDescription="快速记录">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@android:drawable/ic_input_add"
+            app:tint="@color/fitnessdiary_primary" />
+
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- 方案 B：自定义温润胶囊底部导航栏 (悬浮 3D 拟物胶囊) -->
     <LinearLayout
         android:id="@+id/bottom_nav_custom"
         android:layout_width="0dp"
         android:layout_height="68dp"
-        android:layout_marginHorizontal="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="12dp"
         android:layout_marginBottom="12dp"
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_bottom_nav_3d"
@@ -113,7 +144,7 @@
         android:gravity="center_vertical"
         android:paddingHorizontal="4dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/fab_quick_entry"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <!-- 1. 记录 Tab -->
@@ -265,7 +296,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="AI私教"
+                    android:text="私教"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:textStyle="bold" />

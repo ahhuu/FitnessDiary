@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="48dp">
+
+    <TextView
+        android:id="@+id/iv_empty_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🍽️"
+        android:textSize="48sp"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_empty_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="今天还没记录饮食"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_photo_recognize"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="拍照识别"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        app:cornerRadius="24dp"
+        app:backgroundTint="@color/diet_primary"
+        android:layout_marginBottom="12dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_search_food"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="搜索食物"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        app:cornerRadius="24dp"
+        app:backgroundTint="@color/fitnessdiary_primary" />
+
+</LinearLayout>

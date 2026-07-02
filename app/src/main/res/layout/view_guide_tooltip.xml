@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- Arrow indicator (arrow points up by default; rotated programmatically for other anchors) -->
+    <ImageView
+        android:id="@+id/iv_arrow_top"
+        android:layout_width="16dp"
+        android:layout_height="8dp"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/guide_tooltip_arrow"
+        android:scaleType="fitXY"
+        android:visibility="visible" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="240dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="@android:color/white"
+        app:contentPadding="16dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/tv_guide_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/guide_tooltip_title"
+                tools:text="引导标题" />
+
+            <!-- Description -->
+            <TextView
+                android:id="@+id/tv_guide_description"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/guide_tooltip_desc"
+                tools:text="这是引导描述文本，介绍当前功能的使用方法。" />
+
+            <!-- Bottom buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_guide_skip"
+                    style="@style/TextButton.GuideSkip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="跳过"
+                    android:textSize="12sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:cornerRadius="0dp" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_guide_next"
+                    style="@style/TextButton.GuideNext"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="下一步 →"
+                    android:textSize="12sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:cornerRadius="0dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Bottom arrow indicator (hidden by default; shown when tooltip is below target) -->
+    <ImageView
+        android:id="@+id/iv_arrow_bottom"
+        android:layout_width="16dp"
+        android:layout_height="8dp"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/guide_tooltip_arrow"
+        android:scaleType="fitXY"
+        android:rotation="180"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,6 +22,8 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.databinding.FragmentMainHomeBinding;
 import com.cz.fitnessdiary.model.AchievementUnlockEvent;
+import com.cz.fitnessdiary.ui.bottomSheet.QuickEntryBottomSheet;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 
 /**
@@ -53,9 +56,17 @@ public class MainHomeFragment extends Fragment {
         setupViewPager();
         setupBottomNavigation();
         setupGlobalNotice();
+        setupFab();
         observeAchievementEvents();
         // 初始高亮第一页（记录）
         updateBottomNavTheme(TAB_CHECKIN);
+        updateFabVisibility(TAB_CHECKIN);
+
+        // v3.0: 首次启动显示全局引导（已移除全屏引导，仅保留页面引导，标记完成即可）
+        GuideStateManager guideManager = new GuideStateManager(requireContext());
+        if (!guideManager.isGlobalOnboardingDone()) {
+            guideManager.markGlobalOnboardingDone();
+        }
     }
 
     @Override
@@ -98,12 +109,14 @@ public class MainHomeFragment extends Fragment {
         // 预加载所有主页面，避免 Tab 频繁切换卡顿
         binding.viewPager.setOffscreenPageLimit(4);
 
-        // 滑动监听：同步底部导航的高亮
+        // 滑动监听：同步底部导航的高亮 + 触发页面引导
         binding.viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
                 updateBottomNavTheme(position);
+                updateFabVisibility(position);
+                triggerPageGuide(position);
             }
         });
     }
@@ -117,6 +130,25 @@ public class MainHomeFragment extends Fragment {
         binding.tabDiet.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_DIET, true));
         binding.tabAi.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_AI, true));
         binding.tabProfile.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_PROFILE, true));
+    }
+
+    /**
+     * 初始化快速记录 FAB
+     */
+    private void setupFab() {
+        binding.fabQuickEntry.setOnClickListener(v -> {
+            QuickEntryBottomSheet sheet = new QuickEntryBottomSheet();
+            sheet.show(getChildFragmentManager(), "QuickEntryBottomSheet");
+        });
+    }
+
+    /**
+     * 根据当前 Tab 更新 FAB 可见性（重构为任意页面都可见）
+     */
+    private void updateFabVisibility(int position) {
+        if (binding != null) {
+            binding.fabQuickEntry.setVisibility(View.VISIBLE);
+        }
     }
 
     /**
@@ -190,6 +222,44 @@ public class MainHomeFragment extends Fragment {
             textView.setTextColor(unselectedColor);
             iconView.setSelected(false);
         }
+    }
+
+    /**
+     * 当用户实际切换到某个页面时，触发该页面的新手引导
+     */
+    private void triggerPageGuide(int position) {
+        GuideStateManager gsm = new GuideStateManager(requireContext());
+        String pageKey;
+        switch (position) {
+            case 0: pageKey = "guide_checkin"; break;
+            case 1: pageKey = "guide_plan"; break;
+            case 2: pageKey = "guide_diet"; break;
+            case 3: pageKey = "guide_ai"; break;
+            case 4: pageKey = "guide_profile"; break;
+            default: return;
+        }
+        if (gsm.isPageGuideDone(pageKey)) return;
+
+        binding.getRoot().post(() -> {
+            if (!isAdded()) return;
+            java.util.List<androidx.fragment.app.Fragment> fragments = getChildFragmentManager().getFragments();
+            if (position < fragments.size()) {
+                androidx.fragment.app.Fragment page = fragments.get(position);
+                if (page != null && page.isAdded()) {
+                    if (page instanceof CheckInFragment) {
+                        ((CheckInFragment) page).showPageGuide(gsm);
+                    } else if (page instanceof PlanFragment) {
+                        ((PlanFragment) page).showPageGuide(gsm);
+                    } else if (page instanceof DietFragment) {
+                        ((DietFragment) page).showPageGuide(gsm);
+                    } else if (page instanceof AIChatFragment) {
+                        ((AIChatFragment) page).showPageGuide(gsm);
+                    } else if (page instanceof ProfileFragment) {
+                        ((ProfileFragment) page).showPageGuide(gsm);
+                    }
+                }
+            }
+        });
     }
 
     /**

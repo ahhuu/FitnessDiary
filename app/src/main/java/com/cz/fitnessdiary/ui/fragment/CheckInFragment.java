@@ -25,6 +25,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.DailyLog;
 import com.cz.fitnessdiary.database.entity.HabitItem;
 import com.cz.fitnessdiary.database.entity.HabitRecord;
@@ -50,6 +51,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import android.widget.FrameLayout;
+import android.view.LayoutInflater;
+import android.widget.ImageView;
+
+import com.cz.fitnessdiary.model.DailyHealthSnapshot;
+import com.cz.fitnessdiary.model.HealthScoreBreakdown;
+import com.cz.fitnessdiary.repository.HealthAggregationRepository;
+import com.cz.fitnessdiary.service.DailyBriefingService;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
+import com.cz.fitnessdiary.ui.guide.GuideStep;
+import com.cz.fitnessdiary.ui.guide.PageGuide;
+import com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay;
+import com.cz.fitnessdiary.utils.HealthScoreCalculator;
+
+import java.util.Arrays;
 
 public class CheckInFragment extends Fragment {
     private static final String PREF_HOME_CARDS = "home_card_prefs";
@@ -96,6 +111,9 @@ public class CheckInFragment extends Fragment {
     private RestTimerManager restTimerManager;
     private int timerSelectedSeconds = 60;
     private com.cz.fitnessdiary.utils.StepSensorHelper stepSensorHelper;
+    private DailyBriefingService briefingService;
+    private boolean isBriefingExpanded = false;
+    private SharedPreferences.OnSharedPreferenceChangeListener homeCardsChangeListener;
 
     public CheckInFragment() {
         super();
@@ -118,16 +136,34 @@ public class CheckInFragment extends Fragment {
         achievementCenterViewModel = new ViewModelProvider(requireActivity()).get(AchievementCenterViewModel.class);
         restTimerManager = new RestTimerManager();
         stepSensorHelper = new com.cz.fitnessdiary.utils.StepSensorHelper(requireContext());
+        briefingService = new DailyBriefingService(requireActivity().getApplication());
         setupActions();
         setupRestTimer();
         cacheCards();
         setupDateNavigation();
         observeData();
-        loadCardConfig();
-        applyCardConfig();
+        // 动态所有卡片配置应用
+        applyBigCardsConfig();
+
+        // 注册所有卡片配置监听
+        homeCardsChangeListener = (sp, key) -> {
+            if ("home_cards_order".equals(key) || key.startsWith("show_card_")) {
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(this::applyBigCardsConfig);
+                }
+            }
+        };
+        requireContext().getSharedPreferences("home_cards_prefs", Context.MODE_PRIVATE)
+                .registerOnSharedPreferenceChangeListener(homeCardsChangeListener);
+
         updateDateHeader();
         updateSummaryCard();
         achievementCenterViewModel.refreshAll();
+        loadDailyBriefing();
+    }
+
+    public void showPageGuide(GuideStateManager guideManager) {
+        // 主页极简清晰，无需页面引导
     }
 
     @Override
@@ -350,6 +386,16 @@ public class CheckInFragment extends Fragment {
         if (btnAiQuick != null) {
             btnAiQuick.setOnClickListener(va -> {
                 QuickAiChatBottomSheet.newInstance().show(getParentFragmentManager(), "QUICK_AI_CHAT");
+            });
+        }
+
+        View btnRefreshBriefing = v(R.id.btn_refresh_briefing);
+        if (btnRefreshBriefing != null) {
+            btnRefreshBriefing.setOnClickListener(va -> {
+                if (briefingService != null) {
+                    briefingService.invalidateCache();
+                    loadDailyBriefing();
+                }
             });
         }
 
@@ -1122,27 +1168,66 @@ public class CheckInFragment extends Fragment {
             dietProgress = Math.min(1.0f, (float) consumed / target);
         }
 
-        int totalScore = Math.round(
-                (sportProgress * 0.3f + waterProgress * 0.2f + habitProgress * 0.2f + dietProgress * 0.3f) * 100);
-        binding.progressTotalCircle.setProgress(totalScore);
-        binding.tvProgressPercent.setText(totalScore + "%");
         updateSummaryCard();
 
-        // Compute health score on background thread (Room requires async)
+        // Compute health score on background thread using the new 5-dimension breakdown
+        // (same calculation as showOverallProgressDetails, ensuring ring and popup match)
         new Thread(() -> {
             try {
                 Context context = getContext();
                 if (context == null) return;
                 Long selectedDate = checkInViewModel.getSelectedDate().getValue();
                 long date = selectedDate != null ? selectedDate : DateUtils.getTodayStartTimestamp();
-                int score = com.cz.fitnessdiary.utils.HealthScoreCalculator.calculateForDate(context, date);
-                com.cz.fitnessdiary.utils.HealthScoreCalculator.saveTodayScore(context, score);
-                android.os.Looper mainLooper = android.os.Looper.getMainLooper();
-                android.os.Handler mainHandler = new android.os.Handler(mainLooper);
-                mainHandler.post(() -> {
+
+                // Use HealthAggregationRepository for the cross-module snapshot
+                HealthAggregationRepository repo = new HealthAggregationRepository(
+                        (android.app.Application) context.getApplicationContext());
+                DailyHealthSnapshot snapshot = repo.getDateSnapshot(date);
+
+                // Build user profile
+                HealthScoreCalculator.UserProfile profile = new HealthScoreCalculator.UserProfile();
+                try {
+                    AppDatabase db = AppDatabase.getInstance(context);
+                    User u = db.userDao().getUserSync();
+                    if (u != null) {
+                        if (u.getDailyCalorieTarget() > 0) profile.dailyCalorieTarget = u.getDailyCalorieTarget();
+                        if (u.getDailyWaterTarget() > 0) profile.waterTargetMl = u.getDailyWaterTarget();
+                        profile.weightKg = u.getWeight();
+                        profile.heightCm = u.getHeight();
+                        profile.age = u.getAge();
+                        int goalType = u.getGoalType();
+                        if (goalType == 0) profile.goalType = "lose";
+                        else if (goalType == 1) profile.goalType = "gain";
+                        else profile.goalType = "maintain";
+                        if (u.getTargetProtein() > 0) profile.targetProteinGrams = u.getTargetProtein();
+                        if (u.getTargetCarbs() > 0) profile.targetCarbsGrams = u.getTargetCarbs();
+                    }
+                    // 读取目标运动时长
+                    SharedPreferences sp = context.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
+                    profile.targetExerciseMinutes = sp.getInt("target_exercise_minutes", 0);
+                } catch (Exception ignored) {}
+
+                HealthScoreBreakdown breakdown = HealthScoreCalculator.calculateBreakdown(snapshot, profile);
+                HealthScoreCalculator.saveTodayScore(context, breakdown.totalScore);
+
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                     if (isAdded() && binding != null) {
-                        binding.progressTotalCircle.setProgress(score);
-                        binding.tvProgressPercent.setText(score + "分");
+                        binding.progressTotalCircle.setProgress(breakdown.totalScore);
+                        binding.tvProgressPercent.setText(breakdown.totalScore + "分");
+
+                        // 动态更新今日健康寄语
+                        int score = breakdown.totalScore;
+                        String tip = "越自律，越自由！";
+                        if (score >= 90) {
+                            tip = "状态极佳！继续保持 🏆";
+                        } else if (score >= 80) {
+                            tip = "非常棒！生活很规律哦 🌟";
+                        } else if (score >= 60) {
+                            tip = "及格啦，继续加油打卡吧 💪";
+                        } else {
+                            tip = "动起来，健康生活从现在开始 🌱";
+                        }
+                        binding.tvHeaderTip.setText(tip);
                     }
                 });
             } catch (Exception ignored) {}
@@ -1150,115 +1235,137 @@ public class CheckInFragment extends Fragment {
     }
 
     private void showOverallProgressDetails() {
-        // Show quick summary immediately, load detailed health score from background
         new Thread(() -> {
             Context ctx = getContext();
             if (ctx == null) return;
-            com.cz.fitnessdiary.database.AppDatabase db =
-                    com.cz.fitnessdiary.database.AppDatabase.getInstance(ctx);
+
+            // Fix 1.1: Use selected date, not always today
             Long selectedTs = checkInViewModel.getSelectedDate().getValue();
-            long today = selectedTs != null ? selectedTs : com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
-            long dayEnd = today + 86400000L;
-            com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+            long date = selectedTs != null ? selectedTs : DateUtils.getTodayStartTimestamp();
 
-            // Count TrainingPlan definitions for this date (matching HealthScoreCalculator logic)
-            java.util.List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans =
-                    db.trainingPlanDao().getAllPlansList();
-            android.content.SharedPreferences sp = ctx.getSharedPreferences("fitness_diary_prefs",
-                    android.content.Context.MODE_PRIVATE);
-            String mode = sp.getString("current_plan_mode", "基础");
-            java.util.Calendar cal = java.util.Calendar.getInstance();
-            cal.setTimeInMillis(today);
-            int androidDow = cal.get(java.util.Calendar.DAY_OF_WEEK);
-            int dayIdx = (androidDow == java.util.Calendar.SUNDAY) ? 7 : (androidDow - 1);
-            int sportTotal = 0;
-            if (allPlans != null) {
-                for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
-                    String cat = plan.getCategory();
-                    if (cat == null || !cat.startsWith(mode + "-")) continue;
-                    String sd = plan.getScheduledDays();
-                    if (sd == null || sd.isEmpty() || sd.contains("0")) { sportTotal++; }
-                    else {
-                        for (String d : sd.split(",")) {
-                            if (d.trim().equals(String.valueOf(dayIdx))) { sportTotal++; break; }
-                        }
-                    }
+            // Use HealthAggregationRepository for the cross-module snapshot
+            HealthAggregationRepository repo = new HealthAggregationRepository(
+                    (android.app.Application) ctx.getApplicationContext());
+            DailyHealthSnapshot snapshot = repo.getDateSnapshot(date);
+
+            // Build user profile
+            HealthScoreCalculator.UserProfile profile = new HealthScoreCalculator.UserProfile();
+            try {
+                com.cz.fitnessdiary.database.AppDatabase db =
+                        com.cz.fitnessdiary.database.AppDatabase.getInstance(ctx);
+                com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+                if (user != null) {
+                    if (user.getDailyCalorieTarget() > 0) profile.dailyCalorieTarget = user.getDailyCalorieTarget();
+                    if (user.getDailyWaterTarget() > 0) profile.waterTargetMl = user.getDailyWaterTarget();
+                    profile.weightKg = user.getWeight();
+                    profile.heightCm = user.getHeight();
+                    profile.age = user.getAge();
+                    profile.gender = user.getGender() == 1 ? "male" : "female";
+                    int goalType = user.getGoalType();
+                    if (goalType == 0) profile.goalType = "lose";
+                    else if (goalType == 1) profile.goalType = "gain";
+                    else profile.goalType = "maintain";
+                    if (user.getTargetProtein() > 0) profile.targetProteinGrams = user.getTargetProtein();
+                    if (user.getTargetCarbs() > 0) profile.targetCarbsGrams = user.getTargetCarbs();
                 }
-            }
-            int sportDone = db.dailyLogDao().getTodayCompletedCountSync(today);
-            int sportScore = sportTotal > 0 ? Math.round(25f * sportDone / sportTotal) : 25;
+                // 读取目标运动时长
+                SharedPreferences sp = ctx.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
+                profile.targetExerciseMinutes = sp.getInt("target_exercise_minutes", 0);
+            } catch (Exception ignored) {}
 
-            int targetCal = user != null && user.getDailyCalorieTarget() > 0 ? user.getDailyCalorieTarget() : 2000;
-            int consumedCal = 0;
-            java.util.List<com.cz.fitnessdiary.database.entity.FoodRecord> foods =
-                    db.foodRecordDao().getByDateRangeSync(today, dayEnd);
-            if (foods != null) for (com.cz.fitnessdiary.database.entity.FoodRecord f : foods) consumedCal += f.getCalories();
-            float calRatio = targetCal > 0 ? (float) consumedCal / targetCal : 0;
-            int dietScore = consumedCal == 0 ? 0 : calRatio >= 0.9f && calRatio <= 1.1f ? 25 : calRatio >= 0.8f && calRatio <= 1.2f ? 15 : 5;
-
-            int sleepScore = 0;
-            java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> sleeps = db.sleepRecordDao().getSleepRecordsByDateRangeSync(today, dayEnd);
-            if (sleeps != null && !sleeps.isEmpty()) {
-                float h = 0; for (com.cz.fitnessdiary.database.entity.SleepRecord s : sleeps) h += s.getDuration() / 3600f;
-                sleepScore = h >= 7 && h <= 9 ? 20 : h >= 6 && h < 7 ? 15 : 5;
-            }
-
-            int waterMl = db.waterRecordDao().getTodayTotalSync(today, dayEnd);
-            int waterTarget = user != null && user.getDailyWaterTarget() > 0 ? user.getDailyWaterTarget() : 2000;
-            int waterScore = waterMl >= waterTarget ? 15 : waterMl >= waterTarget / 2 ? 10 : waterMl > 0 ? 5 : 0;
-
-            java.util.List<com.cz.fitnessdiary.database.entity.HabitItem> habits = db.habitItemDao().getEnabledSync();
-            int habitScore = 0;
-            if (habits != null && !habits.isEmpty()) {
-                int done = 0;
-                for (com.cz.fitnessdiary.database.entity.HabitItem h : habits) {
-                    com.cz.fitnessdiary.database.entity.HabitRecord r = db.habitRecordDao().getByHabitAndDateSync(h.getId(), today);
-                    if (r != null && r.isCompleted()) done++;
-                }
-                habitScore = Math.round(10f * done / habits.size());
-            }
-
-            int weightScore = 3;
-            if (user != null && user.getWeight() > 0) {
-                long weekAgo = today - 7 * 86400000L;
-                java.util.List<com.cz.fitnessdiary.database.entity.WeightRecord> wRecords =
-                        db.weightRecordDao().getRecordsByDateRangeSync(weekAgo, today + 86400000L);
-                if (wRecords != null && wRecords.size() >= 2) {
-                    float diff = wRecords.get(0).getWeight() - wRecords.get(wRecords.size() - 1).getWeight();
-                    int goal = user.getGoalType();
-                    if (goal == 0) weightScore = diff <= 0 ? 5 : 0;
-                    else if (goal == 1) weightScore = diff >= 0 ? 5 : 0;
-                    else weightScore = Math.abs(diff) < 1f ? 5 : 3;
-                }
-            }
-
-            int total = sportScore + dietScore + sleepScore + waterScore + habitScore + weightScore;
-            total = Math.min(total, 100);
-
-            boolean isToday = com.cz.fitnessdiary.utils.DateUtils.isToday(today);
-            String dayLabel = isToday ? "今日" : "当日";
-            String msg = String.format(java.util.Locale.getDefault(),
-                    "🏃 运动 (25%%):  %d/%d → %d分\n\n" +
-                    "🍽 饮食 (25%%):  摄入%d/%d千卡 → %d分\n\n" +
-                    "😴 睡眠 (20%%):  %s → %d分\n\n" +
-                    "💧 饮水 (15%%):  %dml → %d分\n\n" +
-                    "✅ 习惯 (10%%):  %s → %d分\n\n" +
-                    "⚖ 体重 (5%%):   %s → %d分\n\n" +
-                    "─────────────────\n%s健康总分：%d / 100",
-                    sportDone, sportTotal, sportScore,
-                    consumedCal, targetCal, dietScore,
-                    sleepScore > 0 ? "已记录" : "无记录", sleepScore,
-                    waterMl, waterScore,
-                    habitScore > 0 ? "部分达成" : "无记录", habitScore,
-                    weightScore >= 4 ? "趋势良好" : "待改善", weightScore,
-                    dayLabel, total);
+            HealthScoreBreakdown breakdown = HealthScoreCalculator.calculateBreakdown(snapshot, profile);
 
             requireActivity().runOnUiThread(() -> {
-                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                        .setTitle(dayLabel + "健康评分分解")
-                        .setMessage(msg)
-                        .setPositiveButton("知道了", null)
-                        .show();
+                if (!isAdded() || binding == null) return;
+
+                StringBuilder detail = new StringBuilder();
+                // Training dimension (Fix 1.2: add MET explanation + target duration)
+                if (snapshot.completedPlans > 0) {
+                    int totalCal = snapshot.exerciseCalories + snapshot.stepCalories;
+                    String targetDisplay = profile.targetExerciseMinutes > 0
+                            ? profile.targetExerciseMinutes + "分钟"
+                            : "自动估算";
+                    detail.append("🏋️ 训练：").append(breakdown.exerciseScore).append("/25（今日有训练，消耗").append(totalCal).append("kcal · MET估算:5.0(混合训练均值) · 目标时长: ").append(targetDisplay).append("）\n");
+                } else {
+                    detail.append("🏋️ 训练：").append(breakdown.exerciseScore).append("/25（今日无训练记录）\n");
+                }
+                // Diet dimension (Fix 1.3: show protein/carbs breakdown)
+                if (snapshot.dietCalories > 0) {
+                    float ratio = (float) snapshot.dietCalories / profile.dailyCalorieTarget;
+                    String calStatus;
+                    if (ratio >= 0.9f && ratio <= 1.1f) {
+                        calStatus = "热量达标";
+                    } else if (ratio >= 0.8f && ratio <= 1.2f) {
+                        calStatus = "热量接近目标";
+                    } else {
+                        calStatus = "摄入" + snapshot.dietCalories + "kcal";
+                    }
+                    String proteinInfo = "蛋白质" + snapshot.todayProtein + "g";
+                    String carbsInfo = "碳水" + snapshot.todayCarbs + "g";
+                    detail.append("🥗 饮食：").append(breakdown.dietScore).append("/25（").append(calStatus).append(" · ").append(proteinInfo).append(" · ").append(carbsInfo).append("）\n");
+                } else {
+                    detail.append("🥗 饮食：").append(breakdown.dietScore).append("/25（今日无饮食记录）\n");
+                }
+                // Habits dimension
+                StringBuilder habitDetail = new StringBuilder();
+                boolean hasAnyHabit = false;
+                if (snapshot.sleepHours >= 7 && snapshot.sleepHours <= 9) {
+                    habitDetail.append("睡眠达标/");
+                    hasAnyHabit = true;
+                } else if (snapshot.sleepHours > 0) {
+                    habitDetail.append("睡眠").append(String.format(java.util.Locale.getDefault(), "%.1f", snapshot.sleepHours)).append("h/");
+                    hasAnyHabit = true;
+                }
+                if (snapshot.waterMl >= profile.waterTargetMl) {
+                    habitDetail.append("饮水达标/");
+                    hasAnyHabit = true;
+                } else if (snapshot.waterMl >= profile.waterTargetMl / 2) {
+                    habitDetail.append("饮水").append(snapshot.waterMl).append("ml/");
+                    hasAnyHabit = true;
+                } else if (snapshot.waterMl > 0) {
+                    habitDetail.append("饮水").append(snapshot.waterMl).append("ml/");
+                    hasAnyHabit = true;
+                }
+                if (snapshot.steps >= 8000) {
+                    habitDetail.append("步数达标");
+                    hasAnyHabit = true;
+                } else if (snapshot.steps >= 5000) {
+                    habitDetail.append("步数").append(snapshot.steps).append("步");
+                    hasAnyHabit = true;
+                } else if (snapshot.steps > 0) {
+                    habitDetail.append("步数").append(snapshot.steps).append("步");
+                    hasAnyHabit = true;
+                }
+                if (!hasAnyHabit) {
+                    habitDetail.append("部分习惯未完成");
+                }
+                detail.append("💧 习惯：").append(breakdown.habitsScore).append("/20（").append(habitDetail).append("）\n");
+                // Body dimension (Fix 1.4: show target weight + trend direction)
+                String bodyDesc;
+                float targetWeight = HealthScoreCalculator.computeTargetWeight(profile);
+                if (profile.goalType != null) {
+                    boolean movingTowardTarget = ("lose".equals(profile.goalType) && snapshot.weightTrend > 0) ||
+                        ("gain".equals(profile.goalType) && snapshot.weightTrend < 0) ||
+                        ("maintain".equals(profile.goalType) && Math.abs(snapshot.weightTrend) < 0.5f);
+                    String trendLabel = movingTowardTarget ? "趋势向好" : "趋势偏离";
+                    bodyDesc = "目标体重" + String.format(java.util.Locale.getDefault(), "%.1f", targetWeight) + "kg，当前"
+                            + String.format(java.util.Locale.getDefault(), "%.1f", snapshot.weightKg) + "kg，" + trendLabel;
+                } else {
+                    bodyDesc = "体重数据正常";
+                }
+                detail.append("📏 身体：").append(breakdown.bodyMetricsScore).append("/15（").append(bodyDesc).append("）\n");
+                // Consistency dimension
+                String consistencyDesc = "连续打卡" + snapshot.consecutiveDays + "天+";
+                detail.append("🔥 坚持：").append(breakdown.consistencyScore).append("/15（").append(consistencyDesc).append("）\n\n");
+                detail.append("总分：").append(breakdown.totalScore).append("/100");
+
+                String message = detail.toString();
+
+                new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("健康评分明细")
+                    .setMessage(message)
+                    .setPositiveButton("确定", null)
+                    .show();
             });
         }).start();
     }
@@ -1501,11 +1608,11 @@ public class CheckInFragment extends Fragment {
         View card = binding.getRoot().findViewById(R.id.card_challenge);
         if (card == null) return;
 
+        // 首页中的挑战卡片已永久隐藏，所有状态都在FAB弹窗内展示
+        card.setVisibility(View.GONE);
         if (type == null || !"ACTIVE".equals(status)) {
-            card.setVisibility(View.GONE);
             return;
         }
-        card.setVisibility(View.VISIBLE);
         int days = com.cz.fitnessdiary.utils.ChallengeManager.getProgressDays(getContext());
         int fails = com.cz.fitnessdiary.utils.ChallengeManager.getFailDays(getContext());
 
@@ -1752,123 +1859,11 @@ public class CheckInFragment extends Fragment {
     }
 
     private void loadCardConfig() {
-        SharedPreferences sp = requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE);
-        String raw = sp.getString(KEY_SMALL_ORDER,
-                CARD_WATER + "," + CARD_SLEEP + "," + CARD_HABIT + "," + CARD_MEDICATION + "," + CARD_WEIGHT + ","
-                        + CARD_MEASUREMENT + "," + CARD_BOWEL + "," + CARD_MENSTRUAL
-                        + "," + CARD_STEP + "," + CARD_MOOD);
-        smallCardOrder.clear();
-        if (raw != null) {
-            for (String s : raw.split(",")) {
-                String id = s.trim();
-                if (!smallCardOrder.contains(id) && !"custom".equals(id))
-                    smallCardOrder.add(id);
-            }
-        }
-        if (!smallCardOrder.contains(CARD_WATER))
-            smallCardOrder.add(CARD_WATER);
-        if (!smallCardOrder.contains(CARD_SLEEP))
-            smallCardOrder.add(CARD_SLEEP);
-        if (!smallCardOrder.contains(CARD_HABIT))
-            smallCardOrder.add(CARD_HABIT);
-        if (!smallCardOrder.contains(CARD_MEDICATION))
-            smallCardOrder.add(CARD_MEDICATION);
-        if (!smallCardOrder.contains(CARD_WEIGHT))
-            smallCardOrder.add(CARD_WEIGHT);
-        if (!smallCardOrder.contains(CARD_MEASUREMENT))
-            smallCardOrder.add(CARD_MEASUREMENT);
-        if (!smallCardOrder.contains(CARD_BOWEL))
-            smallCardOrder.add(CARD_BOWEL);
-        if (!smallCardOrder.contains(CARD_MENSTRUAL))
-            smallCardOrder.add(CARD_MENSTRUAL);
-        if (!smallCardOrder.contains(CARD_STEP))
-            smallCardOrder.add(CARD_STEP);
-        if (!smallCardOrder.contains(CARD_MOOD))
-            smallCardOrder.add(CARD_MOOD);
+        // 合并至 applyBigCardsConfig
     }
 
     private void applyCardConfig() {
-        androidx.gridlayout.widget.GridLayout layout = binding.gridCards;
-        if (layout == null)
-            return;
-
-        List<String> enabled = new ArrayList<>();
-        for (String id : smallCardOrder) {
-            if (CARD_WATER.equals(id) && isCardEnabled(KEY_SHOW_WATER, true))
-                enabled.add(id);
-            if (CARD_SLEEP.equals(id) && isCardEnabled(KEY_SHOW_SLEEP, true))
-                enabled.add(id);
-            if (CARD_HABIT.equals(id) && isCardEnabled(KEY_SHOW_HABIT, true))
-                enabled.add(id);
-            if (CARD_MEDICATION.equals(id) && isCardEnabled(KEY_SHOW_MEDICATION, true))
-                enabled.add(id);
-            if (CARD_WEIGHT.equals(id) && isCardEnabled(KEY_SHOW_WEIGHT, true))
-                enabled.add(id);
-            if (CARD_MEASUREMENT.equals(id) && isCardEnabled(KEY_SHOW_MEASUREMENT, true))
-                enabled.add(id);
-            if (CARD_BOWEL.equals(id) && isCardEnabled(KEY_SHOW_BOWEL, true))
-                enabled.add(id);
-            if (CARD_MENSTRUAL.equals(id) && isCardEnabled(KEY_SHOW_MENSTRUAL, true))
-                enabled.add(id);
-            if (CARD_STEP.equals(id) && isCardEnabled(KEY_SHOW_STEP, true))
-                enabled.add(id);
-            if (CARD_MOOD.equals(id) && isCardEnabled(KEY_SHOW_MOOD, true))
-                enabled.add(id);
-        }
-
-        // [v2.3] 核心优化：对比配置，若无变化则跳过刷新
-        if (enabled.equals(lastEnabledCardIds)) {
-            return;
-        }
-        lastEnabledCardIds = new ArrayList<>(enabled);
-
-        // ── 彻底重建策略 ──────────────────────────────────────────
-        // 第1步：把所有卡片从旧的 FrameLayout parent 里解绑，不然 addView 会抛异常
-        List<View> targetCards = new ArrayList<>();
-        for (String id : enabled) {
-            View card = getCardById(id);
-            if (card == null)
-                continue;
-            ViewGroup oldParent = (ViewGroup) card.getParent();
-            if (oldParent != null) {
-                oldParent.removeView(card);
-            }
-            targetCards.add(card);
-        }
-
-        // 第2步：清空 GridLayout 所有子视图（旧 FrameLayout wrapper 一并丢弃）
-        layout.removeAllViews();
-
-        // 第3步：用全新 FrameLayout + 全新 LayoutParams 逐一重新添加
-        int marginGap = dp(8); // 两列之间的总间隙拆半
-        int marginBottom = dp(16);
-
-        for (int i = 0; i < targetCards.size(); i++) {
-            View card = targetCards.get(i);
-
-            // 全新 wrapper，保证没有任何旧参数
-            FrameLayout wrapper = new FrameLayout(requireContext());
-            wrapper.addView(card);
-
-            // 全新 GridLayout.LayoutParams
-            androidx.gridlayout.widget.GridLayout.LayoutParams lp = new androidx.gridlayout.widget.GridLayout.LayoutParams();
-            lp.width = 0;
-            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            lp.columnSpec = androidx.gridlayout.widget.GridLayout.spec(
-                    androidx.gridlayout.widget.GridLayout.UNDEFINED, 1f);
-
-            // 左列：右边留间距；右列：左边留间距
-            if (i % 2 == 0) {
-                lp.setMargins(0, 0, marginGap, marginBottom);
-            } else {
-                lp.setMargins(marginGap, 0, 0, marginBottom);
-            }
-
-            wrapper.setLayoutParams(lp);
-            layout.addView(wrapper);
-        }
-        // ─────────────────────────────────────────────────────────
-
+        // 合并至 applyBigCardsConfig
     }
 
     private View getCardById(String id) {
@@ -1876,7 +1871,16 @@ public class CheckInFragment extends Fragment {
     }
 
     private boolean isCardEnabled(String key, boolean def) {
-        return requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE).getBoolean(key, def);
+        boolean defaultVal = def;
+        if (KEY_SHOW_SLEEP.equals(key) || KEY_SHOW_WEIGHT.equals(key)) {
+            defaultVal = true;
+        } else if (KEY_SHOW_WATER.equals(key) || KEY_SHOW_HABIT.equals(key) || 
+                   KEY_SHOW_MEDICATION.equals(key) || KEY_SHOW_MEASUREMENT.equals(key) || 
+                   KEY_SHOW_BOWEL.equals(key) || KEY_SHOW_MENSTRUAL.equals(key) || 
+                   KEY_SHOW_STEP.equals(key) || KEY_SHOW_MOOD.equals(key)) {
+            defaultVal = false;
+        }
+        return requireContext().getSharedPreferences(PREF_HOME_CARDS, Context.MODE_PRIVATE).getBoolean(key, defaultVal);
     }
 
     private CheckBox buildToggle(LinearLayout root, String text, boolean checked) {
@@ -2116,6 +2120,10 @@ public class CheckInFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (homeCardsChangeListener != null && getContext() != null) {
+            requireContext().getSharedPreferences("home_big_cards_prefs", Context.MODE_PRIVATE)
+                    .unregisterOnSharedPreferenceChangeListener(homeCardsChangeListener);
+        }
         if (restTimerManager != null) {
             restTimerManager.cancel();
         }
@@ -2126,5 +2134,310 @@ public class CheckInFragment extends Fragment {
 
     private int getBristolIconRes(int type) {
         return com.cz.fitnessdiary.utils.AnalysisUtils.getBristolIconRes(type);
+    }
+
+    private void applyBigCardsConfig() {
+        if (binding == null || getContext() == null) return;
+
+        SharedPreferences sp = requireContext().getSharedPreferences("home_cards_prefs", Context.MODE_PRIVATE);
+        String orderStr = sp.getString("home_cards_order", "missions,briefing,sport,diet,water,sleep,habit,medication,weight,measurement,bowel,menstrual,step,mood");
+        
+        // 自动补齐缺失的卡片ID
+        if (orderStr != null) {
+            List<String> list = new ArrayList<>(Arrays.asList(orderStr.split(",")));
+            boolean changed = false;
+            for (String id : Arrays.asList("missions","briefing","sport","diet","water","sleep","habit","medication","weight","measurement","bowel","menstrual","step","mood")) {
+                if (!list.contains(id)) {
+                    list.add(id);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < list.size(); i++) {
+                    sb.append(list.get(i));
+                    if (i < list.size() - 1) sb.append(",");
+                }
+                orderStr = sb.toString();
+                sp.edit().putString("home_cards_order", orderStr).apply();
+            }
+        }
+
+        String[] order = orderStr.split(",");
+
+        // 1. 先安全地移除所有的 View
+        binding.cardsContainer.removeView(binding.cardRestTimer);
+        binding.cardsContainer.removeView(binding.layoutDailyMissions);
+        binding.cardsContainer.removeView(binding.cardAiBriefing.getRoot());
+        binding.cardsContainer.removeView(binding.cardSport);
+        binding.cardsContainer.removeView(binding.cardDiet);
+        binding.cardsContainer.removeView(binding.shellCardWater);
+        binding.cardsContainer.removeView(binding.shellCardSleep);
+        binding.cardsContainer.removeView(binding.shellCardHabit);
+        binding.cardsContainer.removeView(binding.shellCardMedication);
+        binding.cardsContainer.removeView(binding.shellCardWeight);
+        binding.cardsContainer.removeView(binding.shellCardMeasurement);
+        binding.cardsContainer.removeView(binding.shellCardBowel);
+        binding.cardsContainer.removeView(binding.shellCardMenstrual);
+        binding.cardsContainer.removeView(binding.shellCardStep);
+        binding.cardsContainer.removeView(binding.shellCardMood);
+        binding.cardsContainer.removeView(binding.gridCards);
+        binding.cardsContainer.removeView(binding.cardChallenge);
+        binding.cardsContainer.removeView(binding.layoutBottomActions);
+
+        // 2. 清空 GridLayout 所有子视图
+        binding.gridCards.removeAllViews();
+
+        // 3. 计算已开启的打卡小卡片列表
+        List<String> enabledSmallCardIds = new ArrayList<>();
+        for (String id : order) {
+            String trimmed = id.trim();
+            if (isSmallCard(trimmed)) {
+                boolean show = sp.getBoolean("show_card_" + trimmed, getDefaultCardVisibility(trimmed));
+                if (show) {
+                    enabledSmallCardIds.add(trimmed);
+                }
+            }
+        }
+
+        // 4. 用全新 FrameLayout + 全新 LayoutParams 逐一重新装填进 grid_cards
+        int marginGap = dp(8); // 两列之间的总间隙拆半
+        int marginBottom = dp(16);
+        for (int i = 0; i < enabledSmallCardIds.size(); i++) {
+            String id = enabledSmallCardIds.get(i);
+            View cardShell = getCardShellViewById(id);
+            if (cardShell != null) {
+                ViewGroup oldParent = (ViewGroup) cardShell.getParent();
+                if (oldParent != null) {
+                    oldParent.removeView(cardShell);
+                }
+
+                // 将 shell 宽度改为 MATCH_PARENT 以拉伸占满单元格，高度改为 wrap_content
+                ViewGroup.LayoutParams originalLp = cardShell.getLayoutParams();
+                if (originalLp != null) {
+                    originalLp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                    originalLp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                    cardShell.setLayoutParams(originalLp);
+                }
+                cardShell.setVisibility(View.VISIBLE);
+
+                FrameLayout wrapper = new FrameLayout(requireContext());
+                wrapper.addView(cardShell);
+
+                androidx.gridlayout.widget.GridLayout.LayoutParams lp = new androidx.gridlayout.widget.GridLayout.LayoutParams();
+                lp.width = 0;
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                lp.columnSpec = androidx.gridlayout.widget.GridLayout.spec(androidx.gridlayout.widget.GridLayout.UNDEFINED, 1f);
+
+                if (i % 2 == 0) {
+                    lp.setMargins(0, 0, marginGap, marginBottom);
+                } else {
+                    lp.setMargins(marginGap, 0, 0, marginBottom);
+                }
+
+                wrapper.setLayoutParams(lp);
+                binding.gridCards.addView(wrapper);
+            }
+        }
+
+        // 5. 依次按逻辑与配置添加 View 到首页主列表
+        // A. 顶部计时器
+        binding.cardsContainer.addView(binding.cardRestTimer);
+
+        // B. 动态配置区域 (14个平级打卡记录卡片，其中小卡片用 grid_cards 网格统一承载)
+        boolean gridCardsAdded = false;
+        for (String id : order) {
+            String trimmed = id.trim();
+            if (isSmallCard(trimmed)) {
+                if (!gridCardsAdded && !enabledSmallCardIds.isEmpty()) {
+                    binding.gridCards.setVisibility(View.VISIBLE);
+                    binding.cardsContainer.addView(binding.gridCards);
+                    gridCardsAdded = true;
+                }
+            } else {
+                View bigCardView = getBigCardViewById(trimmed);
+                if (bigCardView != null) {
+                    boolean show = sp.getBoolean("show_card_" + trimmed, getDefaultCardVisibility(trimmed));
+                    bigCardView.setVisibility(show ? View.VISIBLE : View.GONE);
+                    binding.cardsContainer.addView(bigCardView);
+                }
+            }
+        }
+
+        // C. 底部卡片与操作行
+        binding.cardsContainer.addView(binding.cardChallenge);
+        binding.cardsContainer.addView(binding.layoutBottomActions);
+    }
+
+    private boolean isSmallCard(String id) {
+        return "water".equals(id) || "sleep".equals(id) || "habit".equals(id) || 
+               "medication".equals(id) || "weight".equals(id) || "measurement".equals(id) || 
+               "bowel".equals(id) || "menstrual".equals(id) || "step".equals(id) || "mood".equals(id);
+    }
+
+    private View getBigCardViewById(String id) {
+        switch (id) {
+            case "missions": return binding.layoutDailyMissions;
+            case "briefing": return binding.cardAiBriefing.getRoot();
+            case "sport": return binding.cardSport;
+            case "diet": return binding.cardDiet;
+            default: return null;
+        }
+    }
+
+    private View getCardShellViewById(String id) {
+        switch (id) {
+            case "water": return binding.shellCardWater;
+            case "sleep": return binding.shellCardSleep;
+            case "habit": return binding.shellCardHabit;
+            case "medication": return binding.shellCardMedication;
+            case "weight": return binding.shellCardWeight;
+            case "measurement": return binding.shellCardMeasurement;
+            case "bowel": return binding.shellCardBowel;
+            case "menstrual": return binding.shellCardMenstrual;
+            case "step": return binding.shellCardStep;
+            case "mood": return binding.shellCardMood;
+            default: return null;
+        }
+    }
+
+    private boolean getDefaultCardVisibility(String id) {
+        return true; // 所有配置项默认全开启显示
+    }
+
+    // ================================================================
+    // v3.0 AI Daily Briefing
+    // ================================================================
+
+    private void loadDailyBriefing() {
+        if (briefingService == null) {
+            return;
+        }
+        // 尝试使用缓存
+        DailyBriefingService.DailyBriefing cached = briefingService.getCachedBriefing();
+        if (cached != null) {
+            bindBriefingCard(cached);
+            return;
+        }
+        // 显示加载状态
+        View loading = binding.getRoot().findViewById(R.id.briefing_loading);
+        if (loading != null) {
+            loading.setVisibility(View.VISIBLE);
+        }
+        View content = binding.getRoot().findViewById(R.id.briefing_content);
+        if (content != null) {
+            content.setVisibility(View.GONE);
+        }
+        // 异步生成
+        briefingService.generateBriefing(briefing -> {
+            if (isAdded() && binding != null) {
+                bindBriefingCard(briefing);
+            }
+        });
+    }
+
+    private void bindBriefingCard(DailyBriefingService.DailyBriefing briefing) {
+        if (briefing == null) {
+            return;
+        }
+        try {
+            // 日期
+            TextView briefingDate = binding.getRoot().findViewById(R.id.briefing_date);
+            if (briefingDate != null) {
+                briefingDate.setText(
+                        DateUtils.formatFullDate(DateUtils.getTodayStartTimestamp()));
+            }
+            // 问候语
+            TextView briefingGreeting = binding.getRoot().findViewById(R.id.briefing_greeting);
+            if (briefingGreeting != null) {
+                briefingGreeting.setText(briefing.greeting != null ? briefing.greeting : "");
+            }
+            // 评分评语
+            TextView briefingScoreComment = binding.getRoot().findViewById(R.id.briefing_score_comment);
+            if (briefingScoreComment != null) {
+                String comment = briefing.scoreComment != null ? briefing.scoreComment : "";
+                if (comment.isEmpty()) {
+                    comment = "查看今日健康总览";
+                }
+                briefingScoreComment.setText(comment);
+            }
+            // 亮点列表
+            LinearLayout highlightsContainer = binding.getRoot().findViewById(R.id.briefing_highlights_container);
+            if (highlightsContainer != null) {
+                highlightsContainer.removeAllViews();
+                if (briefing.highlights != null && !briefing.highlights.isEmpty()) {
+                    for (String highlight : briefing.highlights) {
+                        if (highlight == null || highlight.isEmpty()) {
+                            continue;
+                        }
+                        TextView highlightView = new TextView(requireContext());
+                        highlightView.setText("• " + highlight);
+                        highlightView.setTextSize(14);
+                        highlightView.setTextColor(
+                                getResources().getColor(R.color.text_secondary, null));
+                        highlightView.setPadding(0, dp(2), 0, dp(2));
+                        highlightsContainer.addView(highlightView);
+                    }
+                }
+            }
+            // 建议
+            TextView briefingSuggestion = binding.getRoot().findViewById(R.id.briefing_suggestion);
+            if (briefingSuggestion != null) {
+                briefingSuggestion.setText(briefing.suggestion != null ? briefing.suggestion : "");
+            }
+            // 鼓励语
+            TextView briefingMotivation = binding.getRoot().findViewById(R.id.briefing_motivation);
+            if (briefingMotivation != null) {
+                briefingMotivation.setText(briefing.motivation != null ? briefing.motivation : "");
+            }
+            // 离线模式标签
+            TextView offlineBadge = binding.getRoot().findViewById(R.id.briefing_offline_badge);
+            if (offlineBadge != null) {
+                offlineBadge.setVisibility(briefing.isLocal ? View.VISIBLE : View.GONE);
+            }
+            // 切换加载 / 内容
+            View loading = binding.getRoot().findViewById(R.id.briefing_loading);
+            if (loading != null) {
+                loading.setVisibility(View.GONE);
+            }
+            View content = binding.getRoot().findViewById(R.id.briefing_content);
+            if (content != null) {
+                content.setVisibility(View.VISIBLE);
+            }
+
+            // Card root click to toggle
+            View cardRoot = binding.cardAiBriefing.getRoot();
+            if (cardRoot != null) {
+                cardRoot.setOnClickListener(v -> toggleBriefing());
+            }
+
+            // Toggle arrow setup (secondary toggle)
+            ImageView toggleArrow = binding.getRoot().findViewById(R.id.briefing_toggle_arrow);
+            if (toggleArrow != null) {
+                toggleArrow.setOnClickListener(v -> toggleBriefing());
+            }
+        } catch (Exception ignored) {}
+
+        // Apply initial collapsed/expanded state
+        View contentView = binding.getRoot().findViewById(R.id.briefing_content);
+        if (contentView != null) {
+            contentView.setVisibility(isBriefingExpanded ? View.VISIBLE : View.GONE);
+        }
+        ImageView arrow = binding.getRoot().findViewById(R.id.briefing_toggle_arrow);
+        if (arrow != null) {
+            arrow.setRotation(isBriefingExpanded ? 0 : 180);
+        }
+    }
+
+    private void toggleBriefing() {
+        isBriefingExpanded = !isBriefingExpanded;
+        View content = binding.getRoot().findViewById(R.id.briefing_content);
+        if (content != null) {
+            content.setVisibility(isBriefingExpanded ? View.VISIBLE : View.GONE);
+        }
+        ImageView toggleArrow = binding.getRoot().findViewById(R.id.briefing_toggle_arrow);
+        if (toggleArrow != null) {
+            toggleArrow.setRotation(isBriefingExpanded ? 0 : 180);
+        }
     }
 }

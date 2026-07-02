@@ -36,15 +36,15 @@ API keys are loaded from `local.properties` into `BuildConfig`:
 `MainActivity` is the only Activity. It dynamically sets the nav graph start destination based on whether the user is registered (`WelcomeFragment` vs `MainHomeFragment`). 
 
 `MainHomeFragment` contains a customized bottom navigation bar hosting five core functional tabs:
-1. `CheckInFragment` (记录) — Daily checklist for steps, water, sleep, habits, weight, mood, etc.
-2. `PlanFragment` (日历历史) — Monthly calendar view displaying workout logs, completed calories, steps, diet stats, and customizable color notes. Provides a setup Dialog to customize row display orders and entry buttons to navigate to `PlanManageFragment`, `PlanStatsFragment`, and `ExerciseLibraryFragment`.
-3. `DietFragment` (饮食记录) — Nutrients tracking and meal log.
+1. `CheckInFragment` (记录) — v2.3: 首页右上角健康评分环（五维度评分），健康日报卡片（可折叠），FAB 四功能区快捷入口。Daily checklist for steps, water, sleep, habits, weight, mood, etc.
+2. `PlanFragment` (日历历史) — v2.3: 月度日历，单元格显示训练标记，日期弹窗查看当日全维度摘要与训练详情。Monthly calendar view displaying workout logs and customizable color notes.
+3. `DietFragment` (饮食记录) — v2.3: 顶部能量状态横条（摄入 vs 消耗实时对比）。Nutrients tracking and meal log.
 4. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/Qwen AI assistants.
-5. `ProfileFragment` (我的) — User profile and achievement settings.
+5. `ProfileFragment` (我的) — User profile and achievement settings (v2.3: 数据周报更新).
 
 The original workout plan list manager and chart statistics are migrated to secondary pages:
-* `PlanManageFragment` (训练计划管理) — 三 Tab 视图（当前计划 / 探索计划库 / 个人计划），支持“基础/进阶/自定义”分类展示、官方多设备场景模板一键导入（含经典三分化等）及分步式 AI 智能制定计划。
-* `PlanStatsFragment` (历史累计与统计) — Displays recent 7-day training calories burn in a BarChart and total historical exercise statistics.
+* `PlanManageFragment` (训练计划管理) — 三 Tab 视图（当前计划 / 探索计划库 / 个人计划），支持”基础/进阶/自定义”分类展示、官方多设备场景模板一键导入及分步式 AI 智能制定计划。
+* `PlanStatsFragment` (周/月数据统计) — v2.3: 更新训练数据统计报表。
 * `ExerciseLibraryFragment` (动作库) — Provides dual-pane interaction with muscle category sidebar and exercises grid list. Supports fuzzy searching, equipment-based filtering, detailed tutorials inside a BottomSheet, and adding custom exercises.
 
 The launcher intent can carry a `shortcut_id` for app shortcuts or reminder routing extras (`EXTRA_MODULE_TYPE`, `EXTRA_TARGET_ID`) that `routeToReminderTargetIfNeeded()` resolves to the correct fragment.
@@ -55,7 +55,7 @@ The launcher intent can carry a `shortcut_id` for app shortcuts or reminder rout
 Entity (@Entity table) → DAO (@Dao interface) → Repository (plain class) → ViewModel (AndroidViewModel)
 ```
 
-- **22 entities** in `database/entity/`, **22 DAOs** in `database/dao/`, **21 repositories** in `repository/`
+- **22 entities** in `database/entity/`, **22 DAOs** in `database/dao/`, **22 repositories** in `repository/` (includes `HealthAggregationRepository` added in v2.3)
 - `AppDatabase` is a Room singleton (DCL pattern), current version **23**
 - Repository classes extend `AndroidViewModel` pattern — they take `Application` in constructor to get the DB instance
 - All DB operations run on `Executors.newSingleThreadExecutor()` — not on the main thread but also not via Room's built-in async support
@@ -82,8 +82,39 @@ Three AI providers, all in `service/`:
 - **WebSearchService.java** — web search integration
 - **FoodImageAnalyzer.java** / **FoodParser.java** — image→nutrition pipeline
 - **OpenFoodFactsService.java** — barcode lookup
+- **DailyBriefingService.java** (v2.3) — 健康日报生成服务，聚合健康数据调用 AI 生成每日简报，失败时降级到本地规则引擎
+- **LocalBriefingGenerator.java** (v2.3) — 本地规则引擎降级方案，基于当日快照生成模板化日报
 
 The `AiCallback.kt` interface unifies callbacks across providers.
+
+### v2.3 New Components
+
+**健康数据聚合层**：
+- `HealthAggregationRepository` — 只读聚合查询层，跨 11 个 DAO 查询生成 `DailyHealthSnapshot`
+- `HealthScoreCalculator.UserProfile` / `calculateBreakdown()` — 五维度评分引擎（训练 0-25 / 饮食 0-25 / 习惯 0-20 / 身体 0-15 / 坚持 0-15）
+- `DailyHealthSnapshot` / `HealthScoreBreakdown` / `WeeklyTrend` — 聚合数据模型
+
+**快捷录入**：
+- `QuickEntryBottomSheet` — 四功能区按钮快捷入口弹窗（饮食/训练/习惯/计时器）
+- `QuickEntryViewModel` — 聚合 FoodRecordRepository、TrainingPlanRepository、HomeDashboardRepository 的录入逻辑
+
+**新手引导系统** (`ui/guide/`)：
+- `OnboardingOverlayFragment` — 全屏全局引导弹窗
+- `PageGuide` / `GuideStep` — 引导步骤数据模型
+- `TargetedGuideOverlay` — 半透明遮罩 + 高亮挖洞 + Tooltip 引导
+- `GuideStateManager` — SharedPreferences 管理引导完成状态
+
+**跨模块关联**：
+- `SportRecordDetailFragment` (v2.3) — 训练详情页底部"影响因素"卡片（前日睡眠、今日饮食）
+- `DietFragment` (v2.3) — 顶部"能量状态横条"（摄入 vs 消耗实时对比）；移除能量余额 Badge
+- `DateSummaryBottomSheet` (v2.3) — 日历日期弹窗展示全维度摘要 + 训练详情（组数/容量/时长）+ 备注 + 8 色选择器
+
+**目标体重** (v2.3)：
+- `WeightRecordDetailFragment` 新增目标体重显示与编辑，默认基于 BMI 健康范围 + 增肌/减脂目标自动计算，支持手动修改
+
+**报表更新** (v2.3)：
+- `PlanStatsFragment` — 日历报表页训练数据统计
+- `ReportBottomSheetFragment` / `ReportViewModel` — 个人中心数据周报
 
 ### Background & Sensors
 

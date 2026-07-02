@@ -24,6 +24,7 @@ import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.ExerciseLibrary;
 import com.cz.fitnessdiary.databinding.FragmentExerciseLibraryBinding;
 import com.cz.fitnessdiary.repository.ExerciseLibraryRepository;
+
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
@@ -31,6 +32,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
+import com.cz.fitnessdiary.ui.guide.GuideStep;
+import com.cz.fitnessdiary.ui.guide.PageGuide;
+import com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay;
 
 /**
  * 动作库页面 - 双栏交互式极简布局
@@ -46,6 +51,7 @@ public class ExerciseLibraryFragment extends Fragment {
 
     private SidebarAdapter sidebarAdapter;
     private ExerciseCardAdapter exerciseAdapter;
+    private View emptyStateView;
 
     private String activeParent = "全部"; // 当前选中的大部位，"全部" 表示不过滤部位
     private String activeChild = "全部";
@@ -110,6 +116,7 @@ public class ExerciseLibraryFragment extends Fragment {
         setupRecyclerViews();
         setupFilters();
         loadData();
+        setupExerciseLibraryGuide();
     }
 
     private void setupToolbar() {
@@ -143,6 +150,16 @@ public class ExerciseLibraryFragment extends Fragment {
         binding.rvExercises.setLayoutManager(new GridLayoutManager(getContext(), 2));
         exerciseAdapter = new ExerciseCardAdapter();
         binding.rvExercises.setAdapter(exerciseAdapter);
+
+        // Inflate and add empty state view below the exercises RecyclerView
+        emptyStateView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.empty_state_exercise_library, binding.getRoot(), false);
+        emptyStateView.setVisibility(View.GONE);
+        // Add to parent container (LinearLayout that holds rv_exercises)
+        android.widget.LinearLayout parentContainer = (android.widget.LinearLayout) binding.rvExercises.getParent();
+        if (parentContainer != null) {
+            parentContainer.addView(emptyStateView);
+        }
     }
 
     private void setupFilters() {
@@ -338,6 +355,20 @@ public class ExerciseLibraryFragment extends Fragment {
         }
 
         exerciseAdapter.setExercises(filtered);
+
+        // Toggle empty state visibility
+        if (filtered.isEmpty()) {
+            exerciseAdapter.notifyDataSetChanged();
+            binding.rvExercises.setVisibility(View.GONE);
+            if (emptyStateView != null) {
+                emptyStateView.setVisibility(View.VISIBLE);
+            }
+        } else {
+            binding.rvExercises.setVisibility(View.VISIBLE);
+            if (emptyStateView != null) {
+                emptyStateView.setVisibility(View.GONE);
+            }
+        }
     }
 
     /**
@@ -493,6 +524,10 @@ public class ExerciseLibraryFragment extends Fragment {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    private void setupExerciseLibraryGuide() {
+        // 动作库页面无需引导气泡
     }
 
     @Override

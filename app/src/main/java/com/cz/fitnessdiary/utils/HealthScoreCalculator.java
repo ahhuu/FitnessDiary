@@ -10,6 +10,8 @@ import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
+import com.cz.fitnessdiary.model.DailyHealthSnapshot;
+import com.cz.fitnessdiary.model.HealthScoreBreakdown;
 
 import java.util.List;
 
@@ -180,5 +182,299 @@ public class HealthScoreCalculator {
     private static String getStoredScoreInfo(Context context, String key, String label) {
         String val = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString(key, null);
         return val != null ? label + ": " + val : "";
+    }
+
+    // ================================================================
+    // v3.0 新增：UserProfile 内部类与基于 DailyHealthSnapshot 的评分方法
+    // ================================================================
+
+    /**
+     * 用户健康档案配置 - v3.0
+     * 用于健康评分计算的个性化参数
+     */
+    public static class UserProfile {
+        public int dailyCalorieTarget = 2000;
+        public int waterTargetMl = 2000;
+        public String goalType = "maintain"; // "maintain", "lose", "gain"
+        public float weightKg;
+        public float heightCm;
+        public int age;
+        public String gender = "male";
+
+        // 运动目标
+        public int targetExerciseMinutes; // 0 = auto (使用默认卡路里阈值 300 kcal)
+
+        // 营养素目标
+        public int targetProteinGrams;  // 0 = auto (1.2g/kg)
+        public int targetCarbsGrams;    // 0 = auto (55% of dietCalories)
+        public int targetFatGrams;      // 0 = auto (25% of dietCalories)
+    }
+
+    /**
+     * 基于 DailyHealthSnapshot 计算五维度健康评分明细
+     *
+     * @param data    每日健康数据快照
+     * @param profile 用户健康档案
+     * @return 健康评分明细（含总分）
+     */
+    public static HealthScoreBreakdown calculateBreakdown(DailyHealthSnapshot data, UserProfile profile) {
+        HealthScoreBreakdown b = new HealthScoreBreakdown();
+        b.exerciseScore = calcExerciseScore(data, profile);
+        b.dietScore = calcDietScore(data, profile);
+        b.habitsScore = calcHabitsScore(data, profile);
+        b.bodyMetricsScore = calcBodyMetricsScore(data, profile);
+        b.consistencyScore = calcConsistencyScore(data);
+        b.computeTotal();
+        return b;
+    }
+
+    /**
+     * 便捷方法：基于 DailyHealthSnapshot 计算健康总分
+     *
+     * @param data    每日健康数据快照
+     * @param profile 用户健康档案
+     * @return 健康总分 (0-100)
+     */
+    public static int calculateFromSnapshot(DailyHealthSnapshot data, UserProfile profile) {
+        return calculateBreakdown(data, profile).totalScore;
+    }
+
+    /**
+     * 计算运动评分 (0-25)
+     * 逻辑：有完成计划得15分，全部完成再加5分，热量消耗超过阈值再加5分
+     * 阈值优先使用用户设定的目标运动时长（换算为卡路里），否则使用默认 300 kcal
+     */
+    private static int calcExerciseScore(DailyHealthSnapshot data, UserProfile profile) {
+        int score = 0;
+        if (data.completedPlans > 0) {
+            score += 15;
+        }
+        if (data.totalPlans > 0 && data.completedPlans >= data.totalPlans) {
+            score += 5;
+        }
+        int totalCalories = data.exerciseCalories + data.stepCalories;
+
+        int threshold = 300; // 默认自动估算阈值
+        if (profile.targetExerciseMinutes > 0 && profile.weightKg > 0) {
+            // 根据目标时长和体重计算卡路里阈值：MET 5 * 3.5 * weight * targetMin * 60 / 200 / 60
+            threshold = (int) (5 * 3.5 * profile.weightKg * profile.targetExerciseMinutes / 200.0);
+        }
+
+        if (totalCalories > threshold) {
+            score += 5;
+        }
+        return Math.min(score, 25);
+    }
+
+    /**
+     * 计算饮食评分 (0-25)
+     * 多因子公式：
+     * - 热量在目标 ±10% 范围：+18分
+     * - 蛋白质达标（>1.2g/每kg体重）：+4分
+     * - 碳水不超标（<总热量的60%）：+3分
+     * 若蛋白质或碳水未追踪（值为0），不扣分（直接加满该项分值）
+     */
+    private static int calcDietScore(DailyHealthSnapshot data, UserProfile profile) {
+        int target = profile.dailyCalorieTarget > 0 ? profile.dailyCalorieTarget : 2000;
+        if (data.dietCalories <= 0) {
+            return 0;
+        }
+
+        int score = 0;
+        float ratio = (float) data.dietCalories / target;
+
+        // Calories component (0-18)
+        if (ratio >= 0.9f && ratio <= 1.1f) {
+            score += 18;
+        } else if (ratio >= 0.8f && ratio <= 1.2f) {
+            score += 10;
+        } else if (ratio < 0.5f || ratio > 1.5f) {
+            score += 3;
+        } else {
+            score += 6;
+        }
+
+        // Protein component (0-4): 目标蛋白质 ±20% 内得满分
+        if (data.todayProtein > 0) {
+            float proteinTarget;
+            if (profile.targetProteinGrams > 0) {
+                proteinTarget = profile.targetProteinGrams;
+            } else if (profile.weightKg > 0) {
+                proteinTarget = profile.weightKg * 1.2f; // 自动估算：1.2g/kg
+            } else {
+                proteinTarget = 60f; // 兜底默认值
+            }
+            float proteinRatio = (float) data.todayProtein / proteinTarget;
+            if (proteinRatio >= 0.8f && proteinRatio <= 1.2f) {
+                score += 4;
+            }
+        } else {
+            // No penalty for not tracking protein
+            score += 4;
+        }
+
+        // Carbs component (0-3): 目标碳水 ±20% 内得满分
+        if (data.todayCarbs > 0) {
+            int carbsTarget;
+            if (profile.targetCarbsGrams > 0) {
+                carbsTarget = profile.targetCarbsGrams;
+            } else {
+                // 自动估算：55% of diet calories / 4 kcal per gram
+                carbsTarget = (int) (data.dietCalories * 0.55f / 4f);
+            }
+            float carbsRatio = (float) data.todayCarbs / carbsTarget;
+            if (carbsRatio >= 0.8f && carbsRatio <= 1.2f) {
+                score += 3;
+            }
+        } else {
+            // No penalty for not tracking carbs
+            score += 3;
+        }
+
+        return Math.min(score, 25);
+    }
+
+    /**
+     * 计算生活习惯评分 (0-20)
+     * 分项：睡眠(4) + 饮水(4) + 步数(3) + 用药(3) + 排便(3) + 心情(3)
+     */
+    private static int calcHabitsScore(DailyHealthSnapshot data, UserProfile profile) {
+        int score = 0;
+
+        // Sleep (0-4)
+        if (data.sleepHours >= 7 && data.sleepHours <= 9) {
+            score += 4;
+        } else if (data.sleepHours >= 6) {
+            score += 2;
+        }
+
+        // Water (0-4)
+        int waterTarget = profile.waterTargetMl > 0 ? profile.waterTargetMl : 2000;
+        if (data.waterMl >= waterTarget) {
+            score += 4;
+        } else if (data.waterMl >= waterTarget / 2) {
+            score += 2;
+        } else if (data.waterMl > 0) {
+            score += 1;
+        }
+
+        // Steps (0-3)
+        if (data.steps >= 8000) {
+            score += 3;
+        } else if (data.steps >= 5000) {
+            score += 2;
+        } else if (data.steps >= 3000) {
+            score += 1;
+        }
+
+        // Medication (0-3)
+        if (data.medicationTotal > 0) {
+            if (data.medicationTaken >= data.medicationTotal) {
+                score += 3;
+            } else if (data.medicationTaken > 0) {
+                score += 1;
+            }
+        }
+
+        // Bowel (0-3)
+        if (data.bowelCount >= 1) {
+            score += 3;
+        }
+
+        // Mood (0-3)
+        if (data.moodLevel >= 4) {
+            score += 3;
+        } else if (data.moodLevel >= 3) {
+            score += 2;
+        } else if (data.moodLevel >= 2) {
+            score += 1;
+        }
+
+        return Math.min(score, 20);
+    }
+
+    /**
+     * 计算身体指标评分 (0-15)
+     * 基于目标体重与当前体重的距离，以及体重趋势是否朝向目标方向
+     */
+    private static int calcBodyMetricsScore(DailyHealthSnapshot data, UserProfile profile) {
+        if (data.weightKg <= 0) return 5;
+        int score = 10;
+        float targetWeight = computeTargetWeight(profile);
+        float currentWeight = data.weightKg;
+        float distanceFromTarget = Math.abs(currentWeight - targetWeight);
+
+        // Weight close to target: high score
+        if (distanceFromTarget < 1.0f) {
+            score += 5;
+        } else if (distanceFromTarget < 3.0f) {
+            score += 3;
+        }
+
+        // Trend toward target: high score
+        // weightTrend > 0 means weight lost, < 0 means weight gained
+        boolean movingTowardTarget = ("lose".equals(profile.goalType) && data.weightTrend > 0) ||
+            ("gain".equals(profile.goalType) && data.weightTrend < 0) ||
+            ("maintain".equals(profile.goalType) && Math.abs(data.weightTrend) < 0.5f);
+
+        if (movingTowardTarget) {
+            score += 5;
+        } else {
+            score += 1;
+        }
+
+        return Math.min(score, 15);
+    }
+
+    /**
+     * 根据用户目标计算科学目标体重
+     * 使用 BMI 健康范围 (18.5-24.9) 作为上下限
+     * - 减脂：当前体重 × 0.90（减去10%），但不低于健康最低体重
+     * - 增肌：当前体重 × 1.06（增加6%），但不高于健康最高体重
+     * - 保持：当前体重
+     */
+    public static float computeTargetWeight(UserProfile profile) {
+        if (profile.weightKg <= 0 || profile.heightCm <= 0) return profile.weightKg;
+
+        // Calculate healthy weight range using BMI 18.5-24.9
+        float heightM = profile.heightCm / 100f;
+        float minHealthyWeight = 18.5f * heightM * heightM;
+        float maxHealthyWeight = 24.9f * heightM * heightM;
+
+        if ("lose".equals(profile.goalType)) {
+            // Target: lose 5-10% of current weight, but not below min healthy
+            float target = profile.weightKg * 0.90f; // 10% loss
+            target = Math.max(target, minHealthyWeight);
+            return Math.round(target * 10f) / 10f;
+        } else if ("gain".equals(profile.goalType)) {
+            // Target: gain 5-8% of current weight, but not above max healthy
+            float target = profile.weightKg * 1.06f; // 6% gain
+            target = Math.min(target, maxHealthyWeight);
+            return Math.round(target * 10f) / 10f;
+        } else {
+            // Maintain: stay at current weight
+            return profile.weightKg;
+        }
+    }
+
+    /**
+     * 计算坚持度评分 (0-15)
+     * 根据连续打卡天数映射得分
+     */
+    private static int calcConsistencyScore(DailyHealthSnapshot data) {
+        if (data.consecutiveDays >= 30) {
+            return 15;
+        } else if (data.consecutiveDays >= 21) {
+            return 13;
+        } else if (data.consecutiveDays >= 14) {
+            return 11;
+        } else if (data.consecutiveDays >= 7) {
+            return 9;
+        } else if (data.consecutiveDays >= 3) {
+            return 6;
+        } else if (data.consecutiveDays >= 1) {
+            return 3;
+        }
+        return 0;
     }
 }

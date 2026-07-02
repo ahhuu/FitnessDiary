@@ -100,17 +100,7 @@
                         android:textColor="@color/diet_primary"
                         android:textStyle="bold" />
 
-                    <!-- AI 快捷召唤徽章 -->
-                    <ImageButton
-                        android:id="@+id/btn_ai_quick"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_marginEnd="12dp"
-                        android:background="@drawable/bg_circle_sunken"
-                        android:src="@drawable/ic_brain"
-                        app:tint="@color/ai_primary"
-                        android:contentDescription="AI 助手"
-                        android:padding="8dp" />
+
 
                     <!-- 火焰图标 -->
                     <ImageView
@@ -225,6 +215,8 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+
 
         <!-- 中部：餐点网格 (2x2) - 固定高度避免挤压变形 -->
         <GridLayout

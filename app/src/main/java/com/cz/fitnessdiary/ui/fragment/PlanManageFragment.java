@@ -29,6 +29,10 @@ import com.cz.fitnessdiary.databinding.FragmentPlanManageBinding;
 import com.cz.fitnessdiary.ui.adapter.GroupedPlanAdapter;
 import com.cz.fitnessdiary.utils.PermissionHelper;
 import com.cz.fitnessdiary.viewmodel.PlanViewModel;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
+import com.cz.fitnessdiary.ui.guide.GuideStep;
+import com.cz.fitnessdiary.ui.guide.PageGuide;
+import com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay;
 
 /**
  * 训练计划管理页面 - 迁移自原主页训练计划模块
@@ -113,12 +117,7 @@ public class PlanManageFragment extends Fragment {
             }
         });
 
-        // AI 快捷召唤徽章
-        if (binding.btnAiQuick != null) {
-            binding.btnAiQuick.setOnClickListener(v -> {
-                QuickAiChatBottomSheet.newInstance().show(getParentFragmentManager(), "QUICK_AI_CHAT");
-            });
-        }
+
 
         // FAB 点击分流：Tab 2 新建模板，Tab 0 添加动作
         binding.fabAddPlan.setOnClickListener(v -> {
@@ -142,6 +141,7 @@ public class PlanManageFragment extends Fragment {
 
         // 初始化时尝试注入进阶计划
         viewModel.seedAdvancedPlans();
+        setupPlanManageGuide();
     }
 
     /**
@@ -712,6 +712,10 @@ public class PlanManageFragment extends Fragment {
         } else {
             binding.fabAddPlan.hide();
         }
+    }
+
+    private void setupPlanManageGuide() {
+        // 计划管理页无需气泡引导
     }
 
     @Override

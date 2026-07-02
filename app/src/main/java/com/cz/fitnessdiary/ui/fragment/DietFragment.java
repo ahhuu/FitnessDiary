@@ -39,6 +39,8 @@ import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ErrorHandler;
 import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 import com.cz.fitnessdiary.utils.PinyinUtils;
+import com.cz.fitnessdiary.model.DailyHealthSnapshot;
+import com.cz.fitnessdiary.repository.HealthAggregationRepository;
 import com.cz.fitnessdiary.service.OpenFoodFactsService;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.CompositeDateValidator;
@@ -53,6 +55,7 @@ import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import androidx.core.content.ContextCompat;
+import android.content.res.ColorStateList;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -60,6 +63,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
+import com.cz.fitnessdiary.ui.guide.GuideStep;
+import com.cz.fitnessdiary.ui.guide.PageGuide;
+import com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay;
 
 /**
  * 饮食记录页面 - 2.0 智能化完整版
@@ -170,6 +177,7 @@ public class DietFragment extends Fragment {
         setupViews();
         setupFoodScanFlowView();
         observeViewModel();
+        loadEnergyStatusBar();
     }
 
     private void setupViews() {
@@ -183,12 +191,7 @@ public class DietFragment extends Fragment {
         binding.btnBarcodeScan.setOnClickListener(v -> launchBarcodeScanner());
         binding.btnFoodScan.setOnClickListener(v -> showImageSourcePicker());
 
-        // AI 快捷召唤徽章点击事件
-        if (binding.btnAiQuick != null) {
-            binding.btnAiQuick.setOnClickListener(v -> {
-                QuickAiChatBottomSheet.newInstance().show(getParentFragmentManager(), "QUICK_AI_CHAT");
-            });
-        }
+
 
         // 绑定卡片添加按钮监听
         setupCardListeners();
@@ -927,6 +930,38 @@ public class DietFragment extends Fragment {
             }
             return bitmap;
         }
+    }
+
+    /**
+     * 在后台线程加载今日能量状态数据并更新 UI
+     */
+    private void loadEnergyStatusBar() {
+        executorService.execute(() -> {
+            try {
+                HealthAggregationRepository repo = new HealthAggregationRepository(
+                        requireActivity().getApplication());
+                DailyHealthSnapshot snapshot = repo.getTodaySnapshot();
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> bindEnergyStatus(snapshot));
+                }
+            } catch (Exception e) {
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() ->
+                            ErrorHandler.showError(DietFragment.this, "加载能量数据失败", null));
+                }
+            }
+        });
+    }
+
+    /**
+     * 将今日快照数据绑定到能量状态横条
+     */
+    private void bindEnergyStatus(DailyHealthSnapshot snapshot) {
+        // 布局已移除，无需执行绑定
+    }
+
+    public void showPageGuide(GuideStateManager guideManager) {
+        // 饮食页无需提示引导
     }
 
     @Override

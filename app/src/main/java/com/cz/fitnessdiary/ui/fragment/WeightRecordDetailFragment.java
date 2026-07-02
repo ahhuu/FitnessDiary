@@ -1,5 +1,7 @@
 package com.cz.fitnessdiary.ui.fragment;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -20,10 +22,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.database.AppDatabase;
+import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.ui.adapter.DetailRecordAdapter;
 import com.cz.fitnessdiary.ui.widget.WeightChartView;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.HealthScoreCalculator;
 import com.cz.fitnessdiary.viewmodel.WeightDetailViewModel;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -44,6 +49,8 @@ public class WeightRecordDetailFragment extends Fragment {
     private TextView tvLatest;
     private TextView tvDelta;
     private TextView tvBmi;
+    private TextView tvTargetWeight;
+    private TextView tvTargetWeightLabel;
     private TextView tvEmpty;
     private ProgressBar progressLoading;
     private WeightChartView lineWeight;
@@ -79,6 +86,8 @@ public class WeightRecordDetailFragment extends Fragment {
         tvLatest = view.findViewById(R.id.tv_latest);
         tvDelta = view.findViewById(R.id.tv_delta);
         tvBmi = view.findViewById(R.id.tv_bmi);
+        tvTargetWeight = view.findViewById(R.id.tv_target_weight);
+        tvTargetWeightLabel = view.findViewById(R.id.tv_target_weight_label);
         tvEmpty = view.findViewById(R.id.tv_empty);
         progressLoading = view.findViewById(R.id.progress_loading);
         lineWeight = view.findViewById(R.id.line_weight);
@@ -119,6 +128,12 @@ public class WeightRecordDetailFragment extends Fragment {
         btnTabMonth.setOnClickListener(v -> switchTab(1));
         btnTabYear.setOnClickListener(v -> switchTab(2));
         applyTabSelection();
+
+        MaterialButton btnEditTarget = view.findViewById(R.id.btn_edit_target);
+        btnEditTarget.setOnClickListener(v -> showEditTargetWeightDialog());
+
+        // Load target weight display
+        loadTargetWeight();
 
         viewModel.getWeekSeries().observe(getViewLifecycleOwner(), values -> {
             if (selectedTab == 0)
@@ -311,5 +326,113 @@ public class WeightRecordDetailFragment extends Fragment {
                         Toast.makeText(getContext(), "请输入正确数字", Toast.LENGTH_SHORT).show();
                     }
                 }).setNegativeButton("取消", null).show();
+    }
+
+    // ═══════════════════════ Target Weight ═══════════════════════
+
+    private void loadTargetWeight() {
+        // First check custom target from SharedPreferences (no DB needed)
+        SharedPreferences prefs = requireContext().getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
+        float customTarget = prefs.getFloat("target_weight_kg", -1f);
+        if (customTarget > 0) {
+            displayTargetWeight(customTarget, true);
+            return;
+        }
+
+        // Auto-calculate: needs DB access -> use background thread
+        new Thread(() -> {
+            try {
+                AppDatabase db = AppDatabase.getInstance(requireContext().getApplicationContext());
+                User user = db.userDao().getUserSync();
+                if (user != null && isAdded()) {
+                    float autoTarget = computeTargetWeightFromUser(user);
+                    requireActivity().runOnUiThread(() -> {
+                        if (isAdded()) {
+                            displayTargetWeight(autoTarget, false);
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void displayTargetWeight(float target, boolean isCustom) {
+        if (!isAdded()) return;
+        if (target > 0) {
+            tvTargetWeight.setText(String.format(Locale.getDefault(), "目标体重: %.1f kg", target));
+            tvTargetWeightLabel.setText(isCustom ? "目标体重(自定义)" : "目标体重(基于BMI健康范围)");
+        } else {
+            tvTargetWeight.setText("目标体重: 请先录入身高体重");
+            tvTargetWeightLabel.setText("");
+        }
+    }
+
+    private float computeTargetWeightFromUser(User user) {
+        if (user == null || user.getWeight() <= 0 || user.getHeight() <= 0) return 0f;
+
+        HealthScoreCalculator.UserProfile profile = new HealthScoreCalculator.UserProfile();
+        profile.weightKg = user.getWeight();
+        profile.heightCm = user.getHeight();
+
+        // Determine goal type
+        int goalType = user.getGoalType();
+        if (goalType == 0) {
+            profile.goalType = "lose";
+        } else if (goalType == 1) {
+            profile.goalType = "gain";
+        } else {
+            profile.goalType = "maintain";
+        }
+
+        // Check for custom target in prefs
+        SharedPreferences prefs = requireContext().getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
+        float customTarget = prefs.getFloat("target_weight_kg", -1f);
+        if (customTarget > 0) {
+            return customTarget;
+        }
+
+        return HealthScoreCalculator.computeTargetWeight(profile);
+    }
+
+    private void showEditTargetWeightDialog() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
+        float currentTarget = prefs.getFloat("target_weight_kg", -1f);
+
+        EditText et = new EditText(requireContext());
+        et.setHint("目标体重(kg)");
+        et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        if (currentTarget > 0) {
+            et.setText(String.format(Locale.getDefault(), "%.1f", currentTarget));
+        }
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("编辑目标体重")
+                .setMessage("设置您的目标体重。留空或设为0将使用BMI健康范围自动计算。")
+                .setView(et)
+                .setPositiveButton("保存", (d, w) -> {
+                    String input = et.getText().toString().trim();
+                    if (input.isEmpty()) {
+                        // Clear custom target to use auto-calculation
+                        prefs.edit().remove("target_weight_kg").apply();
+                    } else {
+                        try {
+                            float value = Float.parseFloat(input);
+                            if (value <= 0) {
+                                prefs.edit().remove("target_weight_kg").apply();
+                            } else {
+                                prefs.edit().putFloat("target_weight_kg", value).apply();
+                            }
+                        } catch (NumberFormatException e) {
+                            Toast.makeText(getContext(), "请输入有效数字", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+                    loadTargetWeight();
+                    Toast.makeText(getContext(), "目标体重已更新", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 }

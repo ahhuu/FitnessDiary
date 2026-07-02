@@ -9,7 +9,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,6 +28,7 @@ import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.databinding.FragmentPlanBinding;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.ui.bottomSheet.DateSummaryBottomSheet;
 import com.cz.fitnessdiary.viewmodel.PlanViewModel;
 
 import java.util.ArrayList;
@@ -37,6 +37,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
+import com.cz.fitnessdiary.ui.guide.GuideStep;
+import com.cz.fitnessdiary.ui.guide.PageGuide;
+import com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay;
 
 /**
  * 训练历史日历页面 - 第二个主 Tab
@@ -136,11 +140,6 @@ public class PlanFragment extends Fragment {
         // 右上角：设置显示顺序
         binding.btnSettings.setOnClickListener(v -> {
             showDisplaySettingsDialog();
-        });
-
-        // 选中卡片底部的编辑备注
-        binding.btnEditNote.setOnClickListener(v -> {
-            showEditNoteDialog(selectedDate);
         });
     }
 
@@ -274,114 +273,6 @@ public class PlanFragment extends Fragment {
                     userWeight = finalWeight;
 
                     calendarAdapter.notifyDataSetChanged();
-                    loadDayDetailCard(selectedDate);
-                });
-            }
-        }).start();
-    }
-
-    private void loadDayDetailCard(long dateStartTs) {
-        long dateEndTs = dateStartTs + 86400000L;
-        binding.tvDetailDateLabel.setText(String.format("%s 记录详情", DateUtils.formatDate(dateStartTs)));
-
-        // 从 SharedPreferences 中读取备注
-        SharedPreferences noteSp = requireContext().getSharedPreferences("calendar_notes", Context.MODE_PRIVATE);
-        String rawNote = noteSp.getString(DateUtils.formatDate(dateStartTs), "");
-        
-        GradientDrawable gd = new GradientDrawable();
-        gd.setShape(GradientDrawable.RECTANGLE);
-        gd.setCornerRadius(dpToPx(6f));
-        binding.tvDetailNote.setPadding(dpToPx(10f), dpToPx(6f), dpToPx(10f), dpToPx(6f));
-        
-        if (!rawNote.isEmpty()) {
-            String[] parts = rawNote.split("\\|", 2);
-            binding.tvDetailNote.setText("📝 " + parts[0]);
-            binding.btnEditNote.setText("修改备注");
-            
-            String bgColor = parts.length > 1 ? parts[1] : "#ECEBEA";
-            String textColor = "#82716B";
-            for (String[] preset : PRESET_COLORS) {
-                if (preset[1].equalsIgnoreCase(bgColor)) {
-                    textColor = preset[2];
-                    break;
-                }
-            }
-            gd.setColor(Color.parseColor(bgColor));
-            binding.tvDetailNote.setTextColor(Color.parseColor(textColor));
-        } else {
-            binding.tvDetailNote.setText("📝 暂无备注");
-            binding.btnEditNote.setText("添加备注");
-            gd.setColor(0xFFF2EFE8); // 柔灰底
-            binding.tvDetailNote.setTextColor(0xFF8A8276); // 柔灰字
-        }
-        binding.tvDetailNote.setBackground(gd);
-
-        new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext());
-
-            // 运动
-            List<DailyLog> dayLogs = db.dailyLogDao().getLogsByDateSync(dateStartTs);
-            int workoutCalories = 0;
-            StringBuilder sportNameBuilder = new StringBuilder();
-            int completedCount = 0;
-
-            for (DailyLog log : dayLogs) {
-                if (log.isCompleted()) {
-                    completedCount++;
-                    TrainingPlan plan = plansMap.get(log.getPlanId());
-                    int durationSec = log.getDuration() > 0 ? log.getDuration() : (plan != null ? plan.getDuration() : 1800);
-                    if (durationSec <= 0) durationSec = 1800;
-
-                    double met = 4.0;
-                    if (plan != null) {
-                        met = getMetForCategory(plan.getCategory());
-                        if (sportNameBuilder.length() > 0) sportNameBuilder.append("、");
-                        sportNameBuilder.append(plan.getName());
-                    }
-                    double cal = met * 3.5 * userWeight * durationSec / (200.0 * 60.0);
-                    workoutCalories += (int) cal;
-                }
-            }
-
-            int totalVolume = 0;
-            int totalSets = 0;
-            int totalDuration = 0;
-
-            for (DailyLog log : dayLogs) {
-                if (log.isCompleted()) {
-                    TrainingPlan plan = plansMap.get(log.getPlanId());
-                    if (plan != null) {
-                        int sets = plan.getSets();
-                        int reps = plan.getReps();
-                        float weight = plan.getWeight();
-                        float effectiveWeight = weight > 0 ? weight : userWeight;
-                        totalVolume += (int) (sets * reps * effectiveWeight);
-                        totalSets += sets;
-                    }
-                    totalDuration += log.getDuration();
-                }
-            }
-
-            final int finalWorkoutCal = workoutCalories;
-            final int finalCompleted = completedCount;
-            final String finalSports = sportNameBuilder.toString();
-            final int finalVolume = totalVolume;
-            final int finalSets = totalSets;
-            final int finalDuration = totalDuration;
-
-            if (isAdded()) {
-                requireActivity().runOnUiThread(() -> {
-                    if (finalCompleted > 0) {
-                        binding.tvDetailSportSummary.setText(String.format("🏋️ 今日运动：%s (已打卡 %d 项)", finalSports, finalCompleted));
-                        binding.tvDetailSportStats.setText(String.format("运动消耗：%d kcal | 锻炼容量：%s kg", finalWorkoutCal, formatVolume(finalVolume)));
-                    } else {
-                        binding.tvDetailSportSummary.setText("🏋️ 今日运动：无训练记录");
-                        binding.tvDetailSportStats.setText("运动消耗：0 kcal | 锻炼容量：0 kg");
-                    }
-
-                    binding.tvDetailVolume.setText(formatVolume(finalVolume) + " kg");
-                    binding.tvDetailTotalSets.setText(finalSets + " 组");
-                    binding.tvDetailDuration.setText((finalDuration / 60) + " 分钟");
                 });
             }
         }).start();
@@ -395,17 +286,6 @@ public class PlanFragment extends Fragment {
             return String.format(Locale.getDefault(), "%.1fk", volume / 1000.0);
         }
         return String.valueOf(volume);
-    }
-
-    private double getMetForCategory(String category) {
-        if (category == null) return 4.0;
-        String cat = category.toLowerCase();
-        if (cat.contains("有氧") || cat.contains("cardio") || cat.contains("跑步") || cat.contains("骑行"))
-            return 7.0;
-        if (cat.contains("hiit")) return 8.0;
-        if (cat.contains("瑜伽") || cat.contains("拉伸") || cat.contains("yoga")) return 2.5;
-        if (cat.contains("力量") || cat.contains("strength")) return 3.5;
-        return 4.0;
     }
 
     /**
@@ -474,108 +354,33 @@ public class PlanFragment extends Fragment {
         return spinner;
     }
 
-    /**
-     * 弹出编辑备注 Dialog，支持自选 5 种莫兰迪淡雅底色
-     */
-    private void showEditNoteDialog(long dateTs) {
-        String dateKey = DateUtils.formatDate(dateTs);
-        SharedPreferences noteSp = requireContext().getSharedPreferences("calendar_notes", Context.MODE_PRIVATE);
-        
-        String raw = noteSp.getString(dateKey, "");
-        String initialText = "";
-        String initialColor = PRESET_COLORS[0][1];
-
-        if (!raw.isEmpty()) {
-            String[] parts = raw.split("\\|", 2);
-            initialText = parts[0];
-            if (parts.length > 1) {
-                initialColor = parts[1];
-            }
-        }
-
-        android.widget.LinearLayout container = new android.widget.LinearLayout(getContext());
-        container.setOrientation(android.widget.LinearLayout.VERTICAL);
-        container.setPadding(dpToPx(24f), dpToPx(16f), dpToPx(24f), dpToPx(16f));
-
-        EditText etNote = new EditText(getContext());
-        etNote.setHint("输入标签或短备注 (例如: 出差、感冒、聚餐)");
-        etNote.setText(initialText);
-        container.addView(etNote);
-
-        TextView labelColor = new TextView(getContext());
-        labelColor.setText("选择备注背景色：");
-        labelColor.setTextColor(getResources().getColor(R.color.text_primary));
-        labelColor.setPadding(0, dpToPx(16f), 0, dpToPx(8f));
-        container.addView(labelColor);
-
-        // 颜色圆形块选择器容器
-        android.widget.LinearLayout colorContainer = new android.widget.LinearLayout(getContext());
-        colorContainer.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        colorContainer.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        
-        final String[] selectedColor = {initialColor};
-        final List<View> colorViews = new ArrayList<>();
-
-        for (int i = 0; i < PRESET_COLORS.length; i++) {
-            final int index = i;
-            View circle = new View(getContext());
-            android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
-                    dpToPx(32f), dpToPx(32f));
-            lp.setMargins(0, 0, dpToPx(12f), 0);
-            circle.setLayoutParams(lp);
-
-            GradientDrawable gd = new GradientDrawable();
-            gd.setShape(GradientDrawable.OVAL);
-            gd.setColor(Color.parseColor(PRESET_COLORS[i][1]));
-
-            // 初始化时高亮已选颜色
-            if (PRESET_COLORS[i][1].equalsIgnoreCase(selectedColor[0])) {
-                gd.setStroke(dpToPx(2.5f), 0xFF559664); // 选中描绿边
-            }
-            circle.setBackground(gd);
-
-            circle.setOnClickListener(v -> {
-                selectedColor[0] = PRESET_COLORS[index][1];
-                // 刷新所有圆圈的状态
-                for (int j = 0; j < colorViews.size(); j++) {
-                    GradientDrawable innerGd = new GradientDrawable();
-                    innerGd.setShape(GradientDrawable.OVAL);
-                    innerGd.setColor(Color.parseColor(PRESET_COLORS[j][1]));
-                    if (j == index) {
-                        innerGd.setStroke(dpToPx(2.5f), 0xFF559664);
-                    }
-                    colorViews.get(j).setBackground(innerGd);
-                }
-            });
-
-            colorContainer.addView(circle);
-            colorViews.add(circle);
-        }
-        container.addView(colorContainer);
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle("添加日期标签/备注")
-                .setView(container)
-                .setPositiveButton("保存", (dialog, which) -> {
-                    String noteText = etNote.getText().toString().trim();
-                    if (!noteText.isEmpty()) {
-                        noteSp.edit().putString(dateKey, noteText + "|" + selectedColor[0]).apply();
-                    } else {
-                        noteSp.edit().remove(dateKey).apply();
-                    }
-                    loadCalendarData();
-                })
-                .setNegativeButton("清除备注", (dialog, which) -> {
-                    noteSp.edit().remove(dateKey).apply();
-                    loadCalendarData();
-                })
-                .show();
-    }
-
     private int dpToPx(float dp) {
         if (getContext() == null) return 0;
         float density = getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
+    }
+
+    public void showPageGuide(GuideStateManager guideManager) {
+        String pageKey = "guide_plan";
+        if (guideManager.isPageGuideDone(pageKey)) return;
+        binding.getRoot().postDelayed(() -> {
+            if (!isAdded()) return;
+            List<GuideStep> steps = new ArrayList<>();
+            steps.add(new GuideStep(R.id.rv_calendar_grid,
+                    "训练日历", "查看每日训练打卡与饮食热量，点击日期查看详情",
+                    GuideStep.Anchor.TOP));
+            steps.add(new GuideStep(R.id.btn_plan_manage,
+                    "计划管理", "创建、导入和管理你的训练计划",
+                    GuideStep.Anchor.BOTTOM));
+            steps.add(new GuideStep(R.id.btn_exercise_library,
+                    "动作库", "浏览全身各部位的标准训练动作",
+                    GuideStep.Anchor.BOTTOM));
+            steps.add(new GuideStep(R.id.btn_analytics,
+                    "趋势统计", "在此查看你的体重趋势、运动时长和热量消耗统计",
+                    GuideStep.Anchor.BOTTOM));
+            PageGuide guide = new PageGuide(pageKey, steps);
+            new TargetedGuideOverlay(requireActivity(), guide, guideManager, null).start();
+        }, 800);
     }
 
     @Override
@@ -647,26 +452,25 @@ public class PlanFragment extends Fragment {
             String row2 = sp.getString("display_row_2", "workout");
             String row3 = sp.getString("display_row_3", "count");
 
+            // 每次绑定前必须清空 itemView 的背景色，防止 ViewHolder 复用残留备注着色
+            holder.itemView.setBackgroundColor(Color.TRANSPARENT);
+
             bindLabelByConfig(holder.layoutLabels, row1, cellTime);
             bindLabelByConfig(holder.layoutLabels, row2, cellTime);
             bindLabelByConfig(holder.layoutLabels, row3, cellTime);
 
-            // 自动读取并无条件展示备注胶囊，有备注则显示，无则不显示 (放在最下方)
+            // 自动读取备注，显示备注文本为底部标签胶囊
             SharedPreferences noteSp = requireContext().getSharedPreferences("calendar_notes", Context.MODE_PRIVATE);
             String rawNoteText = noteSp.getString(DateUtils.formatDate(cellTime), "");
             if (!rawNoteText.isEmpty()) {
                 String[] parts = rawNoteText.split("\\|", 2);
-                String text = parts[0];
-                String bgColor = parts.length > 1 ? parts[1] : "#ECEBEA";
-                
-                String textColor = "#82716B";
-                for (String[] preset : PRESET_COLORS) {
-                    if (preset[1].equalsIgnoreCase(bgColor)) {
-                        textColor = preset[2];
-                        break;
-                    }
-                }
-                holder.layoutLabels.addView(createLabelView(text, bgColor, textColor));
+                String noteText = parts[0];
+                String noteColor = parts.length > 1 && !parts[1].isEmpty() ? parts[1] : "#82716B";
+
+                // Show note text as a colored label matching other items' style (light background, dark text)
+                String bgHex = "#1A" + noteColor.replace("#", "");
+                TextView tvNote = createLabelView(noteText, bgHex, noteColor);
+                holder.layoutLabels.addView(tvNote);
             }
 
             // 3. 当前日期高亮
@@ -687,11 +491,15 @@ public class PlanFragment extends Fragment {
             }
             holder.tvDate.setBackground(gd);
 
-            // 4. 点击联动
+            // 4. 点击联动 - 弹出跨模块日期摘要 BottomSheet
             holder.itemView.setOnClickListener(v -> {
                 selectedDate = cellTime;
                 notifyDataSetChanged();
-                loadDayDetailCard(cellTime);
+                DateSummaryBottomSheet bottomSheet = new DateSummaryBottomSheet(cellTime);
+                bottomSheet.setOnNoteSavedListener((date, notes) -> {
+                    notifyDataSetChanged();
+                });
+                bottomSheet.show(getParentFragmentManager(), "DATE_SUMMARY");
             });
         }
 

@@ -40,6 +40,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import com.cz.fitnessdiary.ui.guide.GuideStateManager;
+import com.cz.fitnessdiary.ui.guide.GuideStep;
+import com.cz.fitnessdiary.ui.guide.PageGuide;
+import com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay;
 
 /**
  * AI 健身教练聊天页面 - 支持多轮对话历史与消息管理
@@ -948,6 +952,10 @@ public class AIChatFragment extends Fragment {
             }
             return bitmap;
         }
+    }
+
+    public void showPageGuide(GuideStateManager guideManager) {
+        // AI 私教聊天页一目了然，无需页面引导
     }
 
     @Override

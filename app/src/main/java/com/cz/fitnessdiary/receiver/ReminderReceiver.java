@@ -1,5 +1,6 @@
 package com.cz.fitnessdiary.receiver;
 
+import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -14,7 +15,10 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.model.DailyHealthSnapshot;
+import com.cz.fitnessdiary.repository.HealthAggregationRepository;
 import com.cz.fitnessdiary.ui.MainActivity;
+import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.utils.SmartReminderHelper;
 
@@ -68,16 +72,18 @@ public class ReminderReceiver extends BroadcastReceiver {
         // ── Smart notifications ──
         if (ReminderManager.ACTION_MORNING_SUMMARY.equals(action)) {
             String title = SmartReminderHelper.getMorningTitle();
-            String content = SmartReminderHelper.getMorningContent(appContext);
+            DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, -1);
+            String content = SmartReminderHelper.getMorningContent(appContext, snapshot);
             showNotification(appContext, 3001, title, content, null, 0L, CHANNEL_SMART);
             ReminderManager.scheduleMorningSummary(appContext);
             return;
         }
 
         if (ReminderManager.ACTION_EVENING_REMINDER.equals(action)) {
+            DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, 0);
+            String title = SmartReminderHelper.getEveningTitle(appContext);
+            String content = SmartReminderHelper.getEveningContent(appContext, snapshot);
             if (SmartReminderHelper.shouldSendEveningReminder(appContext)) {
-                String title = SmartReminderHelper.getEveningTitle(appContext);
-                String content = SmartReminderHelper.getEveningContent(appContext);
                 showNotification(appContext, 3002, title, content, null, 0L, CHANNEL_SMART);
             }
             ReminderManager.scheduleEveningReminder(appContext);
@@ -87,7 +93,8 @@ public class ReminderReceiver extends BroadcastReceiver {
         if (ReminderManager.ACTION_INACTIVITY_NUDGE.equals(action)) {
             if (SmartReminderHelper.shouldSendInactivityNudge(appContext)) {
                 String title = SmartReminderHelper.getInactivityTitle();
-                String content = SmartReminderHelper.getInactivityContent();
+                DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, 0);
+                String content = SmartReminderHelper.getInactivityContent(snapshot);
                 showNotification(appContext, 3003, title, content, null, 0L, CHANNEL_SMART);
             }
             ReminderManager.scheduleInactivityNudge(appContext);
@@ -155,6 +162,29 @@ public class ReminderReceiver extends BroadcastReceiver {
             }
         } catch (Exception e) {
             Log.e(TAG, "Error showing notification: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 安全获取健康数据快照，失败时返回 null 以退化到原有文案
+     *
+     * @param appContext   Application context
+     * @param dayOffset    日期偏移：0 今天，-1 昨天，-2 前天……
+     * @return DailyHealthSnapshot 或 null
+     */
+    private DailyHealthSnapshot tryGetTodaySnapshot(Context appContext, int dayOffset) {
+        try {
+            Application app = (Application) appContext.getApplicationContext();
+            HealthAggregationRepository repo = new HealthAggregationRepository(app);
+            if (dayOffset == 0) {
+                return repo.getTodaySnapshot();
+            } else {
+                long dateTs = DateUtils.getTodayStartTimestamp() + dayOffset * 86400000L;
+                return repo.getDateSnapshot(dateTs);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to get health snapshot, fallback to default content", e);
+            return null;
         }
     }
 

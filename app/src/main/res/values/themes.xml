@@ -186,4 +186,16 @@
     </style>
     <!-- 训练部位标签专用样式 (避免直接引用 com.google.android.material.R) -->
     <style name="TextAppearance.App.LabelSmall" parent="TextAppearance.Material3.LabelSmall" />
+
+    <!-- Guide tooltip button styles -->
+    <style name="TextButton.GuideSkip" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="TextButton.GuideNext" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/primary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
 </resources>

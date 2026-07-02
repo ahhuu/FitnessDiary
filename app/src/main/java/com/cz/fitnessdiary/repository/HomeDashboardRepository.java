@@ -140,6 +140,10 @@ public class HomeDashboardRepository {
         customTrackerRepository.insert(tracker);
     }
 
+    public void addBowelMovement(BowelMovement record) {
+        bowelMovementRepository.insert(record);
+    }
+
     // ── Body Measurement ──
 
     public List<BodyMeasurement> getMeasurementsByDateRangeSync(long dayStart, long dayEnd) {

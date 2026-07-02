@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.SharedPreferences;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -40,6 +42,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import com.google.android.material.card.MaterialCardView;
+import com.cz.fitnessdiary.model.DailyHealthSnapshot;
+import com.cz.fitnessdiary.repository.HealthAggregationRepository;
 
 public class SportRecordDetailFragment extends Fragment {
 
@@ -48,6 +56,13 @@ public class SportRecordDetailFragment extends Fragment {
     private final List<TrainingPlan> plans = new ArrayList<>();
     private final List<DailyLog> logs = new ArrayList<>();
     private java.util.Set<Long> cachedSportRecordedDates = new java.util.HashSet<>();
+
+    private HealthAggregationRepository healthRepo;
+    private MaterialCardView cardFactors;
+    private TextView tvPrevSleep;
+    private TextView tvTodayDiet;
+    private TextView tvSleepWarning;
+    private ExecutorService executor;
 
     private TextView tvSummary;
     private TextView tvSummarySmall;
@@ -61,6 +76,8 @@ public class SportRecordDetailFragment extends Fragment {
     private LinearLayout weekCalendar;
     private RecyclerView rvTodayLogs;
     private MaterialButton btnQuickCheckinAll;
+    private EditText etTargetDuration;
+    private MaterialButton btnSaveTarget;
 
     public SportRecordDetailFragment() {
         super(R.layout.fragment_sport_record_detail);
@@ -75,6 +92,33 @@ public class SportRecordDetailFragment extends Fragment {
         ImageButton btnManage = view.findViewById(R.id.btn_manage);
         ImageButton btnPrevDay = view.findViewById(R.id.btn_prev_day);
         btnQuickCheckinAll = view.findViewById(R.id.btn_quick_checkin_all);
+        etTargetDuration = view.findViewById(R.id.et_target_duration);
+        btnSaveTarget = view.findViewById(R.id.btn_save_target);
+
+        // Load and display saved target exercise minutes
+        SharedPreferences sp = requireActivity().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+        int savedTargetMinutes = sp.getInt("target_exercise_minutes", 30);
+        etTargetDuration.setText(String.valueOf(savedTargetMinutes));
+
+        btnSaveTarget.setOnClickListener(v -> {
+            String val = etTargetDuration.getText().toString().trim();
+            if (!val.isEmpty()) {
+                try {
+                    int minutes = Integer.parseInt(val);
+                    if (minutes > 0) {
+                        sp.edit().putInt("target_exercise_minutes", minutes).apply();
+                        Toast.makeText(getContext(), "目标时长已保存: " + minutes + "分钟", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(getContext(), "请输入有效的分钟数", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (NumberFormatException e) {
+                    Toast.makeText(getContext(), "请输入有效的分钟数", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(getContext(), "请输入目标时长", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         ImageButton btnNextDay = view.findViewById(R.id.btn_next_day);
         tvSelectedDate = view.findViewById(R.id.tv_selected_date);
         tvConsecutiveDays = view.findViewById(R.id.tv_consecutive_days);
@@ -115,6 +159,18 @@ public class SportRecordDetailFragment extends Fragment {
         rvTodayLogs.setLayoutManager(new LinearLayoutManager(getContext()));
         rvTodayLogs.setAdapter(adapter);
 
+        // Initialize health aggregation repository for influencing factors
+        healthRepo = new HealthAggregationRepository(requireActivity().getApplication());
+        executor = Executors.newSingleThreadExecutor();
+
+        cardFactors = view.findViewById(R.id.card_factors);
+        tvPrevSleep = view.findViewById(R.id.tv_prev_sleep);
+        tvTodayDiet = view.findViewById(R.id.tv_today_diet);
+        tvSleepWarning = view.findViewById(R.id.tv_sleep_warning);
+
+        // Disable nested scrolling so RecyclerView works inside NestedScrollView
+        rvTodayLogs.setNestedScrollingEnabled(false);
+
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
         btnManage.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(R.id.planFragment));
         btnPrevDay.setOnClickListener(v -> checkInViewModel.toPreviousDay());
@@ -147,6 +203,7 @@ public class SportRecordDetailFragment extends Fragment {
 
         observeViewModel();
         refreshWeekCalendar();
+        loadFactors();
     }
 
     private void showDatePicker() {
@@ -208,6 +265,7 @@ public class SportRecordDetailFragment extends Fragment {
                 tvSelectedDate.setText(d);
             }
             refreshWeekCalendar();
+            loadFactors();
         });
 
         checkInViewModel.getSelectedDatePlans().observe(getViewLifecycleOwner(), p -> {
@@ -319,5 +377,74 @@ public class SportRecordDetailFragment extends Fragment {
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    /**
+     * 在后台线程加载影响因素数据（前日睡眠、今日饮食）
+     */
+    private void loadFactors() {
+        Long selectedDate = checkInViewModel.getSelectedDate().getValue();
+        if (selectedDate == null) {
+            return;
+        }
+        executor.execute(() -> {
+            if (!isAdded()) {
+                return;
+            }
+            try {
+                long yesterdayTs = DateUtils.getDayStartTimestamp(selectedDate - 86400000L);
+                final DailyHealthSnapshot yesterdaySnapshot = healthRepo.getDateSnapshot(yesterdayTs);
+                final DailyHealthSnapshot todaySnapshot = healthRepo.getDateSnapshot(DateUtils.getTodayStartTimestamp());
+                if (!isAdded()) {
+                    return;
+                }
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    updateFactorsCard(yesterdaySnapshot, todaySnapshot);
+                });
+            } catch (Exception e) {
+                android.util.Log.e("SportRecordDetail", "loadFactors error", e);
+            }
+        });
+    }
+
+    /**
+     * 更新影响因素卡片 UI
+     */
+    private void updateFactorsCard(DailyHealthSnapshot yesterday, DailyHealthSnapshot today) {
+        // 前夜睡眠
+        if (yesterday.sleepHours > 0) {
+            String qualityLabel = getSleepQualityLabel(yesterday.sleepQuality);
+            tvPrevSleep.setText("昨晚睡眠 " + String.format("%.1f", yesterday.sleepHours) + "h · 质量" + qualityLabel);
+            if (yesterday.sleepHours < 6) {
+                tvSleepWarning.setVisibility(View.VISIBLE);
+            } else {
+                tvSleepWarning.setVisibility(View.GONE);
+            }
+        } else {
+            tvPrevSleep.setText("昨晚睡眠 暂无数据");
+            tvSleepWarning.setVisibility(View.GONE);
+        }
+
+        // 今日饮食
+        tvTodayDiet.setText("今日已摄入 " + today.dietCalories + " kcal");
+
+        cardFactors.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * 将睡眠质量等级映射为中文标签
+     */
+    private static String getSleepQualityLabel(int quality) {
+        switch (quality) {
+            case 5: return "优";
+            case 4: return "良";
+            case 3: return "中";
+            case 2: return "差";
+            case 1: return "很差";
+            default: return "";
+        }
     }
 }

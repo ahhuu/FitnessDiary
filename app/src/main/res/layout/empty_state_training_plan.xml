@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="48dp">
+
+    <TextView
+        android:id="@+id/iv_empty_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🏋️"
+        android:textSize="48sp"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tv_empty_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="还没有训练计划"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_template_import"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="从模板导入"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        app:cornerRadius="24dp"
+        app:backgroundTint="@color/fitnessdiary_primary"
+        android:layout_marginBottom="12dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_ai_wizard"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="AI智能制定"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        app:cornerRadius="24dp"
+        app:backgroundTint="@color/plan_blue_primary"
+        android:layout_marginBottom="12dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_create_blank"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="新建空白计划"
+        android:textSize="14sp"
+        app:cornerRadius="24dp"
+        app:strokeColor="@color/text_hint" />
+
+</LinearLayout>

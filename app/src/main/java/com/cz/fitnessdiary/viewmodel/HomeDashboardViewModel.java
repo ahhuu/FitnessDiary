@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Transformations;
 
+import com.cz.fitnessdiary.database.entity.BowelMovement;
 import com.cz.fitnessdiary.database.entity.CustomRecord;
 import com.cz.fitnessdiary.database.entity.CustomTracker;
 import com.cz.fitnessdiary.database.entity.HabitItem;
@@ -157,6 +158,10 @@ public class HomeDashboardViewModel extends AndroidViewModel {
 
     public void addMedication(String name, String dosage, boolean taken, String note) {
         repository.addMedication(new MedicationRecord(name, dosage, taken, buildRecordTimestampForSelectedDate(), note));
+    }
+
+    public void addBowelMovement(BowelMovement record) {
+        repository.addBowelMovement(record);
     }
 
     public void addCustomRecord(long trackerId, Double value, String textValue) {

@@ -9,6 +9,7 @@ import com.cz.fitnessdiary.database.dao.WaterRecordDao;
 import com.cz.fitnessdiary.database.entity.HabitItem;
 import com.cz.fitnessdiary.database.entity.HabitRecord;
 import com.cz.fitnessdiary.database.entity.User;
+import com.cz.fitnessdiary.model.DailyHealthSnapshot;
 
 import java.util.List;
 
@@ -35,6 +36,16 @@ public class SmartReminderHelper {
         int planCount = db.dailyLogDao().getTodayPlanCountSync(today);
 
         return "今日目标：饮水" + waterTarget + "ml · 训练" + planCount + "项 · 热量" + calTarget + "千卡";
+    }
+
+    public static String getMorningContent(Context context, DailyHealthSnapshot snapshot) {
+        String base = getMorningContent(context);
+        if (snapshot != null) {
+            int totalBurn = snapshot.exerciseCalories + snapshot.stepCalories;
+            int totalIntake = snapshot.dietCalories;
+            base += " · 昨日消耗" + totalBurn + " kcal，摄入" + totalIntake + " kcal";
+        }
+        return base;
     }
 
     // ── 晚间提醒 ──
@@ -85,6 +96,24 @@ public class SmartReminderHelper {
         return result.isEmpty() ? "还有几项任务等待完成" : result;
     }
 
+    public static String getEveningContent(Context context, DailyHealthSnapshot snapshot) {
+        String base = getEveningContent(context);
+        if (snapshot != null) {
+            int balance = snapshot.energyBalance;
+            if (balance < 0) {
+                base += " · 今日热量缺口" + (-balance) + " kcal";
+                if (snapshot.dietCalories < snapshot.bmr) {
+                    base += "，建议补充适量碳水或蛋白质";
+                }
+            } else if (balance > 0) {
+                base += " · 今日热量盈余" + balance + " kcal，建议增加运动消耗";
+            } else {
+                base += " · 今日热量收支平衡";
+            }
+        }
+        return base;
+    }
+
     public static boolean shouldSendEveningReminder(Context context) {
         return countPendingItems(context) > 0;
     }
@@ -97,6 +126,18 @@ public class SmartReminderHelper {
 
     public static String getInactivityContent() {
         return "过去3天没有运动记录了，今天花10分钟恢复一下吧";
+    }
+
+    public static String getInactivityContent(DailyHealthSnapshot snapshot) {
+        String base = getInactivityContent();
+        if (snapshot != null && snapshot.weightTrend != 0) {
+            if (snapshot.weightTrend > 0) {
+                base += " · 最近体重下降" + String.format("%.1f", snapshot.weightTrend) + " kg";
+            } else {
+                base += " · 最近体重上升" + String.format("%.1f", Math.abs(snapshot.weightTrend)) + " kg";
+            }
+        }
+        return base;
     }
 
     public static boolean shouldSendInactivityNudge(Context context) {
