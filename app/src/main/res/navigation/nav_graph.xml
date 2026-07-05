@@ -16,7 +16,11 @@
     <fragment
         android:id="@+id/mainHomeFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.MainHomeFragment"
-        android:label="主页" />
+        android:label="主页">
+        <action
+            android:id="@+id/action_mainHomeFragment_to_recipeListFragment"
+            app:destination="@id/recipeListFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/checkInFragment"
@@ -137,4 +141,15 @@
         android:id="@+id/exerciseLibraryFragment"
         android:name="com.cz.fitnessdiary.ui.fragment.ExerciseLibraryFragment"
         android:label="动作库" />
+
+    <fragment
+        android:id="@+id/customExerciseFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.CustomExerciseFragment"
+        android:label="动作管理" />
+
+    <fragment
+        android:id="@+id/recipeListFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.RecipeListFragment"
+        android:label="我的常用食谱" />
+
 </navigation>

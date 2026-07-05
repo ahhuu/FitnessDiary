@@ -78,6 +78,7 @@ public class SportRecordDetailFragment extends Fragment {
     private MaterialButton btnQuickCheckinAll;
     private EditText etTargetDuration;
     private MaterialButton btnSaveTarget;
+    private long selectedDate;
 
     public SportRecordDetailFragment() {
         super(R.layout.fragment_sport_record_detail);
@@ -95,27 +96,25 @@ public class SportRecordDetailFragment extends Fragment {
         etTargetDuration = view.findViewById(R.id.et_target_duration);
         btnSaveTarget = view.findViewById(R.id.btn_save_target);
 
-        // Load and display saved target exercise minutes
-        SharedPreferences sp = requireActivity().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
-        int savedTargetMinutes = sp.getInt("target_exercise_minutes", 30);
-        etTargetDuration.setText(String.valueOf(savedTargetMinutes));
-
         btnSaveTarget.setOnClickListener(v -> {
+            if (selectedDate == 0) return;
+            String dateKey = "target_minutes_" + selectedDate;
             String val = etTargetDuration.getText().toString().trim();
-            if (!val.isEmpty()) {
-                try {
-                    int minutes = Integer.parseInt(val);
+            try {
+                int minutes = val.isEmpty() ? 0 : Integer.parseInt(val);
+                if (minutes >= 0) {
+                    requireActivity().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE)
+                            .edit().putInt(dateKey, minutes).apply();
                     if (minutes > 0) {
-                        sp.edit().putInt("target_exercise_minutes", minutes).apply();
-                        Toast.makeText(getContext(), "目标时长已保存: " + minutes + "分钟", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "训练总时长已保存: " + minutes + " 分钟", Toast.LENGTH_SHORT).show();
                     } else {
-                        Toast.makeText(getContext(), "请输入有效的分钟数", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "已切换为自动计算", Toast.LENGTH_SHORT).show();
                     }
-                } catch (NumberFormatException e) {
+                } else {
                     Toast.makeText(getContext(), "请输入有效的分钟数", Toast.LENGTH_SHORT).show();
                 }
-            } else {
-                Toast.makeText(getContext(), "请输入目标时长", Toast.LENGTH_SHORT).show();
+            } catch (NumberFormatException e) {
+                Toast.makeText(getContext(), "请输入有效的分钟数", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -172,7 +171,7 @@ public class SportRecordDetailFragment extends Fragment {
         rvTodayLogs.setNestedScrollingEnabled(false);
 
         btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
-        btnManage.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(R.id.planFragment));
+        btnManage.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(R.id.planManageFragment));
         btnPrevDay.setOnClickListener(v -> checkInViewModel.toPreviousDay());
         btnNextDay.setOnClickListener(v -> checkInViewModel.toNextDay());
         tvSelectedDate.setOnClickListener(v -> showDatePicker());
@@ -198,8 +197,11 @@ public class SportRecordDetailFragment extends Fragment {
             });
         }));
 
-        long selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
+        selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
         checkInViewModel.setSelectedDate(selectedDate);
+
+        // 加载当前日期的训练总时长
+        loadTargetDuration();
 
         observeViewModel();
         refreshWeekCalendar();
@@ -258,6 +260,7 @@ public class SportRecordDetailFragment extends Fragment {
 
     private void observeViewModel() {
         checkInViewModel.getSelectedDate().observe(getViewLifecycleOwner(), date -> {
+            selectedDate = date;
             if (DateUtils.isToday(date)) {
                 tvSelectedDate.setText("今日");
             } else {
@@ -266,6 +269,7 @@ public class SportRecordDetailFragment extends Fragment {
             }
             refreshWeekCalendar();
             loadFactors();
+            loadTargetDuration();
         });
 
         checkInViewModel.getSelectedDatePlans().observe(getViewLifecycleOwner(), p -> {
@@ -377,6 +381,18 @@ public class SportRecordDetailFragment extends Fragment {
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    /**
+    /**
+     * 加载当前日期的训练总时长
+     */
+    private void loadTargetDuration() {
+        if (selectedDate == 0 || etTargetDuration == null) return;
+        String dateKey = "target_minutes_" + selectedDate;
+        int saved = requireActivity().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE)
+                .getInt(dateKey, 0);
+        etTargetDuration.setText(saved > 0 ? String.valueOf(saved) : "");
     }
 
     /**

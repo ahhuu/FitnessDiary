@@ -12,7 +12,7 @@ android {
         minSdk 26
         targetSdk 34
         versionCode 11
-        versionName "2.3.1"
+        versionName "2.4.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -32,8 +32,18 @@ android {
         buildConfigField "String", "QWEN_API_KEY", "\"${properties.getProperty('qwen.api.key', '')}\""
     }
 
+    signingConfigs {
+        release {
+            storeFile rootProject.file('fitnessdiary.jks')
+            storePassword 'fitness2025'
+            keyAlias 'fitnessdiary'
+            keyPassword 'fitness2025'
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 

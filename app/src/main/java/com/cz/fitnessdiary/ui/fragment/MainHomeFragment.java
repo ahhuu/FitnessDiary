@@ -34,9 +34,8 @@ public class MainHomeFragment extends Fragment {
     private FragmentMainHomeBinding binding;
     private static final int TAB_CHECKIN = 0;
     private static final int TAB_PLAN = 1;
-    private static final int TAB_DIET = 2;
-    private static final int TAB_AI = 3;
-    private static final int TAB_PROFILE = 4;
+    private static final int TAB_AI = 2;
+    private static final int TAB_PROFILE = 3;
     private final Handler noticeHandler = new Handler(Looper.getMainLooper());
     private AchievementCenterViewModel achievementCenterViewModel;
     private final Runnable autoDismissRunnable = this::dismissGlobalNotice;
@@ -88,10 +87,8 @@ public class MainHomeFragment extends Fragment {
                     case 1:
                         return new PlanFragment();
                     case 2:
-                        return new DietFragment();
-                    case 3:
                         return new AIChatFragment();
-                    case 4:
+                    case 3:
                         return new ProfileFragment();
                     default:
                         return new CheckInFragment();
@@ -100,14 +97,14 @@ public class MainHomeFragment extends Fragment {
 
             @Override
             public int getItemCount() {
-                return 5;
+                return 4;
             }
         };
 
         binding.viewPager.setAdapter(adapter);
 
         // 预加载所有主页面，避免 Tab 频繁切换卡顿
-        binding.viewPager.setOffscreenPageLimit(4);
+        binding.viewPager.setOffscreenPageLimit(3);
 
         // 滑动监听：同步底部导航的高亮 + 触发页面引导
         binding.viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -127,7 +124,6 @@ public class MainHomeFragment extends Fragment {
     private void setupBottomNavigation() {
         binding.tabCheckin.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_CHECKIN, true));
         binding.tabPlan.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_PLAN, true));
-        binding.tabDiet.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_DIET, true));
         binding.tabAi.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_AI, true));
         binding.tabProfile.setOnClickListener(v -> binding.viewPager.setCurrentItem(TAB_PROFILE, true));
     }
@@ -166,7 +162,6 @@ public class MainHomeFragment extends Fragment {
         // 遍历更新所有 Tab Item 的视图
         updateSingleTabState(TAB_CHECKIN, activeIndex == TAB_CHECKIN, colorSelected, colorUnselected);
         updateSingleTabState(TAB_PLAN, activeIndex == TAB_PLAN, colorSelected, colorUnselected);
-        updateSingleTabState(TAB_DIET, activeIndex == TAB_DIET, colorSelected, colorUnselected);
         updateSingleTabState(TAB_AI, activeIndex == TAB_AI, colorSelected, colorUnselected);
         updateSingleTabState(TAB_PROFILE, activeIndex == TAB_PROFILE, colorSelected, colorUnselected);
     }
@@ -189,11 +184,6 @@ public class MainHomeFragment extends Fragment {
                 pillView = binding.tabPlanPill;
                 iconView = binding.tabPlanIcon;
                 textView = binding.tabPlanText;
-                break;
-            case TAB_DIET:
-                pillView = binding.tabDietPill;
-                iconView = binding.tabDietIcon;
-                textView = binding.tabDietText;
                 break;
             case TAB_AI:
                 pillView = binding.tabAiPill;
@@ -233,9 +223,8 @@ public class MainHomeFragment extends Fragment {
         switch (position) {
             case 0: pageKey = "guide_checkin"; break;
             case 1: pageKey = "guide_plan"; break;
-            case 2: pageKey = "guide_diet"; break;
-            case 3: pageKey = "guide_ai"; break;
-            case 4: pageKey = "guide_profile"; break;
+            case 2: pageKey = "guide_ai"; break;
+            case 3: pageKey = "guide_profile"; break;
             default: return;
         }
         if (gsm.isPageGuideDone(pageKey)) return;
@@ -250,8 +239,6 @@ public class MainHomeFragment extends Fragment {
                         ((CheckInFragment) page).showPageGuide(gsm);
                     } else if (page instanceof PlanFragment) {
                         ((PlanFragment) page).showPageGuide(gsm);
-                    } else if (page instanceof DietFragment) {
-                        ((DietFragment) page).showPageGuide(gsm);
                     } else if (page instanceof AIChatFragment) {
                         ((AIChatFragment) page).showPageGuide(gsm);
                     } else if (page instanceof ProfileFragment) {
@@ -265,7 +252,7 @@ public class MainHomeFragment extends Fragment {
     /**
      * 切换到指定的 Tab（提供给子页面/其它组件调用）
      *
-     * @param position 0=记录, 1=计划, 2=饮食, 3=AI, 4=我的
+     * @param position 0=记录, 1=计划, 2=AI, 3=我的
      */
     public void switchToTab(int position) {
         if (binding != null && binding.viewPager != null) {

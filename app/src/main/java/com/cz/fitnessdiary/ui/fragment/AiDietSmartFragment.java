@@ -271,7 +271,9 @@ public class AiDietSmartFragment extends Fragment {
                 "1,2,3,4,5,6,7",
                 true,
                 "晚餐记录提醒",
-                "记得记录今晚饮食，保持热量可控");
+                "记得记录今晚饮食，保持热量可控",
+                false,
+                0);
         schedule.setId(reminderId);
         reminderScheduleRepository.insert(schedule);
         ReminderManager.schedule(requireContext(), schedule);

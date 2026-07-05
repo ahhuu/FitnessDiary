@@ -41,7 +41,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/bg_chat_bubble_ai_premium"
-            android:backgroundTint="#F2F2F7"
+            android:backgroundTint="?attr/colorSurfaceVariant"
             android:padding="8dp"
             android:layout_marginBottom="6dp"
             android:visibility="gone">

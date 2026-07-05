@@ -29,7 +29,7 @@
                 android:layout_marginBottom="24dp"
                 android:fontFamily="sans-serif-medium"
                 android:text="成就奖章"
-                android:textColor="@color/black"
+                android:textColor="@color/text_primary"
                 android:textSize="20sp" />
 
             <androidx.recyclerview.widget.RecyclerView

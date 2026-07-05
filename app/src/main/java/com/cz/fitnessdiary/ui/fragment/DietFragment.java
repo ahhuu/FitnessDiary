@@ -34,8 +34,10 @@ import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.databinding.FragmentDietBinding;
 import com.cz.fitnessdiary.ui.adapter.FoodAutoCompleteAdapter;
 import com.cz.fitnessdiary.viewmodel.DietViewModel;
+import com.cz.fitnessdiary.viewmodel.RecipeViewModel;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.UnitUtils;
 import com.cz.fitnessdiary.utils.ErrorHandler;
 import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 import com.cz.fitnessdiary.utils.PinyinUtils;
@@ -77,6 +79,7 @@ public class DietFragment extends Fragment {
 
     private FragmentDietBinding binding;
     private DietViewModel viewModel;
+    private RecipeViewModel recipeViewModel;
     private ExecutorService executorService;
     private ExecutorService imageExecutorService;
     private java.util.Set<Long> cachedDietRecordedDates = new java.util.HashSet<>();
@@ -171,6 +174,7 @@ public class DietFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(requireActivity()).get(DietViewModel.class);
+        recipeViewModel = new ViewModelProvider(this).get(RecipeViewModel.class);
         openFoodFactsService = new OpenFoodFactsService();
 
         setupFoodImageResultListener();
@@ -346,6 +350,7 @@ public class DietFragment extends Fragment {
         com.google.android.material.textfield.TextInputEditText etCalories = dialogView.findViewById(R.id.et_calories);
         com.google.android.material.textfield.TextInputEditText etProtein = dialogView.findViewById(R.id.et_protein);
         com.google.android.material.textfield.TextInputEditText etCarbs = dialogView.findViewById(R.id.et_carbs);
+        com.google.android.material.textfield.TextInputEditText etFat = dialogView.findViewById(R.id.et_fat);
         com.google.android.material.textfield.TextInputEditText etServingUnit = dialogView
                 .findViewById(R.id.et_serving_unit);
         com.google.android.material.textfield.TextInputEditText etWeightPerUnit = dialogView
@@ -403,6 +408,7 @@ public class DietFragment extends Fragment {
             etCalories.setText(String.valueOf(existingFood.getCaloriesPer100g()));
             etProtein.setText(String.valueOf(existingFood.getProteinPer100g()));
             etCarbs.setText(String.valueOf(existingFood.getCarbsPer100g()));
+            etFat.setText(String.valueOf(existingFood.getFatPer100g()));
             etServingUnit.setText(existingFood.getServingUnit());
             etWeightPerUnit.setText(String.valueOf(existingFood.getWeightPerUnit()));
 
@@ -421,6 +427,7 @@ public class DietFragment extends Fragment {
                     String caloriesStr = etCalories.getText().toString().trim();
                     String proteinStr = etProtein.getText().toString().trim();
                     String carbsStr = etCarbs.getText().toString().trim();
+                    String fatStr = etFat.getText().toString().trim();
                     String servingUnit = etServingUnit.getText().toString().trim();
                     String weightStr = etWeightPerUnit.getText().toString().trim();
                     String categoryRaw = spinnerCategory.getText().toString().trim();
@@ -441,6 +448,7 @@ public class DietFragment extends Fragment {
                         }
                         double protein = proteinStr.isEmpty() ? 0 : Double.parseDouble(proteinStr);
                         double carbs = carbsStr.isEmpty() ? 0 : Double.parseDouble(carbsStr);
+                        double fat = fatStr.isEmpty() ? 0 : Double.parseDouble(fatStr);
                         int weightPerUnit = weightStr.isEmpty() ? 100 : Integer.parseInt(weightStr);
                         String unit = servingUnit.isEmpty() ? "份" : servingUnit;
                         String cat = FoodCategoryUtils.normalizeCategory(categoryRaw);
@@ -450,14 +458,15 @@ public class DietFragment extends Fragment {
                             existingFood.setCaloriesPer100g(calories);
                             existingFood.setProteinPer100g(protein);
                             existingFood.setCarbsPer100g(carbs);
+                                existingFood.setFatPer100g(fat);
                             existingFood.setServingUnit(unit);
                             existingFood.setWeightPerUnit(weightPerUnit);
                             existingFood.setCategory(cat);
                             viewModel.updateFood(existingFood);
                             Toast.makeText(requireContext(), "✅ 已更新: " + name, Toast.LENGTH_SHORT).show();
                         } else {
-                            FoodLibrary newFood = new FoodLibrary(name, calories, protein, carbs, unit, weightPerUnit,
-                                    cat);
+                                FoodLibrary newFood = new FoodLibrary(name, calories, protein, carbs, fat, unit,
+                                    weightPerUnit, cat);
                             viewModel.insertFood(newFood);
                             Toast.makeText(requireContext(), "✅ 已添加: " + name, Toast.LENGTH_SHORT).show();
                         }
@@ -586,6 +595,78 @@ public class DietFragment extends Fragment {
                 total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
         viewModel.getTodayTotalCarbs().observe(getViewLifecycleOwner(),
                 total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
+        viewModel.getTodayTotalFat().observe(getViewLifecycleOwner(),
+                total -> refreshAllSummaryUI(viewModel.getCurrentUser().getValue()));
+
+        viewModel.getFrequentFoods().observe(getViewLifecycleOwner(), foodNames -> {
+            binding.cgFrequentFoods.removeAllViews();
+            if (foodNames != null && !foodNames.isEmpty()) {
+                for (String name : foodNames) {
+                    com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(requireContext());
+                    chip.setText(name);
+                    chip.setChipBackgroundColor(ColorStateList.valueOf(0xFFF0FDF4)); // 莫兰迪浅绿，与饮食色系一致
+                    chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.diet_primary));
+                    chip.setCloseIconVisible(false);
+                    chip.setOnClickListener(v -> {
+                        String[] meals = {"☀️ 早餐", "🌞 午餐", "🌙 晚餐", "🍪 加餐"};
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("记录「" + name + "」到...")
+                                .setItems(meals, (dialog, which) -> {
+                                    viewModel.addFoodRecordSmart(name, 1.0f, which);
+                                    Toast.makeText(requireContext(), "✅ 已添加 1 份 " + name, Toast.LENGTH_SHORT).show();
+                                })
+                                .show();
+                    });
+                    chip.setOnLongClickListener(v -> {
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("收藏「" + name + "」")
+                                .setMessage("将 " + name + " 添加到收藏食物？")
+                                .setPositiveButton("收藏", (d, w) -> {
+                                    addFrequentFoodToFavorites(name);
+                                })
+                                .setNegativeButton("取消", null)
+                                .show();
+                        return true;
+                    });
+                    binding.cgFrequentFoods.addView(chip);
+                }
+            } else {
+                com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(requireContext());
+                chip.setText("暂无高频食物，记录几次即可在此快捷添加");
+                chip.setEnabled(false);
+                binding.cgFrequentFoods.addView(chip);
+            }
+        });
+
+        // Favorite foods chips
+        recipeViewModel.loadFavoriteFoods(() -> {
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    binding.cgFavoriteFoods.removeAllViews();
+                    java.util.List<com.cz.fitnessdiary.database.entity.FavoriteFood> favs = recipeViewModel.getFavoriteFoodList();
+                    if (favs != null && !favs.isEmpty()) {
+                        for (com.cz.fitnessdiary.database.entity.FavoriteFood food : favs) {
+                            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(requireContext());
+                            chip.setText("⭐ " + food.getFoodName());
+                            chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(0xFFFFF3E0));
+                            chip.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.diet_primary));
+                            chip.setCloseIconVisible(false);
+                            chip.setOnClickListener(v -> {
+                                String[] meals = {"☀️ 早餐", "🌞 午餐", "🌙 晚餐", "🍪 加餐"};
+                                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                        .setTitle("记录「" + food.getFoodName() + "」到...")
+                                        .setItems(meals, (dialog, which) -> {
+                                            viewModel.addFoodRecordSmart(food.getFoodName(), 1.0f, which);
+                                            Toast.makeText(requireContext(), "✅ 已添加 1 份 " + food.getFoodName(), Toast.LENGTH_SHORT).show();
+                                        })
+                                        .show();
+                            });
+                            binding.cgFavoriteFoods.addView(chip);
+                        }
+                    }
+                });
+            }
+        });
 
         viewModel.getFoodScanState().observe(getViewLifecycleOwner(), this::renderFoodScanState);
         viewModel.getFoodScanDraft().observe(getViewLifecycleOwner(), draft -> {
@@ -613,8 +694,8 @@ public class DietFragment extends Fragment {
         Integer consumed = viewModel.getTodayTotalCalories().getValue();
         int currentCalories = consumed != null ? consumed : 0;
 
-        binding.tvTotalCalories.setText(String.valueOf(currentCalories));
-        binding.tvCaloriesSubtitle.setText("千卡 · 目标 " + targetCalories);
+        binding.tvTotalCalories.setText(UnitUtils.formatEnergy(currentCalories, requireContext()));
+        binding.tvCaloriesSubtitle.setText(UnitUtils.getEnergyUnitSymbol(requireContext()) + " · 目标 " + UnitUtils.formatEnergy(targetCalories, requireContext()));
 
         int calProgress = (int) ((currentCalories * 100.0) / targetCalories);
         binding.progressCalories.setProgress(Math.min(calProgress, 100));
@@ -643,6 +724,18 @@ public class DietFragment extends Fragment {
         int cProgress = (int) ((currentCarbs * 100.0) / targetCarbs);
         binding.progressCarbs.setProgress(Math.min(cProgress, 100));
         binding.tvCarbsStatus.setText("碳水: " + currentCarbs + "/" + targetCarbs + "g");
+
+        // --- 4. 脂肪刷新 ---
+        int targetFat = user.getTargetFat();
+        if (targetFat <= 0)
+            targetFat = 60; // 默认60g
+
+        Double fConsumed = viewModel.getTodayTotalFat().getValue();
+        int currentFat = fConsumed != null ? fConsumed.intValue() : 0;
+
+        int fProgress = (int) ((currentFat * 100.0) / targetFat);
+        binding.progressFat.setProgress(Math.min(fProgress, 100));
+        binding.tvFatStatus.setText("脂肪: " + currentFat + "/" + targetFat + "g");
     }
 
     /**
@@ -656,7 +749,7 @@ public class DietFragment extends Fragment {
         // setupViews 绑定
 
         tvName.setText(title);
-        tvCalories.setText(section.getTotalCalories() + " 千卡");
+        tvCalories.setText(UnitUtils.formatEnergy(section.getTotalCalories(), requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext()));
 
         List<com.cz.fitnessdiary.database.entity.FoodRecord> records = section.getFoodRecords();
         if (records == null || records.isEmpty()) {
@@ -694,7 +787,7 @@ public class DietFragment extends Fragment {
             if (r.getServings() > 0) {
                 portions = r.getServings() + (r.getServingUnit() != null ? r.getServingUnit() : "份") + " - ";
             }
-            items[i] = "• " + r.getFoodName() + " (" + portions + r.getCalories() + "千卡)  " + timeStr;
+            items[i] = "• " + r.getFoodName() + " (" + portions + UnitUtils.formatEnergy(r.getCalories(), requireContext()) + UnitUtils.getEnergyUnitSymbol(requireContext()) + ")  " + timeStr;
         }
 
         new AlertDialog.Builder(requireContext())
@@ -958,6 +1051,48 @@ public class DietFragment extends Fragment {
      */
     private void bindEnergyStatus(DailyHealthSnapshot snapshot) {
         // 布局已移除，无需执行绑定
+    }
+
+    /**
+     * 将高频食物添加到收藏
+     */
+    private void addFrequentFoodToFavorites(String foodName) {
+        imageExecutorService.execute(() -> {
+            com.cz.fitnessdiary.database.entity.FoodLibrary found = null;
+            java.util.List<com.cz.fitnessdiary.database.entity.FoodLibrary> allFoods = viewModel.getAllFoodsSync();
+            if (allFoods != null) {
+                for (com.cz.fitnessdiary.database.entity.FoodLibrary f : allFoods) {
+                    if (f.getName().equals(foodName)) {
+                        found = f;
+                        break;
+                    }
+                }
+            }
+            if (getActivity() == null) return;
+            final com.cz.fitnessdiary.database.entity.FoodLibrary food = found;
+            getActivity().runOnUiThread(() -> {
+                if (food != null) {
+                    com.cz.fitnessdiary.database.entity.FavoriteFood fav = new com.cz.fitnessdiary.database.entity.FavoriteFood(
+                            food.getName(),
+                            food.getCaloriesPer100g(),
+                            (float) food.getProteinPer100g(),
+                            (float) food.getCarbsPer100g(),
+                            (float) food.getFatPer100g(),
+                            food.getId(),
+                            System.currentTimeMillis()
+                    );
+                    recipeViewModel.addFavoriteFood(fav);
+                    Toast.makeText(getContext(), "⭐ 已收藏 " + foodName, Toast.LENGTH_SHORT).show();
+                } else {
+                    // 不在食物库中，用默认值收藏
+                    com.cz.fitnessdiary.database.entity.FavoriteFood fav = new com.cz.fitnessdiary.database.entity.FavoriteFood(
+                            foodName, 100, 0, 0, 0, null, System.currentTimeMillis()
+                    );
+                    recipeViewModel.addFavoriteFood(fav);
+                    Toast.makeText(getContext(), "⭐ 已收藏 " + foodName, Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
     }
 
     public void showPageGuide(GuideStateManager guideManager) {

@@ -47,6 +47,7 @@ public class DietViewModel extends AndroidViewModel {
     private final LiveData<List<FoodRecord>> todayFoodRecords;
     private final LiveData<Double> todayTotalProtein; // 今日总蛋白质 (g)
     private final LiveData<Double> todayTotalCarbs; // 今日总碳水 (g)
+    private final LiveData<Double> todayTotalFat; // 今日总脂肪 (g)
     private final LiveData<User> currentUser;
     private final MediatorLiveData<String> smartFeedback = new MediatorLiveData<>();
     private final MediatorLiveData<Integer> progressColor = new MediatorLiveData<>();
@@ -111,6 +112,16 @@ public class DietViewModel extends AndroidViewModel {
             if (records != null) {
                 for (FoodRecord record : records) {
                     total += record.getCarbs();
+                }
+            }
+            return total;
+        });
+
+        todayTotalFat = androidx.lifecycle.Transformations.map(todayFoodRecords, records -> {
+            double total = 0;
+            if (records != null) {
+                for (FoodRecord record : records) {
+                    total += record.getFat();
                 }
             }
             return total;
@@ -248,6 +259,15 @@ public class DietViewModel extends AndroidViewModel {
 
     public LiveData<Double> getTodayTotalCarbs() {
         return todayTotalCarbs;
+    }
+
+    public LiveData<Double> getTodayTotalFat() {
+        return todayTotalFat;
+    }
+
+    public LiveData<List<String>> getFrequentFoods() {
+        long oneWeekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L;
+        return foodRecordRepository.getFrequentFoodNames(oneWeekAgo, 4);
     }
 
     /**
@@ -400,6 +420,7 @@ public class DietViewModel extends AndroidViewModel {
             FoodRecord record = new FoodRecord(mealName.trim(), Math.max(0, draft.getTotalCalories()), finalRecordDate);
             record.setProtein(Math.max(0d, draft.getTotalProtein()));
             record.setCarbs(Math.max(0d, draft.getTotalCarbs()));
+            record.setFat(Math.max(0d, draft.getTotalFat()));
             record.setMealType(Math.max(0, Math.min(3, draft.getMealType())));
             record.setServings(draft.getServings() <= 0 ? 1f : draft.getServings());
             String unit = draft.getServingUnit();
@@ -424,6 +445,7 @@ public class DietViewModel extends AndroidViewModel {
                         caloriesPer100g,
                         Math.max(0d, item.getProtein()),
                         Math.max(0d, item.getCarbs()),
+                        Math.max(0d, item.getFat()),
                         (item.getUnit() == null || item.getUnit().trim().isEmpty()) ? "份" : item.getUnit().trim(),
                         100,
                         (item.getCategory() == null || item.getCategory().trim().isEmpty()) ? "其他" : item.getCategory().trim());
@@ -448,6 +470,7 @@ public class DietViewModel extends AndroidViewModel {
             int calories = 0;
             double protein = 0;
             double carbs = 0;
+            double fat = 0;
 
             // 默认每份重量 (如果没有查到食物库，默认100g便于计算)
             int weightPerUnit = 100;
@@ -463,6 +486,7 @@ public class DietViewModel extends AndroidViewModel {
                 calories = (int) (food.getCaloriesPer100g() * ratio);
                 protein = food.getProteinPer100g() * ratio;
                 carbs = food.getCarbsPer100g() * ratio;
+                fat = food.getFatPer100g() * ratio;
             }
 
             // 3. 创建并保存记录
@@ -478,6 +502,7 @@ public class DietViewModel extends AndroidViewModel {
             FoodRecord record = new FoodRecord(foodName, calories, finalRecordDate);
             record.setProtein(protein);
             record.setCarbs(carbs);
+            record.setFat(fat);
             record.setMealType(mealType);
             record.setServings(servings);
             if (food != null) {

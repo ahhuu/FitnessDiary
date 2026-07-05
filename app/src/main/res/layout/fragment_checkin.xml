@@ -145,7 +145,7 @@
                                                 android:layout_width="wrap_content"
                                                 android:layout_height="wrap_content"
                                                 android:text="65%"
-                                                android:textColor="#766D60"
+                                                android:textColor="@color/text_primary"
                                                 android:textSize="22sp"
                                                 android:fontFamily="sans-serif-medium"
                                                 android:textStyle="bold" />
@@ -156,7 +156,7 @@
                                                 android:layout_height="wrap_content"
                                                 android:layout_marginTop="1dp"
                                                 android:text="今日总览"
-                                                android:textColor="#9C9283"
+                                                android:textColor="@color/text_secondary"
                                                 android:textSize="10sp" />
                                         </LinearLayout>
                                     </FrameLayout>
@@ -219,115 +219,124 @@
                         <include layout="@layout/fragment_rest_timer" />
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- 今日任务卡片区域 (已隐藏，移至FAB) -->
+                    <!-- 首页顶部 3 个高亮轻量化标签 (并排横向放置) -->
                     <LinearLayout
-                        android:id="@+id/layout_daily_missions"
+                        android:id="@+id/layout_top_tags"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="8dp"
-                        android:paddingVertical="4dp"
+                        android:gravity="center_vertical"
+                        android:baselineAligned="false"
                         android:visibility="gone">
 
+                        <!-- 标签 1 -->
                         <LinearLayout
+                            android:id="@+id/layout_top_tag_1"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:orientation="vertical">
-
+                            android:layout_marginEnd="6dp"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="10dp"
+                            android:paddingHorizontal="6dp"
+                            android:background="@drawable/bg_tag_sunken"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground">
+                            
                             <TextView
+                                android:id="@+id/tv_top_tag_1_value"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="🎯 今日任务"
-                                android:textColor="@color/text_primary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-
-                            <!-- 药丸胶囊状态展示标签 -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                                android:text="0"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary" />
+                                
+                            <TextView
+                                android:id="@+id/tv_top_tag_1_label"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:layout_marginTop="8dp"
-                                android:layout_marginBottom="6dp">
-
-                                <TextView
-                                    android:id="@+id/tv_mission_cal_balance"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:textSize="11sp"
-                                    android:paddingHorizontal="10dp"
-                                    android:paddingVertical="3dp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/diet_primary"
-                                    android:background="@drawable/bg_tag_chip_cal"
-                                    android:layout_marginEnd="6dp" />
-
-                                <TextView
-                                    android:id="@+id/tv_mission_water"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:textSize="11sp"
-                                    android:paddingHorizontal="10dp"
-                                    android:paddingVertical="3dp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/cat_water_primary"
-                                    android:background="@drawable/bg_tag_chip_water"
-                                    android:layout_marginEnd="6dp" />
-
-                                <TextView
-                                    android:id="@+id/tv_mission_habit"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:textSize="11sp"
-                                    android:paddingHorizontal="10dp"
-                                    android:paddingVertical="3dp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/cat_habit_primary"
-                                    android:background="@drawable/bg_tag_chip_habit" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:id="@+id/layout_mission_list"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="6dp"
-                                android:orientation="vertical" />
+                                android:layout_marginTop="2dp"
+                                android:text="剩余热量"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_secondary" />
                         </LinearLayout>
 
-                        <!-- 编辑胶囊按钮 -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_edit_missions"
-                            style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="28dp"
-                            android:layout_gravity="center_vertical"
-                            android:layout_marginStart="8dp"
-                            android:contentDescription="编辑任务"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:insetLeft="0dp"
-                            android:insetRight="0dp"
-                            android:minHeight="0dp"
-                            android:minWidth="0dp"
-                            android:paddingHorizontal="10dp"
-                            android:text="编辑"
-                            android:textAllCaps="false"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp"
-                            android:background="@drawable/bg_btn_edit_sunken"
-                            app:backgroundTint="@null"
-                            app:cornerRadius="14dp"
-                            app:icon="@drawable/ic_edit"
-                            app:iconPadding="3dp"
-                            app:iconSize="12dp"
-                            app:iconTint="@color/text_secondary"
-                            app:strokeWidth="0dp" />
+                        <!-- 标签 2 -->
+                        <LinearLayout
+                            android:id="@+id/layout_top_tag_2"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginHorizontal="3dp"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="10dp"
+                            android:paddingHorizontal="6dp"
+                            android:background="@drawable/bg_tag_sunken"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground">
+                            
+                            <TextView
+                                android:id="@+id/tv_top_tag_2_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary" />
+                                
+                            <TextView
+                                android:id="@+id/tv_top_tag_2_label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="运动消耗"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_secondary" />
+                        </LinearLayout>
+
+                        <!-- 标签 3 -->
+                        <LinearLayout
+                            android:id="@+id/layout_top_tag_3"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="10dp"
+                            android:paddingHorizontal="6dp"
+                            android:background="@drawable/bg_tag_sunken"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground">
+                            
+                            <TextView
+                                android:id="@+id/tv_top_tag_3_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary" />
+                                
+                            <TextView
+                                android:id="@+id/tv_top_tag_3_label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="饮水量"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_secondary" />
+                        </LinearLayout>
+
                     </LinearLayout>
 
-                    <!-- v3: AI 日报 (已隐藏，移至FAB) -->
-                    <include android:id="@+id/card_ai_briefing" layout="@layout/view_ai_daily_briefing" android:visibility="gone" />
 
                     <!-- 主卡片：运动记录 -->
                     <com.google.android.material.card.MaterialCardView
@@ -629,6 +638,41 @@
                                     android:layout_width="80dp"
                                     android:layout_height="3dp"
                                     android:progressDrawable="@drawable/gradient_progress_protein"
+                                    android:max="100"
+                                    android:progress="0" />
+                            </LinearLayout>
+
+                            <!-- 脂肪 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="🥑脂肪"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="12sp" />
+
+                                <TextView
+                                    android:id="@+id/tv_diet_fat"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:layout_weight="1"
+                                    android:text="0g"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="12sp" />
+
+                                <ProgressBar
+                                    android:id="@+id/progress_diet_fat"
+                                    style="?android:attr/progressBarStyleHorizontal"
+                                    android:layout_width="80dp"
+                                    android:layout_height="3dp"
+                                    android:progressDrawable="@drawable/gradient_progress_fat"
                                     android:max="100"
                                     android:progress="0" />
                             </LinearLayout>

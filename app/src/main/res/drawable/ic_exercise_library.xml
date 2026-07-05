@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 动作库图标: 人体 + 网格，区别于哑铃的计划管理图标 -->
+    <!-- 人体轮廓 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M12,2C11.2,2,10.5,2.6,10.5,3.5S11.2,5,12,5s1.5-0.6,1.5-1.5S12.8,2,12,2zM10,6L9,22h2v-3h2v3h2L14,6H10zM11,10h2v2h-2V10zM11,13h2v2h-2V13z"/>
+    <!-- 网格线 (代表动作库) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#000000"
+        android:strokeWidth="1"
+        android:pathData="M16,5h3v3h-3zM16,9h3v3h-3zM16,13h3v3h-3zM5,9h3v3H5zM5,13h3v3H5z"/>
+</vector>

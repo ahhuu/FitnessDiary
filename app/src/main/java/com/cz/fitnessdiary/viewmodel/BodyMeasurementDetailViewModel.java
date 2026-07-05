@@ -12,6 +12,7 @@ import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.repository.BodyMeasurementRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -384,9 +385,9 @@ public class BodyMeasurementDetailViewModel extends AndroidViewModel {
                         com.cz.fitnessdiary.database.entity.TrainingPlan plan = plansMap.get(log.getPlanId());
                         if (plan != null) {
                             int durationSec = log.getDuration() > 0 ? log.getDuration() : plan.getDuration();
-                            if (durationSec <= 0) durationSec = 1800;
-                            double met = getMetForCategory(plan.getCategory());
-                            double cal = met * 3.5 * userWeight * durationSec / (200.0 * 60.0);
+                            if (durationSec <= 0) durationSec = 360; // 6min default
+                            double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
+                            double cal = met * userWeight * durationSec / 3600.0;
                             totalBurned += (int) cal;
 
                             String category = plan.getCategory();
@@ -411,14 +412,4 @@ public class BodyMeasurementDetailViewModel extends AndroidViewModel {
         }).start();
     }
 
-    private double getMetForCategory(String category) {
-        if (category == null) return 4.0;
-        String cat = category.toLowerCase();
-        if (cat.contains("有氧") || cat.contains("cardio") || cat.contains("跑步") || cat.contains("骑行"))
-            return 7.0;
-        if (cat.contains("hiit")) return 8.0;
-        if (cat.contains("瑜伽") || cat.contains("拉伸") || cat.contains("yoga")) return 2.5;
-        if (cat.contains("力量") || cat.contains("strength")) return 3.5;
-        return 4.0;
-    }
 }

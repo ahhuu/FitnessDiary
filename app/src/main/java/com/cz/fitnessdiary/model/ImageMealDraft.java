@@ -14,6 +14,7 @@ public class ImageMealDraft implements Serializable {
     private int totalCalories;
     private double totalProtein;
     private double totalCarbs;
+    private double totalFat;
 
     public ImageMealDraft() {
         mealName = "识别餐";
@@ -28,17 +29,20 @@ public class ImageMealDraft implements Serializable {
         int calories = 0;
         double protein = 0d;
         double carbs = 0d;
+        double fat = 0d;
         if (items != null) {
             for (ImageFoodItemDraft item : items) {
                 if (item == null) continue;
                 calories += Math.max(0, item.getCalories());
                 protein += Math.max(0d, item.getProtein());
                 carbs += Math.max(0d, item.getCarbs());
+                fat += Math.max(0d, item.getFat());
             }
         }
         totalCalories = calories;
         totalProtein = protein;
         totalCarbs = carbs;
+        totalFat = fat;
     }
 
     public String getMealName() { return mealName; }
@@ -59,4 +63,6 @@ public class ImageMealDraft implements Serializable {
     public void setTotalProtein(double totalProtein) { this.totalProtein = totalProtein; }
     public double getTotalCarbs() { return totalCarbs; }
     public void setTotalCarbs(double totalCarbs) { this.totalCarbs = totalCarbs; }
+    public double getTotalFat() { return totalFat; }
+    public void setTotalFat(double totalFat) { this.totalFat = totalFat; }
 }

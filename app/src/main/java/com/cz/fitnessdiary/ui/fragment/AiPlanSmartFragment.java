@@ -276,7 +276,14 @@ public class AiPlanSmartFragment extends Fragment {
             plan.setSets(Math.max(0, draft.sets));
             plan.setReps(Math.max(0, draft.reps));
             plan.setDuration(Math.max(0, draft.duration));
-            plan.setCategory(mode + "-AI私教");
+            // 自定义模式归入当前活跃的个人计划
+            if ("自定义".equals(mode)) {
+                SharedPreferences sp = requireContext().getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
+                String planName = sp.getString("active_personal_plan_name", "默认自定义计划");
+                plan.setCategory("自定义-" + planName + "-AI私教");
+            } else {
+                plan.setCategory(mode + "-AI私教");
+            }
             plan.setScheduledDays(String.valueOf(dayIndex));
             trainingPlanRepository.insert(plan);
         }

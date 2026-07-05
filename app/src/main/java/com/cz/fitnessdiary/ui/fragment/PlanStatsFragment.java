@@ -19,6 +19,7 @@ import com.cz.fitnessdiary.repository.DailyLogRepository;
 import com.cz.fitnessdiary.repository.TrainingPlanRepository;
 import com.cz.fitnessdiary.repository.WeightRecordRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
@@ -118,7 +119,6 @@ public class PlanStatsFragment extends Fragment {
     private void initChartStyles() {
         styleBarChart(binding.chartDailySessions);
         styleLineChart(binding.chartDuration);
-        styleLineChart(binding.chartWeight);
         stylePieChart(binding.chartCategory);
     }
 
@@ -240,8 +240,17 @@ public class PlanStatsFragment extends Fragment {
                 cal.setTimeInMillis(startTime + (long) i * 24 * 3600 * 1000L);
                 long ds = dayStart(cal), de = ds + 86400000L;
                 int sec = 0;
-                for (DailyLog log : periodLogs)
-                    if (log.getDate() >= ds && log.getDate() < de) sec += log.getDuration();
+                for (DailyLog log : periodLogs) {
+                    if (log.getDate() >= ds && log.getDate() < de) {
+                        TrainingPlan plan = planMap.get(log.getPlanId());
+                        sec += ExerciseMetTable.resolveDuration(
+                                log.getDuration(),
+                                plan != null ? plan.getDuration() : 0,
+                                plan != null ? plan.getSets() : 0,
+                                plan != null ? plan.getReps() : 0,
+                                requireContext());
+                    }
+                }
                 durationEntries.add(new Entry(i, sec / 60f));
                 if (sec > 0) { totalSec += sec; dDays++; }
             }
@@ -275,6 +284,10 @@ public class PlanStatsFragment extends Fragment {
                         ? plan.getCategory() : "其他";
                 // 提取部位关键词（取最后一个 '-' 后的内容并规范化）
                 String bodyPart = extractBodyPart(rawCat);
+                // 如果分类提取失败，从动作名称推断部位
+                if ("其他".equals(bodyPart) && plan != null && plan.getName() != null) {
+                    bodyPart = extractBodyPart(plan.getName());
+                }
                 catMap.put(bodyPart, catMap.getOrDefault(bodyPart, 0) + 1);
             }
             final List<PieEntry> pieEntries = new ArrayList<>();
@@ -306,18 +319,7 @@ public class PlanStatsFragment extends Fragment {
                 binding.tvAvgDurationLabel.setText(
                         String.format(Locale.getDefault(), "均 %.0f 分", avgMin));
 
-                // 体重
-                if (!weightEntries.isEmpty()) {
-                    binding.tvWeightRangeLabel.setText(
-                            String.format(Locale.getDefault(), "%.1f ~ %.1f kg", fMinW, fMaxW));
-                    binding.tvWeightEmpty.setVisibility(View.GONE);
-                    binding.chartWeight.setVisibility(View.VISIBLE);
-                    renderLineChart(binding.chartWeight, weightEntries, wLabels, COLOR_WEIGHT);
-                } else {
-                    binding.tvWeightRangeLabel.setText("暂无记录");
-                    binding.tvWeightEmpty.setVisibility(View.VISIBLE);
-                    binding.chartWeight.setVisibility(View.GONE);
-                }
+
 
                 renderBarChart(binding.chartDailySessions, barEntries, xLabels);
                 renderLineChart(binding.chartDuration, durationEntries, xLabels, COLOR_SUCCESS);
@@ -429,7 +431,14 @@ public class PlanStatsFragment extends Fragment {
         for (String key : new String[]{"胸部","背部","腿部","臀部","腹部","肩部","手臂","有氧","全身","核心"}) {
             if (last.contains(key)) return key;
         }
-        return last.length() > 4 ? last.substring(0, 4) : last;
+        // 超长且不匹配已知部位 → 归类为"其他"（损坏数据修复后的兜底）
+        if (last.length() > 3) {
+            for (String key : new String[]{"胸","背","腿","臀","腹","肩","臂","腰"}) {
+                if (last.contains(key)) return key + "部";
+            }
+            return "其他";
+        }
+        return last;
     }
 
     // -----------------------------------------------------------------------

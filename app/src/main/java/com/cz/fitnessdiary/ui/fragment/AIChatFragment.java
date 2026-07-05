@@ -778,6 +778,7 @@ public class AIChatFragment extends Fragment {
                                     name, calories,
                                     Math.max(0d, item.optDouble("protein", 0d)),
                                     Math.max(0d, item.optDouble("carbs", 0d)),
+                                    Math.max(0d, item.optDouble("fat", 0d)),
                                     item.optString("unit", "克"), 100,
                                     FoodCategoryUtils.normalizeCategory(item.optString("category", "其他")));
                             foodRepository.insert(food);
@@ -848,6 +849,7 @@ public class AIChatFragment extends Fragment {
         int totalCalories = 0;
         double totalProtein = 0d;
         double totalCarbs = 0d;
+        double totalFat = 0d;
         int validCount = 0;
 
         for (int i = 0; i < items.length(); i++) {
@@ -866,6 +868,7 @@ public class AIChatFragment extends Fragment {
             totalCalories += calories;
             totalProtein += Math.max(0d, item.optDouble("protein", 0d));
             totalCarbs += Math.max(0d, item.optDouble("carbs", 0d));
+            totalFat += Math.max(0d, item.optDouble("fat", 0d));
             validCount++;
         }
 
@@ -879,6 +882,7 @@ public class AIChatFragment extends Fragment {
         FoodRecord record = new FoodRecord(mealName, totalCalories, timestamp);
         record.setProtein(totalProtein);
         record.setCarbs(totalCarbs);
+        record.setFat(totalFat);
         record.setMealType(mealType);
         record.setServings(1.0f);
         record.setServingUnit("份");

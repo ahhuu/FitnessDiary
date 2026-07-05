@@ -69,4 +69,16 @@ public interface TrainingPlanDao {
      */
     @Query("DELETE FROM training_plan WHERE category LIKE :prefix || '%'")
     void deleteByCategoryPrefix(String prefix);
+
+    /**
+     * 按分类前缀模糊查询
+     */
+    @Query("SELECT * FROM training_plan WHERE category LIKE :prefix || '%'")
+    List<TrainingPlan> getByCategoryPrefix(String prefix);
+
+    /**
+     * 按分类前缀批量替换前缀（合并计划用）
+     */
+    @Query("UPDATE training_plan SET category = REPLACE(category, :oldPrefix, :newPrefix) WHERE category LIKE :oldPrefix || '%'")
+    void mergeCategoryPrefix(String oldPrefix, String newPrefix);
 }

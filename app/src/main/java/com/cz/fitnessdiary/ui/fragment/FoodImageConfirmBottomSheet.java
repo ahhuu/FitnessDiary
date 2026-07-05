@@ -215,12 +215,14 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
             EditText etCalories = itemView.findViewById(R.id.et_item_calories);
             EditText etProtein = itemView.findViewById(R.id.et_item_protein);
             EditText etCarbs = itemView.findViewById(R.id.et_item_carbs);
+            EditText etFat = itemView.findViewById(R.id.et_item_fat);
             ImageButton btnDelete = itemView.findViewById(R.id.btn_delete_item);
 
             etName.setText(item.getName());
             etCalories.setText(String.valueOf(Math.max(0, item.getCalories())));
             etProtein.setText(formatDouble(item.getProtein()));
             etCarbs.setText(formatDouble(item.getCarbs()));
+            etFat.setText(formatDouble(item.getFat()));
 
             TextWatcher watcher = new TextWatcher() {
                 @Override
@@ -234,6 +236,7 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
                     current.setCalories(parseInt(safeText(etCalories)));
                     current.setProtein(parseDouble(safeText(etProtein)));
                     current.setCarbs(parseDouble(safeText(etCarbs)));
+                    current.setFat(parseDouble(safeText(etFat)));
                     updateSummary();
                 }
 
@@ -246,6 +249,7 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
             etCalories.addTextChangedListener(watcher);
             etProtein.addTextChangedListener(watcher);
             etCarbs.addTextChangedListener(watcher);
+            etFat.addTextChangedListener(watcher);
 
             btnDelete.setOnClickListener(v -> {
                 if (draft.getItems().size() <= 1) {

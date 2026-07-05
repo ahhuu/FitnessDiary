@@ -200,6 +200,7 @@ public class HealthScoreCalculator {
         public float heightCm;
         public int age;
         public String gender = "male";
+        public float customTargetWeight = -1f;
 
         // 运动目标
         public int targetExerciseMinutes; // 0 = auto (使用默认卡路里阈值 300 kcal)
@@ -241,25 +242,30 @@ public class HealthScoreCalculator {
 
     /**
      * 计算运动评分 (0-25)
-     * 逻辑：有完成计划得15分，全部完成再加5分，热量消耗超过阈值再加5分
-     * 阈值优先使用用户设定的目标运动时长（换算为卡路里），否则使用默认 300 kcal
+     * 阶梯制：完成率≥50%→10, ≥80%→15, 100%→20, 热量阈值+5
      */
     private static int calcExerciseScore(DailyHealthSnapshot data, UserProfile profile) {
         int score = 0;
-        if (data.completedPlans > 0) {
-            score += 15;
+        if (data.totalPlans > 0 && data.completedPlans > 0) {
+            float ratio = (float) data.completedPlans / data.totalPlans;
+            if (ratio >= 1.0f) {
+                score += 20;
+            } else if (ratio >= 0.8f) {
+                score += 15;
+            } else if (ratio >= 0.5f) {
+                score += 10;
+            } else {
+                score += 5;
+            }
+        } else if (data.completedPlans > 0) {
+            score += 5; // totalPlans=0但有完成记录，兜底
         }
-        if (data.totalPlans > 0 && data.completedPlans >= data.totalPlans) {
-            score += 5;
-        }
+
         int totalCalories = data.exerciseCalories + data.stepCalories;
-
-        int threshold = 300; // 默认自动估算阈值
+        int threshold = 300;
         if (profile.targetExerciseMinutes > 0 && profile.weightKg > 0) {
-            // 根据目标时长和体重计算卡路里阈值：MET 5 * 3.5 * weight * targetMin * 60 / 200 / 60
-            threshold = (int) (5 * 3.5 * profile.weightKg * profile.targetExerciseMinutes / 200.0);
+            threshold = (int) (5.0 * profile.weightKg * (profile.targetExerciseMinutes / 60.0));
         }
-
         if (totalCalories > threshold) {
             score += 5;
         }
@@ -268,11 +274,7 @@ public class HealthScoreCalculator {
 
     /**
      * 计算饮食评分 (0-25)
-     * 多因子公式：
-     * - 热量在目标 ±10% 范围：+18分
-     * - 蛋白质达标（>1.2g/每kg体重）：+4分
-     * - 碳水不超标（<总热量的60%）：+3分
-     * 若蛋白质或碳水未追踪（值为0），不扣分（直接加满该项分值）
+     * 热量12 + 蛋白质8 + 碳水5。不跟踪=0分，鼓励记录
      */
     private static int calcDietScore(DailyHealthSnapshot data, UserProfile profile) {
         int target = profile.dailyCalorieTarget > 0 ? profile.dailyCalorieTarget : 2000;
@@ -283,52 +285,53 @@ public class HealthScoreCalculator {
         int score = 0;
         float ratio = (float) data.dietCalories / target;
 
-        // Calories component (0-18)
+        // Calories component (0-12)
         if (ratio >= 0.9f && ratio <= 1.1f) {
-            score += 18;
+            score += 12;
         } else if (ratio >= 0.8f && ratio <= 1.2f) {
-            score += 10;
+            score += 8;
         } else if (ratio < 0.5f || ratio > 1.5f) {
-            score += 3;
+            score += 2;
         } else {
-            score += 6;
+            score += 4;
         }
 
-        // Protein component (0-4): 目标蛋白质 ±20% 内得满分
+        // Protein component (0-8): 不跟踪=0，鼓励记录
         if (data.todayProtein > 0) {
             float proteinTarget;
             if (profile.targetProteinGrams > 0) {
                 proteinTarget = profile.targetProteinGrams;
             } else if (profile.weightKg > 0) {
-                proteinTarget = profile.weightKg * 1.2f; // 自动估算：1.2g/kg
+                proteinTarget = profile.weightKg * 1.2f;
             } else {
-                proteinTarget = 60f; // 兜底默认值
+                proteinTarget = 60f;
             }
             float proteinRatio = (float) data.todayProtein / proteinTarget;
-            if (proteinRatio >= 0.8f && proteinRatio <= 1.2f) {
-                score += 4;
+            if (proteinRatio >= 0.9f && proteinRatio <= 1.1f) {
+                score += 8;
+            } else if (proteinRatio >= 0.7f && proteinRatio <= 1.3f) {
+                score += 5;
+            } else if (proteinRatio >= 0.5f) {
+                score += 2;
             }
-        } else {
-            // No penalty for not tracking protein
-            score += 4;
         }
 
-        // Carbs component (0-3): 目标碳水 ±20% 内得满分
+        // Carbs component (0-5): 不跟踪=0，鼓励记录
         if (data.todayCarbs > 0) {
             int carbsTarget;
             if (profile.targetCarbsGrams > 0) {
                 carbsTarget = profile.targetCarbsGrams;
             } else {
-                // 自动估算：55% of diet calories / 4 kcal per gram
                 carbsTarget = (int) (data.dietCalories * 0.55f / 4f);
             }
             float carbsRatio = (float) data.todayCarbs / carbsTarget;
-            if (carbsRatio >= 0.8f && carbsRatio <= 1.2f) {
+            if (carbsRatio >= 0.9f && carbsRatio <= 1.1f) {
+                score += 5;
+            } else if (carbsRatio >= 0.7f && carbsRatio <= 1.3f) {
                 score += 3;
+            } else if (carbsRatio >= 0.5f) {
+                score += 1;
             }
-        } else {
-            // No penalty for not tracking carbs
-            score += 3;
         }
 
         return Math.min(score, 25);
@@ -395,20 +398,20 @@ public class HealthScoreCalculator {
 
     /**
      * 计算身体指标评分 (0-15)
-     * 基于目标体重与当前体重的距离，以及体重趋势是否朝向目标方向
+     * 基础分3 + 离目标近+7 + 趋势正确+5
      */
     private static int calcBodyMetricsScore(DailyHealthSnapshot data, UserProfile profile) {
-        if (data.weightKg <= 0) return 5;
-        int score = 10;
+        if (data.weightKg <= 0) return 0;
+        int score = 3; // 有体重记录得3分基础分
         float targetWeight = computeTargetWeight(profile);
         float currentWeight = data.weightKg;
         float distanceFromTarget = Math.abs(currentWeight - targetWeight);
 
-        // Weight close to target: high score
+        // Weight close to target: +7/+4
         if (distanceFromTarget < 1.0f) {
-            score += 5;
+            score += 7;
         } else if (distanceFromTarget < 3.0f) {
-            score += 3;
+            score += 4;
         }
 
         // Trend toward target: high score
@@ -434,6 +437,9 @@ public class HealthScoreCalculator {
      * - 保持：当前体重
      */
     public static float computeTargetWeight(UserProfile profile) {
+        if (profile.customTargetWeight > 0) {
+            return profile.customTargetWeight;
+        }
         if (profile.weightKg <= 0 || profile.heightCm <= 0) return profile.weightKg;
 
         // Calculate healthy weight range using BMI 18.5-24.9
@@ -459,21 +465,21 @@ public class HealthScoreCalculator {
 
     /**
      * 计算坚持度评分 (0-15)
-     * 根据连续打卡天数映射得分
+     * 过去7天活跃天数：任一健康记录（运动/饮食/睡眠/饮水/步数）即算活跃
      */
     private static int calcConsistencyScore(DailyHealthSnapshot data) {
-        if (data.consecutiveDays >= 30) {
+        if (data.activeDays7 >= 7) {
             return 15;
-        } else if (data.consecutiveDays >= 21) {
+        } else if (data.activeDays7 >= 6) {
             return 13;
-        } else if (data.consecutiveDays >= 14) {
-            return 11;
-        } else if (data.consecutiveDays >= 7) {
-            return 9;
-        } else if (data.consecutiveDays >= 3) {
-            return 6;
-        } else if (data.consecutiveDays >= 1) {
-            return 3;
+        } else if (data.activeDays7 >= 5) {
+            return 10;
+        } else if (data.activeDays7 >= 4) {
+            return 7;
+        } else if (data.activeDays7 >= 2) {
+            return 4;
+        } else if (data.activeDays7 >= 1) {
+            return 2;
         }
         return 0;
     }

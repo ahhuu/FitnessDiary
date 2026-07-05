@@ -141,7 +141,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="负重(kg)"
+                    android:hint="负重(kg) - 哑铃单只/杠铃单边/器械配重"
                     app:boxCornerRadiusBottomEnd="16dp"
                     app:boxCornerRadiusBottomStart="16dp"
                     app:boxCornerRadiusTopEnd="16dp"
@@ -162,7 +162,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="分类"
+                android:hint="分类 - 点击选择部位或自行输入如：胸、背、腿"
                 app:boxCornerRadiusBottomEnd="16dp"
                 app:boxCornerRadiusBottomStart="16dp"
                 app:boxCornerRadiusTopEnd="16dp"
@@ -276,10 +276,20 @@
                 style="@style/Widget.App.Button.Outlined.Plan"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="添加演示图片"
+                android:layout_marginBottom="4dp"
+                android:text="添加演示图片 (相册)"
                 app:cornerRadius="16dp"
                 app:icon="@android:drawable/ic_menu_gallery" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_pick_gif"
+                style="@style/Widget.App.Button.Outlined.Plan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="选择官方GIF图示"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/ic_dumbbell_simple" />
 
             <ImageView
                 android:id="@+id/iv_media_preview"

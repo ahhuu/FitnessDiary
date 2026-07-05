@@ -529,6 +529,30 @@
                             android:gravity="center" />
                     </LinearLayout>
 
+                    <!-- 合并计划按钮 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_merge_plans"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="📋 合并计划"
+                        android:textSize="13sp"
+                        app:cornerRadius="12dp"
+                        android:visibility="gone" />
+
+                    <!-- 负重管理按钮 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_weight_manager"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="⚖️ 负重管理"
+                        android:textSize="13sp"
+                        app:cornerRadius="12dp"
+                        android:visibility="gone" />
+
                     <!-- 个人计划卡片列表 -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_personal_plans"

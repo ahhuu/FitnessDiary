@@ -1,0 +1,940 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fitnessdiary_background"
+    android:paddingBottom="24dp">
+
+    <!-- 阻尼条 -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@color/divider"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- 顶部标题与 Tab 栏 -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="身体数据中心"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_centerVertical="true" />
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="160dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:background="@android:color/transparent"
+            app:tabIndicatorHeight="2dp"
+            app:tabIndicatorColor="@color/fitnessdiary_primary"
+            app:tabSelectedTextColor="@color/fitnessdiary_primary"
+            app:tabTextColor="@color/text_secondary"
+            app:tabPaddingStart="0dp"
+            app:tabPaddingEnd="0dp">
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="数据" />
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="图表" />
+        </com.google.android.material.tabs.TabLayout>
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- 数据 Tab 页面 (仿图3：身体模特测量展示) -->
+        <ScrollView
+            android:id="@+id/layout_tab_data"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible"
+            android:background="@color/background">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="12dp"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/card_background">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <!-- 顶部 4 卡片横排 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <!-- 当前身高 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_cur_height"
+                            android:layout_width="0dp"
+                            android:layout_height="72dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="4dp"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp"
+                            app:cardBackgroundColor="@color/fitnessdiary_surface">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="当前身高"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_height"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- 厘米"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- 当前体重 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_cur_weight"
+                            android:layout_width="0dp"
+                            android:layout_height="72dp"
+                            android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp"
+                            app:cardBackgroundColor="@color/fitnessdiary_surface">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="当前体重"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_weight"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- 公斤"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- 目标体重 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_target_weight"
+                            android:layout_width="0dp"
+                            android:layout_height="72dp"
+                            android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp"
+                            app:cardBackgroundColor="@color/fitnessdiary_surface">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="目标体重"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_target_weight"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- 公斤"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/fitnessdiary_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- 体脂率 -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_body_fat"
+                            android:layout_width="0dp"
+                            android:layout_height="72dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="4dp"
+                            app:cardCornerRadius="14dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp"
+                            app:cardBackgroundColor="@color/fitnessdiary_surface">
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:background="?attr/selectableItemBackground">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="体脂率"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_body_fat"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- %"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/color_success"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
+
+                    <!-- 2. 人体线雕连线大底盘 -->
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="320dp"
+                        android:layout_marginTop="8dp">
+
+                        <!-- 人体模型 (中心视觉分量增强) -->
+                        <ImageView
+                            android:id="@+id/iv_silhouette"
+                            android:layout_width="160dp"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_human_silhouette"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            android:contentDescription="人体剪影" />
+
+                        <!-- 左侧磨砂背景板 View -->
+                        <View
+                            android:id="@+id/view_left_panel"
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:background="@drawable/shape_panel_translucent"
+                            android:layout_marginEnd="6dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent" />
+
+                        <!-- 右侧磨砂背景板 View -->
+                        <View
+                            android:id="@+id/view_right_panel"
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:background="@drawable/shape_panel_translucent"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            app:layout_constraintStart_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent" />
+
+                        <!-- 左侧测量项 (脖、胸、臂、臀 - 精准身体部位高度 bias 锚定) -->
+                        <!-- 脖围 - bias: 0.18 -->
+                        <TextView
+                            android:id="@+id/tv_measure_neck"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="脖围: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_left_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_left_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.18" />
+
+                        <!-- 胸围 - bias: 0.36 -->
+                        <TextView
+                            android:id="@+id/tv_measure_chest"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="胸围: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_left_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_left_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.36" />
+
+                        <!-- 臂围 - bias: 0.50 -->
+                        <TextView
+                            android:id="@+id/tv_measure_arm"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="臂围: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_left_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_left_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.50" />
+
+                        <!-- 臀围 - bias: 0.66 -->
+                        <TextView
+                            android:id="@+id/tv_measure_hip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="臀围: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_left_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_left_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.66" />
+
+
+                        <!-- 右侧测量项 (肩、腰、大腿、小腿 - 精准身体部位高度 bias 锚定) -->
+                        <!-- 肩宽 - bias: 0.26 -->
+                        <TextView
+                            android:id="@+id/tv_measure_shoulder"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="肩宽: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_right_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_right_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.26" />
+
+                        <!-- 腰围 - bias: 0.46 -->
+                        <TextView
+                            android:id="@+id/tv_measure_waist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="腰围: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_right_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_right_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.46" />
+
+                        <!-- 大腿围 - bias: 0.68 -->
+                        <TextView
+                            android:id="@+id/tv_measure_thigh"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="大腿: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_right_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_right_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.68" />
+
+                        <!-- 小腿围 - bias: 0.86 -->
+                        <TextView
+                            android:id="@+id/tv_measure_calf"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="小腿: -- cm"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="8dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground"
+                            app:layout_constraintStart_toStartOf="@id/view_right_panel"
+                            app:layout_constraintEnd_toEndOf="@id/view_right_panel"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintVertical_bias="0.86" />
+
+
+                        <!-- 人体图上的圆点定位锚点 (dot - 垂直高度对齐各自 TextView，使引线绝不拉伸) -->
+                        <!-- 脖子点 -->
+                        <View
+                            android:id="@+id/dot_neck"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_neck"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_neck"
+                            app:layout_constraintHorizontal_bias="0.50" />
+
+                        <!-- 胸口点 -->
+                        <View
+                            android:id="@+id/dot_chest"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_chest"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_chest"
+                            app:layout_constraintHorizontal_bias="0.48" />
+
+                        <!-- 左手臂点 -->
+                        <View
+                            android:id="@+id/dot_arm"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_arm"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_arm"
+                            app:layout_constraintHorizontal_bias="0.33" />
+
+                        <!-- 左臀部点 -->
+                        <View
+                            android:id="@+id/dot_hip"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_hip"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_hip"
+                            app:layout_constraintHorizontal_bias="0.38" />
+
+                        <!-- 右肩膀点 -->
+                        <View
+                            android:id="@+id/dot_shoulder"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_shoulder"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_shoulder"
+                            app:layout_constraintHorizontal_bias="0.67" />
+
+                        <!-- 右腰部点 -->
+                        <View
+                            android:id="@+id/dot_waist"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_waist"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_waist"
+                            app:layout_constraintHorizontal_bias="0.62" />
+
+                        <!-- 右大腿点 -->
+                        <View
+                            android:id="@+id/dot_thigh"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_thigh"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_thigh"
+                            app:layout_constraintHorizontal_bias="0.58" />
+
+                        <!-- 右小腿点 -->
+                        <View
+                            android:id="@+id/dot_calf"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_anchor"
+                            app:layout_constraintStart_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_calf"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_calf"
+                            app:layout_constraintHorizontal_bias="0.58" />
+
+
+                        <!-- 8条平拉对齐虚线引线 (物理高度恒为3dp，绝不拉伸，保障虚线描边完美呈递) -->
+                        <!-- 脖围线 -->
+                        <View
+                            android:id="@+id/view_line_neck"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/tv_measure_neck"
+                            app:layout_constraintEnd_toStartOf="@id/dot_neck"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_neck"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_neck" />
+
+                        <!-- 胸围线 -->
+                        <View
+                            android:id="@+id/view_line_chest"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/tv_measure_chest"
+                            app:layout_constraintEnd_toStartOf="@id/dot_chest"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_chest"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_chest" />
+
+                        <!-- 臂围线 -->
+                        <View
+                            android:id="@+id/view_line_arm"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/tv_measure_arm"
+                            app:layout_constraintEnd_toStartOf="@id/dot_arm"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_arm"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_arm" />
+
+                        <!-- 臀围线 -->
+                        <View
+                            android:id="@+id/view_line_hip"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/tv_measure_hip"
+                            app:layout_constraintEnd_toStartOf="@id/dot_hip"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_hip"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_hip" />
+
+                        <!-- 肩宽线 -->
+                        <View
+                            android:id="@+id/view_line_shoulder"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/dot_shoulder"
+                            app:layout_constraintEnd_toStartOf="@id/tv_measure_shoulder"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_shoulder"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_shoulder" />
+
+                        <!-- 腰围线 -->
+                        <View
+                            android:id="@+id/view_line_waist"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/dot_waist"
+                            app:layout_constraintEnd_toStartOf="@id/tv_measure_waist"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_waist"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_waist" />
+
+                        <!-- 大腿线 -->
+                        <View
+                            android:id="@+id/view_line_thigh"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/dot_thigh"
+                            app:layout_constraintEnd_toStartOf="@id/tv_measure_thigh"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_thigh"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_thigh" />
+
+                        <!-- 小腿线 -->
+                        <View
+                            android:id="@+id/view_line_calf"
+                            android:layout_width="0dp"
+                            android:layout_height="3dp"
+                            android:background="@drawable/dashed_line"
+                            android:layerType="software"
+                            app:layout_constraintStart_toEndOf="@id/dot_calf"
+                            app:layout_constraintEnd_toStartOf="@id/tv_measure_calf"
+                            app:layout_constraintTop_toTopOf="@id/tv_measure_calf"
+                            app:layout_constraintBottom_toBottomOf="@id/tv_measure_calf" />
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    <!-- 3. 健康透视看板 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="健康透视看板"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:textStyle="bold"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp"
+                        app:cardBackgroundColor="@color/fitnessdiary_surface">
+
+                        <GridLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:columnCount="2"
+                            android:rowCount="2"
+                            android:padding="16dp">
+
+                            <!-- 性别与年龄 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:layout_marginBottom="12dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="基本概况"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_gender_age"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- 岁 · --"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+
+                            <!-- BMI质量指数 -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical"
+                                android:layout_marginBottom="12dp">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="BMI质量指数"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_bmi"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- (正常)"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+
+                            <!-- 基础代谢 BMR -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="基础代谢 (BMR)"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_bmr"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- kcal"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+
+                            <!-- 每日总能耗 TDEE -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_columnWeight="1"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="日总消耗 (TDEE)"
+                                    android:textSize="11sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_val_tdee"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="-- kcal"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+                        </GridLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </ScrollView>
+
+        <!-- 图表 Tab 页面 (顶部横滑 TabBar + 下方 100% 宽度贝塞尔折线图大卡片) -->
+        <LinearLayout
+            android:id="@+id/layout_tab_chart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="@color/background"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <!-- 顶部横向滚动指标微型标签栏 -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:layout_marginBottom="8dp">
+                <LinearLayout
+                    android:id="@+id/layout_chart_indicators"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingVertical="4dp">
+                    <!-- 由 Java 动态填充胶囊气泡指标按钮 -->
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- 下方大图表卡片面板 (由 ScrollView 包裹，解除高度压榨，图表高度拉大为 240dp) -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="none"
+                android:overScrollMode="never">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    android:layout_margin="4dp"
+                    app:cardBackgroundColor="@color/card_background">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <!-- 核心对比值看板 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginBottom="16dp"
+                            android:background="@drawable/bg_profile_data_sunken"
+                            android:padding="12dp">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:gravity="center">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="最新值"
+                                    android:textSize="10sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_chart_latest"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="--"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:gravity="center">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="较前次"
+                                    android:textSize="10sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_chart_diff"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="--"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical"
+                                android:gravity="center">
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="历史平均"
+                                    android:textSize="10sp"
+                                    android:textColor="@color/text_secondary" />
+                                <TextView
+                                    android:id="@+id/tv_chart_avg"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="--"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/text_primary"
+                                    android:layout_marginTop="2dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- 图表区域 (固定 240dp 高度，极度舒展大气) -->
+                        <FrameLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="240dp"
+                            android:layout_marginBottom="16dp">
+
+                            <com.github.mikephil.charting.charts.LineChart
+                                android:id="@+id/chart_body_metric"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+
+                            <TextView
+                                android:id="@+id/tv_chart_empty"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:text="该指标暂无历史记录"
+                                android:textColor="@color/text_hint"
+                                android:textSize="13sp"
+                                android:visibility="gone" />
+                        </FrameLayout>
+
+                        <!-- 快速添加按钮 -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_quick_add_record"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:text="+ 记录当前数值"
+                            android:textSize="13sp"
+                            android:textColor="@color/white"
+                            app:backgroundTint="@color/fitnessdiary_primary"
+                            app:cornerRadius="22dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </ScrollView>
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

@@ -86,14 +86,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:textColor="#82716B"
+                    android:textColor="@color/cat_bowel_primary"
                     android:textSize="14sp" />
 
                     <TextView
                     android:id="@+id/tv_summary_exercise_calories"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#D6621B"
+                    android:textColor="@color/diet_primary"
                     android:textSize="14sp" />
                 </LinearLayout>
 
@@ -120,7 +120,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="#559664"
+                        android:textColor="@color/color_success"
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
@@ -128,7 +128,7 @@
                         android:id="@+id/tv_total_duration"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="#2E6BB3"
+                        android:textColor="@color/plan_blue_primary"
                         android:textSize="13sp" />
                 </LinearLayout>
             </LinearLayout>
@@ -150,12 +150,46 @@
                     android:fontFamily="sans-serif-medium"
                     android:layout_marginBottom="8dp" />
 
-                <TextView
-                    android:id="@+id/tv_summary_diet_calories"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#2E6BB3"
-                    android:textSize="14sp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_summary_diet_calories"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/plan_blue_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tv_summary_diet_protein"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="@color/diet_protein_indicator"
+                        android:layout_marginStart="12dp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tv_summary_diet_carbs"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="@color/diet_carbs_indicator"
+                        android:layout_marginStart="12dp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tv_summary_diet_fat"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="@color/diet_primary"
+                        android:layout_marginStart="12dp"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Habits Section -->
@@ -186,7 +220,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="#527AB5"
+                        android:textColor="@color/cat_sleep_primary"
                         android:textSize="13sp"
                         android:gravity="center" />
 
@@ -195,7 +229,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="#527AB5"
+                        android:textColor="@color/cat_water_primary"
                         android:textSize="13sp"
                         android:gravity="center" />
 
@@ -204,7 +238,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="#559664"
+                        android:textColor="@color/color_success"
                         android:textSize="13sp"
                         android:gravity="center" />
 
@@ -213,7 +247,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="#B5527D"
+                        android:textColor="@color/cat_menstrual_primary"
                         android:textSize="13sp"
                         android:gravity="center" />
                 </LinearLayout>
@@ -236,12 +270,28 @@
                     android:fontFamily="sans-serif-medium"
                     android:layout_marginBottom="8dp" />
 
-                <TextView
-                    android:id="@+id/tv_summary_weight"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textSize="14sp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_summary_weight"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tv_summary_body_fat"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="@color/diet_primary"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Notes Section -->

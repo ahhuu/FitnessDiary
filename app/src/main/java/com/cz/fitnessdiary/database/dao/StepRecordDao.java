@@ -9,6 +9,8 @@ import androidx.room.Query;
 
 import com.cz.fitnessdiary.database.entity.StepRecord;
 
+import java.util.List;
+
 @Dao
 public interface StepRecordDao {
 
@@ -29,4 +31,7 @@ public interface StepRecordDao {
 
     @Delete
     void delete(StepRecord record);
+
+    @Query("SELECT * FROM step_record WHERE date >= :startDate AND date < :endDate ORDER BY date ASC")
+    List<StepRecord> getRecordsByDateRangeSync(long startDate, long endDate);
 }

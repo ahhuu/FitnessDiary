@@ -246,7 +246,7 @@ public class MedicationRecordDetailFragment extends Fragment {
             int hour = timePicker.getHour();
             int minute = timePicker.getMinute();
 
-            // 构建 ReminderSchedule (module, targetId, h, m, days, enabled, title, text)
+            // 构建 ReminderSchedule (module, targetId, h, m, days, enabled, title, text, isPreset, sortOrder)
             ReminderSchedule schedule = new ReminderSchedule(
                     "medication",
                     System.currentTimeMillis(), // 临时 targetId
@@ -255,7 +255,9 @@ public class MedicationRecordDetailFragment extends Fragment {
                     "1,2,3,4,5,6,7", // 每天
                     true,
                     "用药提醒",
-                    "该吃药了，请按时服药哦！");
+                    "该吃药了，请按时服药哦！",
+                    false,
+                    0);
 
             // 存入数据库并在后台真正配置闹钟
             new Thread(() -> {

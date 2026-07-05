@@ -428,7 +428,8 @@ public class GroupedPlanAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             if (category == null) return null;
             String cat = category;
             if (cat.contains("-")) {
-                cat = cat.split("-")[1];
+                int lastDash = cat.lastIndexOf("-");
+                cat = cat.substring(lastDash + 1);
             }
             switch (cat) {
                 case "胸部": return "胸部";

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme using Material 3 -->
-    <style name="Theme.FitnessDiary" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.FitnessDiary" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_variant</item>
@@ -72,7 +72,7 @@
 
     <style name="MaterialAlertDialog.App" parent="MaterialAlertDialog.Material3">
         <item name="shapeAppearance">@style/ShapeAppearance.App.Dialog</item>
-        <item name="backgroundTint">@color/white</item>
+        <item name="backgroundTint">@color/surface</item>
     </style>
 
     <style name="ShapeAppearance.App.Dialog" parent="ShapeAppearance.Material3.LargeComponent">
@@ -158,7 +158,7 @@
 
     <style name="Widget.App.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
         <item name="shapeAppearance">@style/ShapeAppearance.App.BottomSheet</item>
-        <item name="backgroundTint">@color/white</item>
+        <item name="backgroundTint">@color/surface</item>
     </style>
 
     <style name="ShapeAppearance.App.BottomSheet" parent="ShapeAppearance.Material3.LargeComponent">

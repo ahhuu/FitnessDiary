@@ -15,6 +15,8 @@ import com.cz.fitnessdiary.receiver.ReminderReceiver;
 
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 提醒管理类
@@ -131,6 +133,133 @@ public class ReminderManager {
                 .reminderScheduleDao().getEnabledSchedulesSync();
         if (schedules == null) return;
         for (ReminderSchedule s : schedules) schedule(context, s);
+    }
+
+    // ────────────────────────────────────────────────
+    // 新版多日调度（按 repeatDays 每日独立 PendingIntent）
+    // ────────────────────────────────────────────────
+
+    /**
+     * Schedule a reminder based on ReminderSchedule entity, with multi-day support
+     * based on repeatDays. Creates one PendingIntent per day of the week.
+     */
+    public static void scheduleReminder(Context context, ReminderSchedule schedule) {
+        if (schedule == null || !schedule.isEnabled()) return;
+
+        int[] repeatDays = parseRepeatDays(schedule.getRepeatDays());
+        int requestCodeBase = (int) (schedule.getId() * 100);
+
+        for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
+            boolean found = false;
+            if (repeatDays != null && repeatDays.length > 0) {
+                for (int d : repeatDays) {
+                    if (d == dayOffset) { found = true; break; }
+                }
+            } else {
+                found = true;
+            }
+            if (!found) continue;
+
+            int requestCode = requestCodeBase + dayOffset;
+            Intent intent = buildReminderIntent(context, schedule);
+            PendingIntent pendingIntent = buildPendingBroadcast(context, requestCode, intent);
+
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager == null) return;
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.DAY_OF_WEEK, dayOffset + 1);
+            calendar.set(Calendar.HOUR_OF_DAY, schedule.getHour());
+            calendar.set(Calendar.MINUTE, schedule.getMinute());
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+
+            if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+                calendar.add(Calendar.WEEK_OF_YEAR, 1);
+            }
+
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    alarmManager.setAlarmClock(
+                            new AlarmManager.AlarmClockInfo(calendar.getTimeInMillis(), pendingIntent),
+                            pendingIntent);
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
+                            calendar.getTimeInMillis(), pendingIntent);
+                } else {
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                }
+            } catch (SecurityException e) {
+                Toast.makeText(context, "闹钟设置失败，请检查精确闹钟权限", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    /**
+     * Cancel all day-of-week PendingIntents for a given ReminderSchedule
+     */
+    public static void cancelReminder(Context context, ReminderSchedule schedule) {
+        if (schedule == null) return;
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        int requestCodeBase = (int) (schedule.getId() * 100);
+        Intent baseIntent = new Intent(context, ReminderReceiver.class);
+        baseIntent.setAction(ACTION_RECORD_REMINDER);
+        for (int i = 0; i < 7; i++) {
+            PendingIntent pi = PendingIntent.getBroadcast(context, requestCodeBase + i, baseIntent,
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+            if (pi != null) {
+                am.cancel(pi);
+                pi.cancel();
+            }
+        }
+    }
+
+    /**
+     * Build an Intent for ReminderReceiver with all schedule extras
+     */
+    private static Intent buildReminderIntent(Context context, ReminderSchedule schedule) {
+        Intent intent = new Intent(context, ReminderReceiver.class);
+        intent.setAction(ACTION_RECORD_REMINDER);
+        intent.putExtra(EXTRA_SCHEDULE_ID, schedule.getId());
+        intent.putExtra(EXTRA_MODULE_TYPE, schedule.getModuleType());
+        intent.putExtra(EXTRA_TITLE, schedule.getTitle());
+        intent.putExtra(EXTRA_CONTENT, schedule.getContent());
+        intent.putExtra(EXTRA_TARGET_ID, schedule.getTargetId());
+        return intent;
+    }
+
+    /**
+     * Parse comma-separated repeatDays string into int array (0=Sunday .. 6=Saturday)
+     */
+    private static int[] parseRepeatDays(String repeatDaysStr) {
+        if (repeatDaysStr == null || repeatDaysStr.isEmpty()) return new int[0];
+        String[] parts = repeatDaysStr.split(",");
+        int[] days = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            try {
+                days[i] = Integer.parseInt(parts[i].trim());
+            } catch (NumberFormatException e) {
+                days[i] = 0;
+            }
+        }
+        return days;
+    }
+
+    /**
+     * Restore all enabled ReminderSchedules using the multi-day scheduleReminder method.
+     * Runs on a background thread via Executors.
+     */
+    public static void restoreAllReminders(Context context) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(context.getApplicationContext());
+            List<ReminderSchedule> schedules = db.reminderScheduleDao().getEnabledSchedulesSync();
+            for (ReminderSchedule s : schedules) {
+                scheduleReminder(context, s);
+            }
+        });
+        executor.shutdown();
     }
 
     // ────────────────────────────────────────────────

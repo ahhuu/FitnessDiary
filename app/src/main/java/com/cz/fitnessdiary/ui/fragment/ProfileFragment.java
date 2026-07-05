@@ -1,5 +1,8 @@
 package com.cz.fitnessdiary.ui.fragment;
 
+import com.cz.fitnessdiary.BuildConfig;
+
+import android.app.AlarmManager;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.net.Uri;
@@ -10,6 +13,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.widget.TextView;
+import android.widget.LinearLayout;
+import android.content.SharedPreferences;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.content.Context;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -19,10 +28,13 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.AppDatabase;
+import com.cz.fitnessdiary.database.dao.ReminderScheduleDao;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ReminderSchedule;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.HabitItem;
 import com.cz.fitnessdiary.database.entity.HabitRecord;
@@ -32,12 +44,25 @@ import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.databinding.FragmentProfileBinding;
 import com.cz.fitnessdiary.ui.MainActivity;
 import com.cz.fitnessdiary.ui.guide.GuideStateManager;
+import com.cz.fitnessdiary.service.DailyBriefingService;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.utils.ShareUtils;
+import com.cz.fitnessdiary.utils.UnitUtils;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.cz.fitnessdiary.viewmodel.ProfileViewModel;
+import com.cz.fitnessdiary.database.ReminderPresetDataLoader;
+import com.cz.fitnessdiary.ui.adapter.ReminderScheduleAdapter;
+
 import com.cz.fitnessdiary.ui.fragment.AchievementBottomSheetFragment;
+import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
+import com.cz.fitnessdiary.utils.HealthScoreCalculator;
+import com.bumptech.glide.Glide;
+
+import java.io.File;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Profile Fragment - 用户个人信息页面
@@ -150,197 +175,45 @@ public class ProfileFragment extends Fragment {
 
         setupAchievementEntry(); // v1.2
         setupReportEntry(); // Plan 11
-        setupReminderEntry(); // v1.2 New
+
+        binding.tvVersion.setText("v" + BuildConfig.VERSION_NAME);
+
         observeViewModel();
         setupClickListeners();
+
+        binding.tvUnitSummary.setText(UnitUtils.getWeightUnitSymbol(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
     }
 
     /**
      * 初始化智能推送可展开面板（替代已废弃的每日训练提醒）
      */
-    private void setupReminderEntry() {
-        setupSmartReminderEntry();
-    }
+    
 
     private boolean mSmartExpanded = false;
 
-    private void setupSmartReminderEntry() {
-        // ── 读取当前状态并初始化 ──
-        boolean smartEnabled = ReminderManager.isSmartReminderEnabled(requireContext());
-        binding.switchSmartReminder.setChecked(smartEnabled);
-
-        // 初始化子项时间文字
-        refreshSubItemTexts();
-
-        // 初始化子项开关状态
-        binding.switchMorning.setChecked(ReminderManager.isMorningEnabled(requireContext()));
-        binding.switchEvening.setChecked(ReminderManager.isEveningEnabled(requireContext()));
-        binding.switchWeekly.setChecked(ReminderManager.isWeeklyEnabled(requireContext()));
-        binding.switchInactivity.setChecked(ReminderManager.isInactivityEnabled(requireContext()));
-
-        // ── 点击头部行展开/收起 ──
-        binding.layoutSmartHeader.setOnClickListener(v -> toggleSmartExpand());
-
-        // ── 总开关 ──
-        binding.switchSmartReminder.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                if (getActivity() instanceof MainActivity
-                        && ((MainActivity) getActivity()).requestNotificationPermissionIfNeeded()) {
-                    binding.switchSmartReminder.setChecked(false);
-                    Toast.makeText(getContext(), "请先允许通知权限", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (getActivity() instanceof MainActivity) {
-                    if (((MainActivity) getActivity()).checkExactAlarmPermission()) {
-                        binding.switchSmartReminder.setChecked(false);
-                        return;
-                    }
-                }
-                ReminderManager.setSmartReminderEnabled(requireContext(), true);
-                ReminderManager.sendSmartReminderWelcomeNotification(requireContext());
-                // 展开子项
-                if (!mSmartExpanded) toggleSmartExpand();
-            } else {
-                ReminderManager.setSmartReminderEnabled(requireContext(), false);
-                Toast.makeText(getContext(), "智能推送已全部关闭", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        // ── 子项 1：早晨概要 ──
-        binding.switchMorning.setOnCheckedChangeListener((btn, checked) ->
-                ReminderManager.setMorningEnabled(requireContext(), checked));
-        binding.itemMorning.setOnClickListener(v -> showTimePickerForMorning());
-
-        // ── 子项 2：晚间提醒 ──
-        binding.switchEvening.setOnCheckedChangeListener((btn, checked) ->
-                ReminderManager.setEveningEnabled(requireContext(), checked));
-        binding.itemEvening.setOnClickListener(v -> showTimePickerForEvening());
-
-        // ── 子项 3：健康周报 ──
-        binding.switchWeekly.setOnCheckedChangeListener((btn, checked) ->
-                ReminderManager.setWeeklyEnabled(requireContext(), checked));
-        binding.itemWeekly.setOnClickListener(v -> showWeeklyPickerDialog());
-
-        // ── 子项 4：不活跃挽留 ──
-        binding.switchInactivity.setOnCheckedChangeListener((btn, checked) ->
-                ReminderManager.setInactivityEnabled(requireContext(), checked));
-        binding.itemInactivity.setOnClickListener(v -> showTimePickerForInactivity());
-    }
+    
 
     /** 切换智能推送子项面板展开/收起 */
-    private void toggleSmartExpand() {
-        mSmartExpanded = !mSmartExpanded;
-        int visibility = mSmartExpanded ? android.view.View.VISIBLE : android.view.View.GONE;
-        binding.layoutSmartSubItems.setVisibility(visibility);
-        binding.dividerSmart.setVisibility(visibility);
-        // 旋转箭头动画
-        float targetRotation = mSmartExpanded ? 270f : 90f;
-        binding.ivSmartExpand.animate().rotation(targetRotation).setDuration(200).start();
-    }
+    
 
     /** 刷新所有子项的时间摘要文字 */
-    private void refreshSubItemTexts() {
-        binding.tvMorningTime.setText(String.format("%02d:%02d",
-                ReminderManager.getMorningHour(requireContext()),
-                ReminderManager.getMorningMinute(requireContext())));
-
-        binding.tvEveningTime.setText(String.format("%02d:%02d",
-                ReminderManager.getEveningHour(requireContext()),
-                ReminderManager.getEveningMinute(requireContext())));
-
-        binding.tvInactivityTime.setText(String.format("%02d:%02d",
-                ReminderManager.getInactivityHour(requireContext()),
-                ReminderManager.getInactivityMinute(requireContext())));
-
-        // 周报：显示"周X HH:mm"
-        String dayName = getDayOfWeekName(ReminderManager.getWeeklyDayOfWeek(requireContext()));
-        binding.tvWeeklyTime.setText(String.format("%s %02d:%02d", dayName,
-                ReminderManager.getWeeklyHour(requireContext()),
-                ReminderManager.getWeeklyMinute(requireContext())));
-    }
+    
 
     /** TimePicker：早晨概要 */
-    private void showTimePickerForMorning() {
-        int h = ReminderManager.getMorningHour(requireContext());
-        int m = ReminderManager.getMorningMinute(requireContext());
-        new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
-            ReminderManager.setMorningTime(requireContext(), hourOfDay, minute);
-            refreshSubItemTexts();
-            Toast.makeText(getContext(),
-                    "早晨概要提醒已设为 " + String.format("%02d:%02d", hourOfDay, minute),
-                    Toast.LENGTH_SHORT).show();
-        }, h, m, true).show();
-    }
+    
 
     /** TimePicker：晚间提醒 */
-    private void showTimePickerForEvening() {
-        int h = ReminderManager.getEveningHour(requireContext());
-        int m = ReminderManager.getEveningMinute(requireContext());
-        new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
-            ReminderManager.setEveningTime(requireContext(), hourOfDay, minute);
-            refreshSubItemTexts();
-            Toast.makeText(getContext(),
-                    "晚间提醒已设为 " + String.format("%02d:%02d", hourOfDay, minute),
-                    Toast.LENGTH_SHORT).show();
-        }, h, m, true).show();
-    }
+    
 
     /** TimePicker：不活跃挽留 */
-    private void showTimePickerForInactivity() {
-        int h = ReminderManager.getInactivityHour(requireContext());
-        int m = ReminderManager.getInactivityMinute(requireContext());
-        new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
-            ReminderManager.setInactivityTime(requireContext(), hourOfDay, minute);
-            refreshSubItemTexts();
-            Toast.makeText(getContext(),
-                    "不活跃挽留提醒已设为 " + String.format("%02d:%02d", hourOfDay, minute),
-                    Toast.LENGTH_SHORT).show();
-        }, h, m, true).show();
-    }
+    
 
     /** 两步弹窗：选择星期 → 选择时间（健康周报） */
-    private void showWeeklyPickerDialog() {
-        String[] days = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
-        int currentDayOfWeek = ReminderManager.getWeeklyDayOfWeek(requireContext());
-        // Calendar 常量从 1(Sunday) 到 7(Saturday)，映射为 0-based index
-        final int[] selectedIndex = {currentDayOfWeek - 1};
-
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle("📊 选择周报发送日")
-                .setSingleChoiceItems(days, selectedIndex[0], (dialog, which) ->
-                        selectedIndex[0] = which)
-                .setPositiveButton("下一步：选时间", (dialog, which) -> {
-                    int chosenDayOfWeek = selectedIndex[0] + 1; // 转回 Calendar 常量
-
-                    int h = ReminderManager.getWeeklyHour(requireContext());
-                    int m = ReminderManager.getWeeklyMinute(requireContext());
-                    new android.app.TimePickerDialog(requireContext(), (view, hourOfDay, minute) -> {
-                        ReminderManager.setWeeklyTime(requireContext(), chosenDayOfWeek, hourOfDay, minute);
-                        refreshSubItemTexts();
-                        Toast.makeText(getContext(),
-                                "周报已设为" + days[selectedIndex[0]] + " " +
-                                        String.format("%02d:%02d", hourOfDay, minute),
-                                Toast.LENGTH_SHORT).show();
-                    }, h, m, true).show();
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
+    
 
 
     /** Calendar.DAY_OF_WEEK 常量 → 中文星期名 */
-    private String getDayOfWeekName(int dayOfWeek) {
-        switch (dayOfWeek) {
-            case java.util.Calendar.MONDAY:    return "周一";
-            case java.util.Calendar.TUESDAY:   return "周二";
-            case java.util.Calendar.WEDNESDAY: return "周三";
-            case java.util.Calendar.THURSDAY:  return "周四";
-            case java.util.Calendar.FRIDAY:    return "周五";
-            case java.util.Calendar.SATURDAY:  return "周六";
-            case java.util.Calendar.SUNDAY:    return "周日";
-            default:                           return "周一";
-        }
-    }
+    
 
 
     @Override
@@ -365,19 +238,42 @@ public class ProfileFragment extends Fragment {
         // 观察用户信息
         viewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             if (user != null) {
-                // 显示用户名（如果为空则显示默认值）
+                // 显示用户名
                 String nickname = (user.getNickname() == null || user.getNickname().isEmpty()
                         || "新用户".equals(user.getNickname()))
-                                ? "新用户" // 保持与跳过逻辑一致
+                                ? "新用户"
                                 : user.getNickname();
                 binding.tvUsername.setText(nickname);
 
-                // 优化 0 值显示
-                binding.tvWeight.setText(user.getWeight() > 0 ? String.valueOf(user.getWeight()) : "--");
-                binding.tvHeight.setText(user.getHeight() > 0 ? String.valueOf((int) user.getHeight()) : "--");
-                binding.tvAge.setText(user.getAge() > 0 ? user.getAge() + " 岁" : "--");
+                // 显示性别和年龄 (根据生日自动刷新)
+                String genderText = user.getGender() == 1 ? "男" : "女";
+                int age = user.getAge();
+                android.content.SharedPreferences spBirth = requireContext().getSharedPreferences("user_profile_birth", Context.MODE_PRIVATE);
+                String birth = spBirth.getString("birth_date", "");
+                if (!birth.isEmpty()) {
+                    try {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault());
+                        java.util.Date birthDate = sdf.parse(birth);
+                        java.util.Calendar birthCal = java.util.Calendar.getInstance();
+                        birthCal.setTime(birthDate);
+                        java.util.Calendar todayCal = java.util.Calendar.getInstance();
+                        int calculatedAge = todayCal.get(java.util.Calendar.YEAR) - birthCal.get(java.util.Calendar.YEAR);
+                        if (todayCal.get(java.util.Calendar.DAY_OF_YEAR) < birthCal.get(java.util.Calendar.DAY_OF_YEAR)) {
+                            calculatedAge--;
+                        }
+                        if (calculatedAge > 0 && calculatedAge != user.getAge()) {
+                            age = calculatedAge;
+                            user.setAge(calculatedAge);
+                            new Thread(() -> AppDatabase.getInstance(requireContext()).userDao().update(user)).start();
+                        }
+                    } catch (Exception ignored) {}
+                }
+                binding.tvUserGenderAge.setText("🏷️ " + genderText + " · " + age + "岁");
 
-                binding.tvGoal.setText(user.getGoal() != null ? user.getGoal() : "点此设置");
+                // 刷新合并身体数据看板流式小字
+                refreshBodyDataSummaryText(user);
+
+                binding.tvGoal.setText(user.getGoal() != null ? "目标：" + user.getGoal() : "点此设置");
 
                 // 加载头像
                 if (user.getAvatarUri() != null && !user.getAvatarUri().isEmpty()) {
@@ -387,57 +283,14 @@ public class ProfileFragment extends Fragment {
                                 : Uri.parse(uriString);
                         binding.ivAvatar.setImageURI(avatarUri);
                     } catch (Exception e) {
-                        // 如果 URI 无效，使用默认头像
                         binding.ivAvatar.setImageResource(android.R.drawable.ic_menu_myplaces);
                     }
                 }
 
-                // Plan 34: 显示性别 (带动态emoji)
-                boolean isMale = user.getGender() == 1; // 1=男, 0=女
-                binding.tvGender.setText(isMale ? "男" : "女");
-                binding.tvGenderIcon.setText(isMale ? "👦 性别: " : "👧 性别: ");
-
-                // Plan 34: 显示活动水平
+                // 显示活动水平
                 float activityLevel = user.getActivityLevel();
                 String activityText = getActivityLevelText(activityLevel);
                 binding.tvActivityLevel.setText(activityText + " (" + activityLevel + ")");
-            }
-        });
-
-        // 观察 BMI，实时同步颜色与详情页面保持一致
-        viewModel.getBmi().observe(getViewLifecycleOwner(), bmiValue -> {
-            if (bmiValue != null) {
-                binding.tvBmi.setText(String.valueOf(bmiValue));
-
-                // 根据数值计算分类颜色 (与 showBMIDetailDialog 中逻辑保持一致)
-                int categoryColor;
-                if (bmiValue < 18.5) {
-                    categoryColor = android.graphics.Color.parseColor("#4FC3F7");
-                } else if (bmiValue < 24.0) {
-                    categoryColor = android.graphics.Color.parseColor("#4CAF50");
-                } else if (bmiValue < 28.0) {
-                    categoryColor = android.graphics.Color.parseColor("#FF9800");
-                } else {
-                    categoryColor = android.graphics.Color.parseColor("#F44336");
-                }
-
-                binding.tvBmi.setTextColor(categoryColor);
-                // [修复 BUG] 移除了对 layoutBmi 整个 3D layer-list 背景的 tint 染色，
-                // 以免破坏其微拟态凹陷阴影和立体感。数值 tvBmi 自带的颜色修改即已能实现警示色要求。
-            }
-        });
-
-        // 观察 BMR
-        viewModel.getBmr().observe(getViewLifecycleOwner(), bmrValue -> {
-            if (bmrValue != null) {
-                binding.tvBmr.setText(String.valueOf(bmrValue));
-            }
-        });
-
-        // Plan 10: 观察用户等级
-        viewModel.getUserLevel().observe(getViewLifecycleOwner(), level -> {
-            if (level != null && !level.isEmpty()) {
-                binding.tvUserLevel.setText(level);
             }
         });
 
@@ -469,7 +322,401 @@ public class ProfileFragment extends Fragment {
                         androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ai_primary));
             }
         });
+    }
 
+    private void refreshBodyDataSummaryText(User user) {
+        if (user == null || binding == null) return;
+        float w = user.getWeight();
+        float h = user.getHeight();
+        float hMeter = h / 100.0f;
+        float bmi = (hMeter > 0) ? w / (hMeter * hMeter) : 0;
+
+        double bmr;
+        if ("女".equals(user.getGender())) {
+            bmr = 655 + (9.6 * w) + (1.8 * h) - (4.7 * user.getAge());
+        } else {
+            bmr = 66 + (13.7 * w) + (5.0 * h) - (6.8 * user.getAge());
+        }
+
+        String summary = "身高 " + String.format(Locale.getDefault(), "%.0f", h) + "cm · 体重 "
+                + UnitUtils.formatWeight(w, requireContext()) + UnitUtils.getWeightUnitSymbol(requireContext())
+                + " · BMI " + String.format(Locale.getDefault(), "%.1f", bmi)
+                + " · 基础代谢 " + UnitUtils.formatEnergy((float) bmr, requireContext()) + UnitUtils.getEnergyUnitSymbol(requireContext());
+        binding.tvBodyDataSummary.setText(summary);
+    }
+
+    private void showUnitAndDisplaySettingsDialog() {
+        String[] settings = {"重量单位 (当前: " + UnitUtils.getWeightUnitDisplay(UnitUtils.getWeightUnit(requireContext())) + ")",
+                "热量单位 (当前: " + UnitUtils.getEnergyUnitDisplay(UnitUtils.getEnergyUnit(requireContext())) + ")",
+                "外观显示设置"};
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("🌓 显示与单位设置")
+                .setItems(settings, (dialog, which) -> {
+                    if (which == 0) {
+                        String[] weights = {"千克 (kg)", "斤"};
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("选择重量单位")
+                                .setItems(weights, (d, w) -> {
+                                    String unit = (w == 0) ? "kg" : "jin";
+                                    UnitUtils.setWeightUnit(requireContext(), unit);
+                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitSymbol(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+                                    Toast.makeText(getContext(), "重量单位已切换为 " + UnitUtils.getWeightUnitDisplay(unit), Toast.LENGTH_SHORT).show();
+                                })
+                                .show();
+                    } else if (which == 1) {
+                        String[] calories = {"kcal (千卡)", "kj (千焦)"};
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("选择热量单位")
+                                .setItems(calories, (d, c) -> {
+                                    String unit = (c == 0) ? "kcal" : "kj";
+                                    UnitUtils.setEnergyUnit(requireContext(), unit);
+                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitSymbol(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+                                    Toast.makeText(getContext(), "热量单位已切换为 " + UnitUtils.getEnergyUnitDisplay(unit), Toast.LENGTH_SHORT).show();
+                                })
+                                .show();
+                    } else {
+                        String[] themes = {"浅色模式", "深色模式", "跟随系统"};
+                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("外观显示设置")
+                                .setItems(themes, (d, t) -> {
+                                    UnitUtils.setThemeMode(requireContext(), t);
+                                    int mode;
+                                    if (t == 0) {
+                                        mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO;
+                                    } else if (t == 1) {
+                                        mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES;
+                                    } else {
+                                        mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+                                    }
+                                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(mode);
+                                    Toast.makeText(getContext(), "外观主题已设为：" + themes[t], Toast.LENGTH_SHORT).show();
+                                    // 立即重建Activity使主题生效
+                                    requireActivity().recreate();
+                                })
+                                .show();
+                    }
+                })
+                .show();
+    }
+
+    private boolean checkNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (requireContext().checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("🔔 需要通知权限")
+                        .setMessage("提醒功能需要发送通知，请在系统设置中开启通知权限")
+                        .setPositiveButton("去设置", (d, w) -> {
+                            Intent intent = new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                            intent.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, requireContext().getPackageName());
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean checkExactAlarmPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            AlarmManager am = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+            if (am != null && !am.canScheduleExactAlarms()) {
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("⏰ 需要闹钟权限")
+                        .setMessage("提醒功能需要精确闹钟权限才能准时提醒，请在系统设置中开启")
+                        .setPositiveButton("去设置", (d, w) -> {
+                            Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void showNotificationSettingsDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_notification_settings, null);
+
+        // Force-load presets before showing
+        ReminderPresetDataLoader.loadIfNeeded(requireContext());
+
+        androidx.recyclerview.widget.RecyclerView rvPreset = dialogView.findViewById(R.id.rv_preset_reminders);
+        androidx.recyclerview.widget.RecyclerView rvCustom = dialogView.findViewById(R.id.rv_custom_reminders);
+        com.google.android.material.button.MaterialButton btnAddCustom = dialogView.findViewById(R.id.btn_add_custom_reminder);
+
+        rvPreset.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(getContext()));
+        rvCustom.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(getContext()));
+
+        ReminderScheduleDao dao = AppDatabase.getInstance(requireContext().getApplicationContext()).reminderScheduleDao();
+
+        ReminderScheduleAdapter.OnReminderActionListener listener = new ReminderScheduleAdapter.OnReminderActionListener() {
+            @Override
+            public void onToggle(ReminderSchedule schedule, boolean enabled) {
+                new Thread(() -> {
+                    schedule.setEnabled(enabled);
+                    dao.update(schedule);
+                    if (enabled) {
+                        ReminderManager.scheduleReminder(requireContext(), schedule);
+                    } else {
+                        ReminderManager.cancelReminder(requireContext(), schedule);
+                    }
+                }).start();
+            }
+
+            @Override
+            public void onTimeClick(ReminderSchedule schedule) {
+                ReminderScheduleAdapter.OnReminderActionListener self = this;
+                TimePickerDialog timePicker = new TimePickerDialog(getContext(), (view, hour, minute) -> {
+                    schedule.setHour(hour);
+                    schedule.setMinute(minute);
+                    new Thread(() -> {
+                        dao.update(schedule);
+                        ReminderManager.cancelReminder(requireContext(), schedule);
+                        if (schedule.isEnabled()) {
+                            ReminderManager.scheduleReminder(requireContext(), schedule);
+                        }
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> refreshReminderLists(dao, rvPreset, rvCustom, self));
+                        }
+                    }).start();
+                }, schedule.getHour(), schedule.getMinute(), true);
+                timePicker.show();
+            }
+
+            @Override
+            public void onEdit(ReminderSchedule schedule) {
+                showEditReminderDialog(schedule, dao, () -> refreshReminderLists(dao, rvPreset, rvCustom, this));
+            }
+
+            @Override
+            public void onDelete(ReminderSchedule schedule) {
+                ReminderScheduleAdapter.OnReminderActionListener self = this;
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("删除提醒")
+                        .setMessage("确定要删除「" + schedule.getTitle() + "」吗？")
+                        .setPositiveButton("删除", (d, w) -> {
+                            new Thread(() -> {
+                                ReminderManager.cancelReminder(requireContext(), schedule);
+                                dao.deleteById(schedule.getId());
+                                if (getActivity() != null) {
+                                    getActivity().runOnUiThread(() -> refreshReminderLists(dao, rvPreset, rvCustom, self));
+                                }
+                            }).start();
+                        })
+                        .setNegativeButton("取消", null)
+                        .show();
+            }
+        };
+
+        ReminderScheduleAdapter presetAdapter = new ReminderScheduleAdapter(listener);
+        ReminderScheduleAdapter customAdapter = new ReminderScheduleAdapter(listener);
+        rvPreset.setAdapter(presetAdapter);
+        rvCustom.setAdapter(customAdapter);
+
+        refreshReminderLists(dao, rvPreset, rvCustom, listener);
+
+        btnAddCustom.setOnClickListener(v -> {
+            ReminderSchedule newSchedule = new ReminderSchedule(
+                    "custom", 0, 8, 0, "0,1,2,3,4,5,6",
+                    true, "新提醒", "", false, 99);
+            showEditReminderDialog(newSchedule, dao, () -> refreshReminderLists(dao, rvPreset, rvCustom, listener));
+        });
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setView(dialogView)
+                .setPositiveButton("关闭", (d, w) -> {
+                    ReminderManager.restoreAllReminders(requireContext());
+                })
+                .show();
+    }
+
+    private void refreshReminderLists(ReminderScheduleDao dao,
+                                       androidx.recyclerview.widget.RecyclerView rvPreset,
+                                       androidx.recyclerview.widget.RecyclerView rvCustom,
+                                       ReminderScheduleAdapter.OnReminderActionListener listener) {
+        new Thread(() -> {
+            List<ReminderSchedule> presets = dao.getByPreset(true);
+            List<ReminderSchedule> customs = dao.getByPreset(false);
+
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    ((ReminderScheduleAdapter) rvPreset.getAdapter()).setSchedules(presets);
+                    ((ReminderScheduleAdapter) rvCustom.getAdapter()).setSchedules(customs);
+                });
+            }
+        }).start();
+    }
+
+    private void showEditReminderDialog(ReminderSchedule schedule, ReminderScheduleDao dao, Runnable onDone) {
+        View dialogView = LayoutInflater.from(getContext())
+                .inflate(R.layout.dialog_edit_reminder, null, false);
+        com.google.android.material.textfield.TextInputEditText etTitle = dialogView.findViewById(R.id.et_reminder_title);
+        com.google.android.material.textfield.TextInputEditText etContent = dialogView.findViewById(R.id.et_reminder_content);
+        TextView tvTime = dialogView.findViewById(R.id.tv_selected_time);
+        android.widget.LinearLayout btnTimePicker = dialogView.findViewById(R.id.btn_time_picker);
+        com.google.android.material.button.MaterialButton btnSave = dialogView.findViewById(R.id.btn_save_reminder);
+
+        etTitle.setText(schedule.getTitle() != null ? schedule.getTitle() : "");
+        etContent.setText(schedule.getContent() != null ? schedule.getContent() : "");
+        tvTime.setText(String.format("%02d:%02d", schedule.getHour(), schedule.getMinute()));
+
+        final int[] selectedHour = {schedule.getHour()};
+        final int[] selectedMinute = {schedule.getMinute()};
+
+        btnTimePicker.setOnClickListener(v -> {
+            TimePickerDialog tpd = new TimePickerDialog(getContext(), (view, h, m) -> {
+                selectedHour[0] = h;
+                selectedMinute[0] = m;
+                tvTime.setText(String.format("%02d:%02d", h, m));
+            }, selectedHour[0], selectedMinute[0], true);
+            tpd.show();
+        });
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setView(dialogView)
+                .setPositiveButton("保存", (d, w) -> {
+                    schedule.setTitle(etTitle.getText() != null ? etTitle.getText().toString() : "新提醒");
+                    schedule.setContent(etContent.getText() != null ? etContent.getText().toString() : "");
+                    schedule.setHour(selectedHour[0]);
+                    schedule.setMinute(selectedMinute[0]);
+                    schedule.setRepeatDays("0,1,2,3,4,5,6");
+
+                    new Thread(() -> {
+                        if (schedule.getId() == 0) {
+                            long id = dao.insert(schedule);
+                            schedule.setId(id);
+                        } else {
+                            dao.update(schedule);
+                        }
+                        ReminderManager.cancelReminder(requireContext(), schedule);
+                        if (schedule.isEnabled()) {
+                            ReminderManager.scheduleReminder(requireContext(), schedule);
+                        }
+                        if (onDone != null && getActivity() != null) {
+                            getActivity().runOnUiThread(() -> onDone.run());
+                        }
+                    }).start();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showEditProfileHeaderDialog() {
+        User user = viewModel.getCurrentUser().getValue();
+        if (user == null) return;
+
+        LinearLayout layout = new LinearLayout(requireContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(48, 36, 48, 24);
+
+        EditText etName = new EditText(requireContext());
+        etName.setHint("昵称");
+        etName.setText(user.getNickname());
+        TextView tvN = new TextView(requireContext());
+        tvN.setText("昵称");
+        tvN.setTextSize(12);
+        tvN.setTextColor(getResources().getColor(R.color.text_secondary, null));
+        layout.addView(tvN);
+        layout.addView(etName);
+
+        TextView tvG = new TextView(requireContext());
+        tvG.setText("性别");
+        tvG.setTextSize(12);
+        tvG.setTextColor(getResources().getColor(R.color.text_secondary, null));
+        tvG.setPadding(0, 24, 0, 0);
+        AutoCompleteTextView spinGender = new AutoCompleteTextView(requireContext());
+        spinGender.setHint("选择性别");
+        spinGender.setText(user.getGender() == 1 ? "男" : "女", false);
+        spinGender.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, new String[]{"女", "男"}));
+        layout.addView(tvG);
+        layout.addView(spinGender);
+
+        TextView tvB = new TextView(requireContext());
+        tvB.setText("出生日期 (用于自动计算年龄)");
+        tvB.setTextSize(12);
+        tvB.setTextColor(getResources().getColor(R.color.text_secondary, null));
+        tvB.setPadding(0, 24, 0, 0);
+        EditText etBirth = new EditText(requireContext());
+        etBirth.setFocusable(false);
+        etBirth.setClickable(true);
+        SharedPreferences sp = requireContext().getSharedPreferences("user_profile_birth", Context.MODE_PRIVATE);
+        String currentBirth = sp.getString("birth_date", "2000-01-01");
+        etBirth.setText(currentBirth);
+        
+        etBirth.setOnClickListener(v -> {
+            String[] ymd = etBirth.getText().toString().split("-");
+            int year = 2000, month = 0, day = 1;
+            if (ymd.length == 3) {
+                try {
+                    year = Integer.parseInt(ymd[0]);
+                    month = Integer.parseInt(ymd[1]) - 1;
+                    day = Integer.parseInt(ymd[2]);
+                } catch (Exception ignored) {}
+            }
+            new android.app.DatePickerDialog(requireContext(), (view, y, m, d) -> {
+                String birthStr = String.format(Locale.getDefault(), "%d-%02d-%02d", y, m + 1, d);
+                etBirth.setText(birthStr);
+            }, year, month, day).show();
+        });
+        layout.addView(tvB);
+        layout.addView(etBirth);
+
+        com.google.android.material.button.MaterialButton btnAvatar = new com.google.android.material.button.MaterialButton(requireContext());
+        btnAvatar.setText("📷 点击更换头像");
+        btnAvatar.setPadding(0, 24, 0, 0);
+        btnAvatar.setOnClickListener(v -> {
+            openImagePicker();
+        });
+        layout.addView(btnAvatar);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("✏️ 编辑个人资料")
+                .setView(layout)
+                .setPositiveButton("保存", (dialog, which) -> {
+                    String name = etName.getText().toString().trim();
+                    String genderStr = spinGender.getText().toString().trim();
+                    String birthStr = etBirth.getText().toString().trim();
+
+                    if (!name.isEmpty()) {
+                        user.setNickname(name);
+                    }
+                    user.setGender("男".equals(genderStr) ? 1 : 0);
+
+                    int age = user.getAge();
+                    try {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                        java.util.Date birthDate = sdf.parse(birthStr);
+                        java.util.Calendar birthCal = java.util.Calendar.getInstance();
+                        birthCal.setTime(birthDate);
+                        java.util.Calendar todayCal = java.util.Calendar.getInstance();
+                        int calculatedAge = todayCal.get(java.util.Calendar.YEAR) - birthCal.get(java.util.Calendar.YEAR);
+                        if (todayCal.get(java.util.Calendar.DAY_OF_YEAR) < birthCal.get(java.util.Calendar.DAY_OF_YEAR)) {
+                            calculatedAge--;
+                        }
+                        if (calculatedAge > 0) {
+                            age = calculatedAge;
+                        }
+                    } catch (Exception ignored) {}
+
+                    user.setAge(age);
+                    sp.edit().putString("birth_date", birthStr).apply();
+
+                    new Thread(() -> {
+                        AppDatabase.getInstance(requireContext()).userDao().update(user);
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                viewModel.refreshUser();
+                                Toast.makeText(getContext(), "个人资料保存成功", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }).start();
+                })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     /**
@@ -556,14 +803,27 @@ public class ProfileFragment extends Fragment {
 
                 // Exercise days
                 java.util.List<DailyLog> allLogs = db.dailyLogDao().getAllLogsSync();
+                java.util.List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans = db.trainingPlanDao().getAllPlansList();
+                java.util.Map<Integer, com.cz.fitnessdiary.database.entity.TrainingPlan> planMap = new java.util.HashMap<>();
+                if (allPlans != null) {
+                    for (com.cz.fitnessdiary.database.entity.TrainingPlan p : allPlans) {
+                        planMap.put(p.getPlanId(), p);
+                    }
+                }
                 int exerciseDays = 0;
-                int totalDuration = 0;
+                int totalDurationSec = 0;
                 if (allLogs != null) {
                     java.util.Set<String> dates = new java.util.HashSet<>();
                     for (DailyLog log : allLogs) {
                         if (log.getDate() >= weekStart && log.getDate() < weekEnd && log.isCompleted()) {
                             dates.add(DateUtils.formatDate(log.getDate()));
-                            totalDuration += log.getDuration();
+                            com.cz.fitnessdiary.database.entity.TrainingPlan plan = planMap.get(log.getPlanId());
+                            totalDurationSec += com.cz.fitnessdiary.utils.ExerciseMetTable.resolveDuration(
+                                    log.getDuration(),
+                                    plan != null ? plan.getDuration() : 0,
+                                    plan != null ? plan.getSets() : 0,
+                                    plan != null ? plan.getReps() : 0,
+                                    requireContext());
                         }
                     }
                     exerciseDays = dates.size();
@@ -636,7 +896,7 @@ public class ProfileFragment extends Fragment {
                 ShareUtils.WeekSummary summary = new ShareUtils.WeekSummary();
                 summary.weekRange = weekRange;
                 summary.exerciseDays = exerciseDays;
-                summary.totalExerciseMinutes = totalDuration;
+                summary.totalExerciseMinutes = totalDurationSec / 60;
                 summary.avgCaloriesConsumed = avgCal;
                 summary.calorieTarget = target;
                 summary.weightStart = wStart;
@@ -656,40 +916,98 @@ public class ProfileFragment extends Fragment {
      * 设置点击监听器
      */
     private void setupClickListeners() {
-        // 点击头像 - 选择图片
-        binding.ivAvatar.setOnClickListener(v -> openImagePicker());
+        // 点击整个头像卡片 - 修改昵称、头像、性别、年龄及生日
+        binding.layoutProfileHeaderClick.setOnClickListener(v -> showEditProfileHeaderDialog());
 
-        // 点击用户名 - 修改用户名
-        binding.tvUsername.setOnClickListener(v -> showEditNicknameDialog());
+        // 点击头像本身也触发编辑
+        binding.ivAvatar.setOnClickListener(v -> showEditProfileHeaderDialog());
 
-        // 点击体重 - 修改体重
-        View.OnClickListener weightClickListener = v -> showEditWeightDialog();
-        binding.tvWeight.setOnClickListener(weightClickListener);
+        // 📊 身体数据中心：点击通栏卡片内部的 LinearLayout 响应
+        binding.layoutBodyDataClick.setOnClickListener(v -> {
+            BodyDataDetailBottomSheetFragment bottomSheet = new BodyDataDetailBottomSheetFragment();
+            bottomSheet.setOnDataUpdatedListener(() -> {
+                viewModel.refreshUser(); // 刷新数据
+            });
+            bottomSheet.show(getChildFragmentManager(), "BodyDataDetail");
+        });
 
-        // 点击身高 - 修改身高
-        View.OnClickListener heightClickListener = v -> showEditHeightDialog();
-        binding.tvHeight.setOnClickListener(heightClickListener);
+        // 🎯 阶段目标合并：点击卡片内部的 LinearLayout 响应
+        binding.layoutPhaseGoalClick.setOnClickListener(v -> {
+            String[] options = {"修改健身目标", "修改日常活动水平"};
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("配置阶段目标")
+                    .setItems(options, (dialog, which) -> {
+                        if (which == 0) {
+                            showGoalSelectionDialog();
+                        } else {
+                            showEditActivityLevelDialog();
+                        }
+                    })
+                    .show();
+        });
 
-        // 点击目标卡片 - 切换目标
-        binding.cardGoal.setOnClickListener(v -> showGoalSelectionDialog());
+        // 📂 【我的内容资产】分类块
+        binding.btnMyExercises.setOnClickListener(v -> {
+            Navigation.findNavController(requireView())
+                    .navigate(R.id.customExerciseFragment);
+        });
 
-        // 点击右上角设置按钮 (Plan: Data Management)
-        binding.btnSettingsTop.setOnClickListener(v -> showSettingsBottomSheet());
+        binding.btnMyRecipes.setOnClickListener(v -> {
+            Navigation.findNavController(v).navigate(R.id.recipeListFragment);
+        });
 
-        // Plan 33: 点击BMI - 显示详情
-        binding.layoutBmi.setOnClickListener(v -> showBMIDetailDialog());
+        // 🔄 【设备与连接】分类块
+        binding.btnConnectHealth.setOnClickListener(v -> {
+            Toast.makeText(getContext(), "❤️ Apple Health & Google Fit 同步功能正在开发中...", Toast.LENGTH_SHORT).show();
+        });
 
-        // Plan 33: 点击BMR - 显示详情
-        binding.layoutBmr.setOnClickListener(v -> showBMRDetailDialog());
+        binding.btnConnectDevices.setOnClickListener(v -> {
+            Toast.makeText(getContext(), "⌚ 智能手环与体脂秤同步功能正在开发中...", Toast.LENGTH_SHORT).show();
+        });
 
-        // Plan 34: 点击年龄 - 修改年龄
-        binding.layoutAge.setOnClickListener(v -> showEditAgeDialog());
+        // ⚙️ 【系统通用设置】分类块
+        binding.btnSettingsUnits.setOnClickListener(v -> showUnitAndDisplaySettingsDialog());
 
-        // Plan 34: 点击性别 - 修改性别
-        binding.layoutGender.setOnClickListener(v -> showEditGenderDialog());
+        binding.btnSettingsNotifications.setOnClickListener(v -> {
+            // Check permissions first before showing notification settings
+            if (!checkNotificationPermission()) return;
+            if (!checkExactAlarmPermission()) return;
+            showNotificationSettingsDialog();
+        });
 
-        // Plan 34: 点击活动水平 - 修改活动水平
-        binding.cardActivityLevel.setOnClickListener(v -> showEditActivityLevelDialog());
+        binding.btnSettingsData.setOnClickListener(v -> showSettingsBottomSheet());
+
+        // 🛠️ 【健身工具箱】点击事件
+        binding.btnTool1rm.setOnClickListener(v -> show1RMCalculatorDialog());
+        binding.btnToolTdee.setOnClickListener(v -> showTDEECalculatorDialog());
+
+        // 关于 App 点击事件
+        binding.btnAbout.setOnClickListener(v -> showAboutFitnessDiaryDialog());
+
+        // 健康日报历史
+        binding.btnHealthBriefing.setOnClickListener(v -> showHealthBriefingHistory());
+
+        // 其他经典旧 system 卡片 (周报、成就)
+        binding.cardAchievements.setOnClickListener(v -> {
+            new AchievementBottomSheetFragment().show(getChildFragmentManager(), "AchievementBottomSheet");
+        });
+
+        setupReportEntry();
+
+        // 每日目标综合设置
+        binding.btnDailyTargets.setOnClickListener(v -> showDailyTargetsDialog());
+
+        // 清除缓存
+        binding.btnClearCache.setOnClickListener(v -> showClearCacheDialog());
+
+        // 新手引导回顾
+        binding.btnReplayGuide.setOnClickListener(v -> replayOnboarding());
+
+        // 推荐给好友
+        binding.btnShareApp.setOnClickListener(v -> shareApp());
+
+        // 意见反馈
+        binding.btnFeedback.setOnClickListener(v -> sendFeedback());
     }
 
     /**
@@ -1095,12 +1413,12 @@ public class ProfileFragment extends Fragment {
         android.widget.TextView tvSuggestedWeight = view.findViewById(R.id.tv_suggested_weight);
 
         tvHeightValue.setText(String.valueOf(height) + ".0");
-        tvWeightValue.setText(String.format(java.util.Locale.getDefault(), "%.1f", weight));
+        tvWeightValue.setText(UnitUtils.formatWeight((float) weight, requireContext()));
 
         // 计算建议体重范围 (BMI 18.5 ~ 24.0)
         double minWeight = 18.5 * heightM * heightM;
         double maxWeight = 24.0 * heightM * heightM;
-        tvSuggestedWeight.setText(String.format(java.util.Locale.getDefault(), "%.1f ~ %.1f", minWeight, maxWeight));
+        tvSuggestedWeight.setText(UnitUtils.formatWeight((float) minWeight, requireContext()) + " ~ " + UnitUtils.formatWeight((float) maxWeight, requireContext()) + " " + UnitUtils.getWeightUnitSymbol(requireContext()));
 
         dialog.show();
     }
@@ -1139,7 +1457,7 @@ public class ProfileFragment extends Fragment {
 
         // 设置BMR值
         android.widget.TextView tvBmrValue = view.findViewById(R.id.tv_bmr_value);
-        tvBmrValue.setText(String.valueOf(bmrValue));
+        tvBmrValue.setText(UnitUtils.formatEnergy(bmrValue, requireContext()));
 
         // [核心修复] 使用统一工具类计算建议值，确保与饮食页目标一致
         int deficitCalories = com.cz.fitnessdiary.utils.CalorieCalculatorUtils.calculateTargetCalories(tdeeValue,
@@ -1153,9 +1471,9 @@ public class ProfileFragment extends Fragment {
         android.widget.TextView tvMaintain = view.findViewById(R.id.tv_maintain_calories);
         android.widget.TextView tvSurplus = view.findViewById(R.id.tv_surplus_calories);
 
-        tvDeficit.setText(deficitCalories + " 千卡");
-        tvMaintain.setText(maintainCalories + " 千卡");
-        tvSurplus.setText(surplusCalories + " 千卡");
+        tvDeficit.setText(UnitUtils.formatEnergy(deficitCalories, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+        tvMaintain.setText(UnitUtils.formatEnergy(maintainCalories, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+        tvSurplus.setText(UnitUtils.formatEnergy(surplusCalories, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext()));
 
         // 计算依据
         android.widget.TextView tvGender = view.findViewById(R.id.tv_gender);
@@ -1166,7 +1484,7 @@ public class ProfileFragment extends Fragment {
         tvGender.setText(gender == com.cz.fitnessdiary.utils.CalorieCalculatorUtils.GENDER_MALE ? "男" : "女");
         tvAge.setText(age + " 岁");
         tvHeight.setText(height + " cm");
-        tvWeight.setText(String.format(java.util.Locale.getDefault(), "%.1f kg", weight));
+        tvWeight.setText(UnitUtils.formatWeight((float) weight, requireContext()) + " " + UnitUtils.getWeightUnitSymbol(requireContext()));
 
         dialog.show();
     }
@@ -1254,7 +1572,7 @@ public class ProfileFragment extends Fragment {
                 "🛋️ 久坐 (1.2) - 几乎不运动",
                 "🚶 轻度活动 (1.375) - 每周运动1-3次",
                 "🏃 中度活动 (1.55) - 每周运动3-5次",
-                "💪 高度活动 (1.725) - 每周运动6-7次",
+                "💪 高度活动 (1.725) - 每交运动6-7次",
                 "🏆 专业运动员 (1.9) - 每天高强度训练"
         };
         float[] activityValues = { 1.2f, 1.375f, 1.55f, 1.725f, 1.9f };
@@ -1278,5 +1596,645 @@ public class ProfileFragment extends Fragment {
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    /**
+     * 第一阶段追加：显示 1RM 计算器对话框
+     */
+    private void show1RMCalculatorDialog() {
+        Context context = requireContext();
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 24);
+
+        // 显式指定 LayoutParams 为 WRAP_CONTENT，消除 MATCH_PARENT 导致的大白板！
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        layout.setLayoutParams(layoutParams);
+
+        final EditText etWeight = new EditText(context);
+        etWeight.setHint("输入负重 (kg)  例: 60");
+        etWeight.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        etWeight.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        layout.addView(etWeight);
+
+        View spacer = new View(context);
+        spacer.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                24
+        ));
+        layout.addView(spacer);
+
+        final EditText etReps = new EditText(context);
+        etReps.setHint("输入重复次数 (1-10)  例: 5");
+        etReps.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etReps.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        layout.addView(etReps);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("1RM 极限重量计算")
+                .setMessage("1RM (One-Repetition Maximum) 指你在该动作下只能规范地完成一次的最大重量。")
+                .setView(layout)
+                .setPositiveButton("精算", (dialog, which) -> {
+                    String wStr = etWeight.getText().toString().trim();
+                    String rStr = etReps.getText().toString().trim();
+                    if (wStr.isEmpty() || rStr.isEmpty()) {
+                        Toast.makeText(context, "请填入完整的负重与次数", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    try {
+                        double w = Double.parseDouble(wStr);
+                        int r = Integer.parseInt(rStr);
+                        if (r <= 0 || r > 15) {
+                            Toast.makeText(context, "为了准确性，推荐输入 1~15 次", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        // Epley 公式计算
+                        double oneRM = w * (1.0 + r / 30.0);
+                        
+                        new MaterialAlertDialogBuilder(context)
+                                .setTitle("精算结果")
+                                .setMessage(String.format(Locale.getDefault(), 
+                                        "您的 1RM 极限负重约为：\n\n🔥 %.1f kg\n\n💡 训练强度指导建议：\n• 肌力训练 (85%%+ 1RM): %.1f kg (1-5次)\n• 增肌训练 (70%%-80%% 1RM): %.1f - %.1f kg (8-12次)\n• 耐力训练 (60%% 1RM): %.1f kg (15次+)",
+                                        oneRM, oneRM * 0.85, oneRM * 0.70, oneRM * 0.80, oneRM * 0.60))
+                                .setPositiveButton("确定", null)
+                                .show();
+                    } catch (Exception e) {
+                        Toast.makeText(context, "输入格式错误", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /**
+     * 第一阶段追加：显示 TDEE 计算器对话框
+     */
+    private void showTDEECalculatorDialog() {
+        Context context = requireContext();
+        User user = viewModel.getCurrentUser().getValue();
+        
+        double defaultWeight = (user != null && user.getWeight() > 0) ? user.getWeight() : 65.0;
+        double defaultHeight = (user != null && user.getHeight() > 0) ? user.getHeight() : 170.0;
+        int defaultAge = (user != null && user.getAge() > 0) ? user.getAge() : 25;
+        int defaultGender = (user != null) ? user.getGender() : 1; // 1=男, 2=女
+
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 24);
+
+        // 显式指定 LayoutParams 为 WRAP_CONTENT，消除 MATCH_PARENT 导致的大白板！
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        layout.setLayoutParams(layoutParams);
+
+        LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+
+        final EditText etWeight = new EditText(context);
+        etWeight.setHint("体重 (kg)");
+        // 格式化保留 1 位小数，避免精度拖尾 (如 54.04999...)
+        etWeight.setText(String.format(Locale.getDefault(), "%.1f", defaultWeight));
+        etWeight.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        etWeight.setLayoutParams(itemParams);
+        layout.addView(etWeight);
+
+        View spacer1 = new View(context);
+        spacer1.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 16));
+        layout.addView(spacer1);
+
+        final EditText etHeight = new EditText(context);
+        etHeight.setHint("身高 (cm)");
+        etHeight.setText(String.format(Locale.getDefault(), "%.1f", defaultHeight));
+        etHeight.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        etHeight.setLayoutParams(itemParams);
+        layout.addView(etHeight);
+
+        View spacer2 = new View(context);
+        spacer2.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 16));
+        layout.addView(spacer2);
+
+        final EditText etAge = new EditText(context);
+        etAge.setHint("年龄");
+        etAge.setText(String.valueOf(defaultAge));
+        etAge.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etAge.setLayoutParams(itemParams);
+        layout.addView(etAge);
+
+        View spacer3 = new View(context);
+        spacer3.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 24));
+        layout.addView(spacer3);
+
+        TextView tvActivityTitle = new TextView(context);
+        tvActivityTitle.setText("选择日常活动水平：");
+        tvActivityTitle.setTextColor(getResources().getColor(R.color.text_primary, null));
+        tvActivityTitle.setTextSize(14);
+        tvActivityTitle.setPadding(0, 0, 0, 8);
+        tvActivityTitle.setLayoutParams(itemParams);
+        layout.addView(tvActivityTitle);
+
+        final String[] activityLevels = {
+                "久坐 (基本不运动 - 系数 1.2)",
+                "轻度活跃 (每周运动 1-3 天 - 系数 1.375)",
+                "中度活跃 (每周运动 3-5 天 - 系数 1.55)",
+                "重度活跃 (每周运动 6-7 天 - 系数 1.725)",
+                "极重度活跃 (高强度竞技/体力劳动 - 系数 1.9)"
+        };
+        final double[] activityFactors = {1.2, 1.375, 1.55, 1.725, 1.9};
+        
+        final AutoCompleteTextView actv = new AutoCompleteTextView(context);
+        actv.setText(activityLevels[1], false); // 默认轻度活跃
+        actv.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, activityLevels));
+        actv.setFocusable(false);
+        actv.setLayoutParams(itemParams);
+        layout.addView(actv);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("TDEE 每日总能耗精算")
+                .setMessage("TDEE (Total Daily Energy Expenditure) 代表你每天的总能耗。在此基础上吃多增重，吃少减脂。")
+                .setView(layout)
+                .setPositiveButton("计算", (dialog, which) -> {
+                    try {
+                        double w = Double.parseDouble(etWeight.getText().toString().trim());
+                        double h = Double.parseDouble(etHeight.getText().toString().trim());
+                        int a = Integer.parseInt(etAge.getText().toString().trim());
+                        
+                        String selectedAct = actv.getText().toString();
+                        double factor = 1.375;
+                        for (int i = 0; i < activityLevels.length; i++) {
+                            if (activityLevels[i].equals(selectedAct)) {
+                                factor = activityFactors[i];
+                                break;
+                            }
+                        }
+
+                        // Mifflin-St Jeor 基础代谢公式
+                        double bmr;
+                        if (defaultGender == 1) {
+                            bmr = 10.0 * w + 6.25 * h - 5.0 * a + 5.0;
+                        } else {
+                            bmr = 10.0 * w + 6.25 * h - 5.0 * a - 161.0;
+                        }
+                        double tdee = bmr * factor;
+
+                        new MaterialAlertDialogBuilder(context)
+                                .setTitle("精算结果")
+                                .setMessage("您的代谢评估指标如下：\n\n基础代谢率 (BMR): " + UnitUtils.formatEnergy((float) bmr, context) + UnitUtils.getEnergyUnitSymbol(context)
+                                        + "\nTDEE 每日总消耗: " + UnitUtils.formatEnergy((float) tdee, context) + UnitUtils.getEnergyUnitSymbol(context)
+                                        + "\n\n💡 营养摄入热量预算指导：\n• 纯净减脂预算 (TDEE - 400): " + UnitUtils.formatEnergy((float) (tdee - 400), context) + UnitUtils.getEnergyUnitSymbol(context)
+                                        + "\n• 科学增肌预算 (TDEE + 300): " + UnitUtils.formatEnergy((float) (tdee + 300), context) + UnitUtils.getEnergyUnitSymbol(context)
+                                        + "\n• 保持体重预算 (维持 TDEE): " + UnitUtils.formatEnergy((float) tdee, context) + UnitUtils.getEnergyUnitSymbol(context))
+                                .setPositiveButton("确定", null)
+                                .show();
+                    } catch (Exception e) {
+                        Toast.makeText(context, "输入格式错误", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /**
+     * 第一阶段追加：关于对话框
+     */
+    private void showAboutFitnessDiaryDialog() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("关于 FitnessDiary")
+                .setMessage("FitnessDiary 健身日记 v" + BuildConfig.VERSION_NAME + "\n\n"
+                        + "极简、纯净、无广告的个人健康管理应用。\n\n"
+                        + "核心理念：\n"
+                        + "“用代码雕琢习惯，用汗水记录蜕变。没有花哨的营销，只有最纯粹的数据见证。”\n\n"
+                        + "技术构型：\n"
+                        + "• MVVM + Android Room 数据库\n"
+                        + "• Material Design 3 风格大一统\n"
+                        + "• DeepSeek & Qwen 智能大模型助手内核\n\n"
+                        + "致敬每一个今天依然在自律训练的你！")
+                .setPositiveButton("致敬", null)
+                .show();
+    }
+
+    private void showHealthBriefingHistory() {
+        SharedPreferences sp = requireContext().getSharedPreferences("daily_briefing_prefs", Context.MODE_PRIVATE);
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM/dd", java.util.Locale.getDefault());
+        long today = DateUtils.getTodayStartTimestamp();
+
+        LinearLayout container = new LinearLayout(requireContext());
+        container.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (12 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad, pad, 0);
+
+        int found = 0;
+        for (int d = 0; d < 7; d++) {
+            long dayTs = today - (long) d * 86400000L;
+            String key = "briefing_" + dayTs;
+            String json = sp.getString(key, null);
+            if (json == null) continue;
+            found++;
+            try {
+                org.json.JSONObject obj = new org.json.JSONObject(json);
+                String greeting = obj.optString("greeting", "");
+                String score = obj.optString("scoreComment", "");
+                String suggestion = obj.optString("suggestion", "");
+                String dateLabel = sdf.format(new java.util.Date(dayTs));
+                if (d == 0) dateLabel = "今天 " + dateLabel;
+                else if (d == 1) dateLabel = "昨天 " + dateLabel;
+
+                TextView tvDate = new TextView(requireContext());
+                tvDate.setText("📅 " + dateLabel);
+                tvDate.setTextSize(14);
+                tvDate.setTypeface(null, android.graphics.Typeface.BOLD);
+                tvDate.setTextColor(0xFF333333);
+                tvDate.setPadding(0, d == 0 ? 0 : pad, 0, 4);
+                container.addView(tvDate);
+
+                TextView tvContent = new TextView(requireContext());
+                tvContent.setText(greeting + "\n" + score + "\n💡 " + suggestion);
+                tvContent.setTextSize(13);
+                tvContent.setTextColor(0xFF666666);
+                tvContent.setPadding(0, 0, 0, 4);
+                container.addView(tvContent);
+
+                View divider = new View(requireContext());
+                divider.setLayoutParams(new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 1));
+                divider.setBackgroundColor(0xFFE0E0E0);
+                container.addView(divider);
+            } catch (Exception ignored) {}
+        }
+
+        if (found == 0) {
+            TextView tvEmpty = new TextView(requireContext());
+            tvEmpty.setText("暂无健康日报记录\n\n打开首页可生成今日日报，\n生成后每天会缓存历史数据");
+            tvEmpty.setTextSize(14);
+            tvEmpty.setTextColor(0xFF888888);
+            tvEmpty.setPadding(pad, pad, pad, pad);
+            container.addView(tvEmpty);
+        }
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("📊 健康日报回顾")
+                .setView(container)
+                .setPositiveButton("关闭", null)
+                .show();
+    }
+
+    /**
+     * 每日目标综合设置弹窗 — 集中管理饮水/步数/运动时长/体重目标
+     * 饮食宏量目标为只读展示（由健身目标+活动水平自动计算）
+     */
+    private void showDailyTargetsDialog() {
+        Context ctx = requireContext();
+        User user = viewModel.getCurrentUser().getValue();
+        if (user == null) return;
+
+        SharedPreferences stepSp = ctx.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
+        SharedPreferences healthSp = ctx.getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
+        SharedPreferences exerciseSp = ctx.getSharedPreferences("exercise_targets", Context.MODE_PRIVATE);
+
+        LinearLayout layout = new LinearLayout(ctx);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(48, 24, 48, 24);
+
+        // ── 可编辑目标 ──
+        TextView tvSection1 = new TextView(ctx);
+        tvSection1.setText("── 运动与活动目标 ──");
+        tvSection1.setTextSize(13);
+        tvSection1.setTextColor(0xFF607D8B);
+        tvSection1.setPadding(0, 0, 0, 12);
+        layout.addView(tvSection1);
+
+        // 饮水目标
+        addLabel(layout, "饮水目标 (ml/天)");
+        final EditText etWater = new EditText(ctx);
+        etWater.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etWater.setText(String.valueOf(user.getDailyWaterTarget()));
+        etWater.setHint("2000");
+        addEditText(layout, etWater);
+
+        // 步数目标
+        addLabel(layout, "步数目标 (步/天)");
+        final EditText etSteps = new EditText(ctx);
+        etSteps.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etSteps.setText(String.valueOf(stepSp.getInt("step_target", 8000)));
+        etSteps.setHint("8000");
+        addEditText(layout, etSteps);
+
+        // 运动时长目标
+        addLabel(layout, "运动时长目标 (分钟/天)");
+        final EditText etExercise = new EditText(ctx);
+        etExercise.setInputType(InputType.TYPE_CLASS_NUMBER);
+        etExercise.setText(String.valueOf(exerciseSp.getInt("target_minutes_default", 0)));
+        etExercise.setHint("0 (不设目标)");
+        addEditText(layout, etExercise);
+
+        // 体重目标
+        addLabel(layout, "体重目标 (kg, 留空自动计算)");
+        final EditText etWeightTarget = new EditText(ctx);
+        etWeightTarget.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        float currentTarget = healthSp.getFloat("target_weight_kg", -1f);
+        if (currentTarget > 0) {
+            etWeightTarget.setText(String.format(Locale.getDefault(), "%.1f", currentTarget));
+        }
+        etWeightTarget.setHint("留空使用BMI健康范围自动计算");
+        addEditText(layout, etWeightTarget);
+
+        // 分隔线
+        View divider = new View(ctx);
+        divider.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        divider.setBackgroundColor(0xFFE0E0E0);
+        LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 1);
+        divParams.setMargins(0, 16, 0, 16);
+        divider.setLayoutParams(divParams);
+        layout.addView(divider);
+
+        // ── 只读营养目标 ──
+        TextView tvSection2 = new TextView(ctx);
+        tvSection2.setText("── 饮食营养目标（自动计算）──");
+        tvSection2.setTextSize(13);
+        tvSection2.setTextColor(0xFF607D8B);
+        tvSection2.setPadding(0, 0, 0, 8);
+        layout.addView(tvSection2);
+
+        TextView tvExplanation = new TextView(ctx);
+        String goalStr;
+        int goalType = user.getGoalType();
+        if (goalType == 0) goalStr = "减脂";
+        else if (goalType == 1) goalStr = "增肌";
+        else goalStr = "保持";
+        String activityStr;
+        float al = user.getActivityLevel();
+        if (al <= 1.2f) activityStr = "久坐";
+        else if (al <= 1.375f) activityStr = "轻度活动";
+        else if (al <= 1.55f) activityStr = "中度活动";
+        else if (al <= 1.725f) activityStr = "高度活动";
+        else activityStr = "专业运动员";
+        tvExplanation.setText("基于您的目标「" + goalStr + "」和活动水平「" + activityStr
+                + "」自动计算，修改健身目标即可调整。");
+        tvExplanation.setTextSize(12);
+        tvExplanation.setTextColor(0xFF888888);
+        tvExplanation.setPadding(0, 0, 0, 12);
+        layout.addView(tvExplanation);
+
+        int calTarget = user.getDailyCalorieTarget();
+        int proteinTarget = user.getTargetProtein();
+        int carbsTarget = user.getTargetCarbs();
+        int fatTarget = user.getTargetFat();
+
+        addReadOnlyRow(layout, "热量目标", UnitUtils.formatEnergy(calTarget, ctx) + " " + UnitUtils.getEnergyUnitSymbol(ctx));
+        addReadOnlyRow(layout, "蛋白质目标", proteinTarget + " g");
+        addReadOnlyRow(layout, "碳水目标", carbsTarget + " g");
+        addReadOnlyRow(layout, "脂肪目标", fatTarget + " g");
+
+        new MaterialAlertDialogBuilder(ctx)
+                .setTitle("🎯 每日目标综合设置")
+                .setView(layout)
+                .setPositiveButton("保存", (dialog, which) -> {
+                    String waterStr = etWater.getText().toString().trim();
+                    String stepStr = etSteps.getText().toString().trim();
+                    String exerciseStr = etExercise.getText().toString().trim();
+                    String weightStr = etWeightTarget.getText().toString().trim();
+
+                    new Thread(() -> {
+                        if (!waterStr.isEmpty()) {
+                            try {
+                                int water = Integer.parseInt(waterStr);
+                                if (water >= 0 && water <= 20000) {
+                                    user.setDailyWaterTarget(water);
+                                    AppDatabase.getInstance(ctx).userDao().update(user);
+                                }
+                            } catch (NumberFormatException ignored) {}
+                        }
+                        requireActivity().runOnUiThread(() -> {
+                            if (!stepStr.isEmpty()) {
+                                try {
+                                    int steps = Integer.parseInt(stepStr);
+                                    if (steps >= 0 && steps <= 100000) {
+                                        stepSp.edit().putInt("step_target", steps).apply();
+                                    }
+                                } catch (NumberFormatException ignored) {}
+                            }
+                            if (!exerciseStr.isEmpty()) {
+                                try {
+                                    int mins = Integer.parseInt(exerciseStr);
+                                    if (mins >= 0 && mins <= 600) {
+                                        exerciseSp.edit().putInt("target_minutes_default", mins).apply();
+                                    }
+                                } catch (NumberFormatException ignored) {}
+                            }
+                            if (weightStr.isEmpty()) {
+                                healthSp.edit().remove("target_weight_kg").apply();
+                            } else {
+                                try {
+                                    float w = Float.parseFloat(weightStr);
+                                    if (w > 0 && w < 500) {
+                                        healthSp.edit().putFloat("target_weight_kg", w).apply();
+                                    }
+                                } catch (NumberFormatException ignored) {}
+                            }
+                            Toast.makeText(ctx, "✅ 目标已保存", Toast.LENGTH_SHORT).show();
+                        });
+                    }).start();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void addLabel(LinearLayout parent, String text) {
+        TextView tv = new TextView(parent.getContext());
+        tv.setText(text);
+        tv.setTextSize(12);
+        tv.setTextColor(0xFF888888);
+        tv.setPadding(0, 8, 0, 4);
+        parent.addView(tv);
+    }
+
+    private void addEditText(LinearLayout parent, EditText et) {
+        et.setTextSize(14);
+        et.setPadding(12, 10, 12, 10);
+        et.setBackgroundColor(0xFFF5F5F5);
+        parent.addView(et);
+    }
+
+    private void addReadOnlyRow(LinearLayout parent, String label, String value) {
+        LinearLayout row = new LinearLayout(parent.getContext());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, 6, 0, 6);
+
+        TextView tvLabel = new TextView(parent.getContext());
+        tvLabel.setText(label);
+        tvLabel.setTextSize(14);
+        tvLabel.setTextColor(0xFF333333);
+        row.addView(tvLabel);
+
+        View spacer = new View(parent.getContext());
+        spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 0, 1));
+        row.addView(spacer);
+
+        TextView tvValue = new TextView(parent.getContext());
+        tvValue.setText(value);
+        tvValue.setTextSize(14);
+        tvValue.setTextColor(0xFF2196F3);
+        tvValue.setTypeface(null, android.graphics.Typeface.BOLD);
+        row.addView(tvValue);
+
+        parent.addView(row);
+    }
+
+    /**
+     * 清除缓存 — Glide 图片缓存 + AI 对话历史
+     */
+    private void showClearCacheDialog() {
+        Context ctx = requireContext();
+
+        new MaterialAlertDialogBuilder(ctx)
+                .setTitle("🧹 清除缓存")
+                .setMessage("将清除以下内容：\n\n" +
+                        "• 图片缓存（Glide）\n" +
+                        "• AI 私教对话历史\n\n" +
+                        "不会影响您的训练数据、饮食记录和个人设置。")
+                .setPositiveButton("确认清除", (dialog, which) -> {
+                    new Thread(() -> {
+                        // 清除 Glide 磁盘缓存
+                        try {
+                            Glide.get(ctx).clearDiskCache();
+                        } catch (Exception ignored) {}
+
+                        // 清除 AI 对话历史
+                        try {
+                            AppDatabase.getInstance(ctx).chatMessageDao().deleteAll();
+                        } catch (Exception ignored) {}
+
+                        // 清除 Glide 内存缓存 (须在主线程)
+                        requireActivity().runOnUiThread(() -> {
+                            try {
+                                Glide.get(ctx).clearMemory();
+                            } catch (Exception ignored) {}
+                            Toast.makeText(ctx, "✅ 缓存已清除", Toast.LENGTH_SHORT).show();
+                        });
+                    }).start();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /**
+     * 新手引导回顾 — 重置引导状态并重新播放全局引导
+     */
+    private void replayOnboarding() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("📖 新手引导回顾")
+                .setMessage("将重新展示首次使用时的新手引导，帮助您快速回顾各项功能。\n\n是否继续？")
+                .setPositiveButton("开始回顾", (dialog, which) -> {
+                    // 重置所有引导状态
+                    new GuideStateManager(requireContext()).resetAll();
+
+                    // 显示全局引导弹窗
+                    try {
+                        OnboardingOverlayFragment onboarding = new OnboardingOverlayFragment();
+                        onboarding.show(getChildFragmentManager(), "OnboardingOverlay");
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "引导加载失败，请重启应用", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /**
+     * 推荐给好友 — 分享应用信息
+     */
+    private void shareApp() {
+        String shareText = "💪 推荐你试试 FitnessDiary 健身日记！\n\n"
+                + "极简、纯净、无广告的个人健康管理应用。\n"
+                + "📊 训练计划 · 饮食记录 · 智能AI私教 · 健康评分\n\n"
+                + "用代码雕琢习惯，用汗水记录蜕变。";
+
+        try {
+            String apkPath = requireContext().getApplicationInfo().sourceDir;
+            File apkFile = new File(apkPath);
+            if (!apkFile.exists()) {
+                Toast.makeText(requireContext(), "APK 文件不存在", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            File cacheDir = new File(requireContext().getCacheDir(), "share");
+            if (!cacheDir.exists()) cacheDir.mkdirs();
+            File destFile = new File(cacheDir, "FitnessDiary_v" + BuildConfig.VERSION_NAME + ".apk");
+
+            new Thread(() -> {
+                try {
+                    java.io.FileInputStream fis = new java.io.FileInputStream(apkFile);
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile);
+                    byte[] buf = new byte[8192];
+                    int len;
+                    while ((len = fis.read(buf)) > 0) {
+                        fos.write(buf, 0, len);
+                    }
+                    fos.close();
+                    fis.close();
+
+                    requireActivity().runOnUiThread(() -> {
+                        Uri apkUri = androidx.core.content.FileProvider.getUriForFile(
+                                requireContext(), "com.cz.fitnessdiary.fileprovider", destFile);
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        shareIntent.setType("application/vnd.android.package-archive");
+                        shareIntent.putExtra(Intent.EXTRA_STREAM, apkUri);
+                        shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+                        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        startActivity(Intent.createChooser(shareIntent, "分享安装包"));
+                    });
+                } catch (Exception e) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(), "分享失败", Toast.LENGTH_SHORT).show());
+                }
+            }).start();
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "分享失败", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 意见反馈 — 发送邮件到开发者邮箱
+     */
+    private void sendFeedback() {
+        String[] recipients = {"2322106007@qq.com"};
+        String subject = "FitnessDiary 反馈 - v" + BuildConfig.VERSION_NAME;
+
+        Intent emailIntent = new Intent(Intent.ACTION_SENDTO);
+        emailIntent.setData(Uri.parse("mailto:"));
+        emailIntent.putExtra(Intent.EXTRA_EMAIL, recipients);
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+
+        try {
+            startActivity(emailIntent);
+        } catch (Exception e) {
+            // 如果没有邮件客户端，提示用户
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("📧 意见反馈")
+                    .setMessage("请发送邮件至：\n2322106007@qq.com\n\n主题：" + subject)
+                    .setPositiveButton("复制邮箱", (dialog, which) -> {
+                        android.content.ClipboardManager clipboard = (android.content.ClipboardManager)
+                                requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                        android.content.ClipData clip = android.content.ClipData.newPlainText("email", "2322106007@qq.com");
+                        clipboard.setPrimaryClip(clip);
+                        Toast.makeText(requireContext(), "邮箱已复制到剪贴板", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("关闭", null)
+                    .show();
+        }
     }
 }

@@ -52,8 +52,8 @@ public class FoodLibraryAdapter extends RecyclerView.Adapter<FoodLibraryAdapter.
         holder.tvName.setText(food.getName());
         holder.tvDetails.setText(food.getCaloriesPer100g() + " 千卡/100g");
         
-        String macros = String.format("蛋白质: %.1fg · 碳水: %.1fg", 
-                food.getProteinPer100g(), food.getCarbsPer100g());
+        String macros = String.format("蛋白质: %.1fg · 碳水: %.1fg · 脂肪: %.1fg",
+            food.getProteinPer100g(), food.getCarbsPer100g(), food.getFatPer100g());
         holder.tvMacros.setText(macros);
 
         holder.itemView.setOnClickListener(v -> {

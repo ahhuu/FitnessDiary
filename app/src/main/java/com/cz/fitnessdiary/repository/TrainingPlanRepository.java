@@ -148,8 +148,10 @@ public class TrainingPlanRepository {
                         } else if (cat.startsWith("自定义-")) {
                             String[] parts = cat.split("-");
                             if (parts.length < 3) {
-                                String partName = parts.length > 1 ? parts[1] : "未分类";
-                                plan.setCategory("自定义-默认自定义计划-" + partName);
+                                // 2段格式为损坏数据（第一次fix的bug导致），尝试从计划名推断部位
+                                String fallback = parts.length > 1 ? parts[1] : "未分类";
+                                String guessed = guessBodyPart(fallback, plan.getName());
+                                plan.setCategory("自定义-默认自定义计划-" + guessed);
                                 trainingPlanDao.update(plan);
                             }
                         }
@@ -157,6 +159,26 @@ public class TrainingPlanRepository {
                 }
             }
         });
+    }
+
+    /**
+     * 从文本中猜测训练部位（用于修复损坏的分类数据）
+     */
+    private static String guessBodyPart(String fallback, String planName) {
+        String[][] bodyParts = {
+            {"胸部", "胸"}, {"背部", "背"}, {"腿部", "腿"}, {"肩部", "肩"},
+            {"手臂", "臂"}, {"腹部", "腹"}, {"臀部", "臀"}, {"腰部", "腰"},
+            {"核心", "核心"}, {"有氧", "有氧"}, {"全身", "全身"}
+        };
+        if (planName != null) {
+            for (String[] bp : bodyParts) {
+                if (planName.contains(bp[0]) || planName.contains(bp[1])) return bp[0];
+            }
+        }
+        for (String[] bp : bodyParts) {
+            if (fallback.contains(bp[0]) || fallback.contains(bp[1])) return bp[0];
+        }
+        return fallback;
     }
 
     /**
@@ -209,5 +231,58 @@ public class TrainingPlanRepository {
             trainingPlanDao.deleteByCategoryPrefix(prefix);
             HomeWidgetProvider.requestRefresh(application);
         });
+    }
+
+    /**
+     * 按分类前缀模糊查询
+     */
+    public List<TrainingPlan> getByCategoryPrefixSync(String prefix) {
+        return trainingPlanDao.getByCategoryPrefix(prefix);
+    }
+
+    /**
+     * 合并计划：将 oldPrefix 下所有动作归类到 newPrefix，用动作名智能识别部位
+     */
+    public void mergePlans(String oldPrefix, String newPrefix) {
+        executorService.execute(() -> {
+            // 获取源计划所有动作
+            List<TrainingPlan> sourcePlans = trainingPlanDao.getByCategoryPrefix(oldPrefix);
+            if (sourcePlans != null) {
+                for (TrainingPlan plan : sourcePlans) {
+                    String bodyPart = guessBodyPartFromName(plan.getName());
+                    String oldCat = plan.getCategory();
+                    // 重建分类：新前缀 + 动作名推断的部位
+                    String newCat = newPrefix + bodyPart;
+                    if (!newCat.equals(oldCat)) {
+                        plan.setCategory(newCat);
+                        trainingPlanDao.update(plan);
+                    }
+                }
+            }
+            // 删除源前缀下的空分类（如果所有动作都被移走了，旧前缀下就没了）
+            // 这里不需要额外删除，update已经改变了category
+            HomeWidgetProvider.requestRefresh(application);
+        });
+    }
+
+    /**
+     * 从动作名称推断训练部位
+     */
+    public static String guessBodyPartFromName(String name) {
+        if (name == null) return "其他";
+        String[][] mapping = {
+            {"胸部", "胸"}, {"背部", "背"}, {"腿部", "腿"}, {"肩部", "肩"},
+            {"手臂", "臂"}, {"腹部", "腹"}, {"臀部", "臀"}, {"腰部", "腰"},
+            {"核心", "核心"}, {"有氧", "有氧"}, {"全身", "全身"},
+            {"肱二", "手臂"}, {"肱三", "手臂"}, {"二头", "手臂"}, {"三头", "手臂"},
+            {"深蹲", "腿部"}, {"卧推", "胸部"}, {"卷腹", "腹部"}, {"划船", "背部"},
+            {"推举", "肩部"}, {"弯举", "手臂"}, {"硬拉", "背部"},
+            {"俯卧撑", "胸部"}, {"引体", "背部"}, {"平板支撑", "核心"},
+            {"跑步", "有氧"}, {"跳绳", "有氧"}, {"单车", "有氧"},
+        };
+        for (String[] m : mapping) {
+            if (name.contains(m[1])) return m[0];
+        }
+        return "其他";
     }
 }

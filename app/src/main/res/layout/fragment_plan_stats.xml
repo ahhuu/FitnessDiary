@@ -288,64 +288,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- ===== 卡片3：体重趋势折线图 ===== -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardBackgroundColor="@color/fitnessdiary_surface"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="1dp"
-                    app:strokeColor="@color/divider">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="12dp">
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="⚖️ 体重趋势（kg）"
-                                android:textColor="@color/text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-                            <TextView
-                                android:id="@+id/tv_weight_range_label"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="--"
-                                android:textColor="@color/diet_primary"
-                                android:textSize="12sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <!-- 无体重数据时的空状态 -->
-                        <TextView
-                            android:id="@+id/tv_weight_empty"
-                            android:layout_width="match_parent"
-                            android:layout_height="60dp"
-                            android:gravity="center"
-                            android:text="暂无体重记录，在首页记录体重后即可查看趋势"
-                            android:textColor="@color/text_hint"
-                            android:textSize="12sp"
-                            android:visibility="gone" />
-
-                        <com.github.mikephil.charting.charts.LineChart
-                            android:id="@+id/chart_weight"
-                            android:layout_width="match_parent"
-                            android:layout_height="200dp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
 
                 <!-- ===== 卡片4：训练分类饼图 ===== -->
                 <com.google.android.material.card.MaterialCardView

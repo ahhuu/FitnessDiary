@@ -28,6 +28,15 @@ public interface ReminderScheduleDao {
     @Query("SELECT * FROM reminder_schedule WHERE module_type = :moduleType AND is_enabled = 1")
     LiveData<List<ReminderSchedule>> getEnabledSchedulesByModule(String moduleType);
 
+    @Query("DELETE FROM reminder_schedule WHERE is_preset = :isPreset")
+    void deleteByPreset(boolean isPreset);
+
+    @Query("SELECT COUNT(*) FROM reminder_schedule WHERE is_preset = :isPreset")
+    int countByPreset(boolean isPreset);
+
+    @Query("SELECT * FROM reminder_schedule WHERE is_preset = :isPreset ORDER BY sort_order ASC")
+    List<ReminderSchedule> getByPreset(boolean isPreset);
+
     @Query("SELECT * FROM reminder_schedule WHERE id = :scheduleId LIMIT 1")
     ReminderSchedule getByIdSync(long scheduleId);
 }

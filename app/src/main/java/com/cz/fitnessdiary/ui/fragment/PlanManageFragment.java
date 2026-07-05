@@ -10,7 +10,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,14 +23,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.databinding.FragmentPlanManageBinding;
 import com.cz.fitnessdiary.ui.adapter.GroupedPlanAdapter;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.utils.PermissionHelper;
 import com.cz.fitnessdiary.viewmodel.PlanViewModel;
 import com.cz.fitnessdiary.ui.guide.GuideStateManager;
@@ -551,6 +558,9 @@ public class PlanManageFragment extends Fragment {
         personalPlanAdapter = new com.cz.fitnessdiary.ui.adapter.PersonalPlanAdapter();
         binding.rvPersonalPlans.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rvPersonalPlans.setAdapter(personalPlanAdapter);
+
+        binding.btnMergePlans.setOnClickListener(v -> showMergePlansDialog());
+        binding.btnWeightManager.setOnClickListener(v -> showWeightManagerDialog());
     }
 
     private void updatePersonalPlansAdapter(List<String> planNames, String activeName) {
@@ -560,6 +570,11 @@ public class PlanManageFragment extends Fragment {
         } else {
             binding.layoutPersonalEmpty.setVisibility(View.GONE);
             binding.rvPersonalPlans.setVisibility(View.VISIBLE);
+
+            // 有2个以上计划时显示合并功能；有任意计划时显示负重管理
+            final boolean canMerge = planNames.size() >= 2;
+            binding.btnMergePlans.setVisibility(canMerge ? View.VISIBLE : View.GONE);
+            binding.btnWeightManager.setVisibility(planNames.size() > 0 ? View.VISIBLE : View.GONE);
 
             personalPlanAdapter.setData(planNames, activeName, new com.cz.fitnessdiary.ui.adapter.PersonalPlanAdapter.OnPlanActionListener() {
                 @Override
@@ -632,6 +647,206 @@ public class PlanManageFragment extends Fragment {
                 }
             });
         }
+    }
+
+    /**
+     * 合并计划对话框：多选源计划 → 选择一个目标计划 → 智能合并
+     */
+    private void showMergePlansDialog() {
+        List<String> planNames = viewModel.getPersonalPlanNames().getValue();
+        if (planNames == null || planNames.size() < 2) return;
+
+        String[] names = planNames.toArray(new String[0]);
+        boolean[] checked = new boolean[names.length];
+        final int[] targetIdx = {0};
+
+        // 构建勾选列表
+        LinearLayout container = new LinearLayout(requireContext());
+        container.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (12 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, 0, pad, pad);
+
+        TextView tvHint = new TextView(requireContext());
+        tvHint.setText("勾选要合并的源计划（可多选），再选择一个目标计划");
+        tvHint.setTextSize(12);
+        tvHint.setTextColor(0xFF888888);
+        tvHint.setPadding(0, 0, 0, pad);
+        container.addView(tvHint);
+
+        // 每个计划一行：CheckBox + 目标单选
+        List<android.widget.CheckBox> cbs = new ArrayList<>();
+        for (int i = 0; i < names.length; i++) {
+            final int idx = i;
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setPadding(0, 4, 0, 4);
+
+            android.widget.CheckBox cb = new android.widget.CheckBox(requireContext());
+            cb.setText(names[i]);
+            cb.setTextSize(14);
+            cbs.add(cb);
+
+            com.google.android.material.button.MaterialButton btnTarget =
+                    new com.google.android.material.button.MaterialButton(requireContext());
+            btnTarget.setText("→ 目标");
+            btnTarget.setTextSize(10);
+            btnTarget.setPadding(0, 0, 0, 0);
+            btnTarget.setMinimumWidth(0);
+            btnTarget.setMinimumHeight(0);
+            btnTarget.setTextColor(idx == targetIdx[0] ? 0xFF4CAF50 : 0xFF888888);
+            btnTarget.setOnClickListener(v -> {
+                targetIdx[0] = idx;
+                // 刷新所有目标按钮颜色
+                for (int j = 0; j < cbs.size(); j++) {
+                    ViewGroup parent = (ViewGroup) cbs.get(j).getParent();
+                    for (int k = 0; k < parent.getChildCount(); k++) {
+                        View child = parent.getChildAt(k);
+                        if (child instanceof com.google.android.material.button.MaterialButton
+                                && !(child instanceof android.widget.CheckBox)) {
+                            ((com.google.android.material.button.MaterialButton) child)
+                                    .setTextColor(j == idx ? 0xFF4CAF50 : 0xFF888888);
+                        }
+                    }
+                }
+            });
+            row.addView(cb, new LinearLayout.LayoutParams(0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(btnTarget);
+            container.addView(row);
+        }
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("📋 合并计划")
+                .setView(container)
+                .setPositiveButton("执行合并", (d, w) -> {
+                    List<String> sources = new ArrayList<>();
+                    for (int i = 0; i < cbs.size(); i++) {
+                        if (cbs.get(i).isChecked() && i != targetIdx[0]) {
+                            sources.add(names[i]);
+                        }
+                    }
+                    if (sources.isEmpty()) {
+                        Toast.makeText(requireContext(), "请至少勾选一个源计划", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    String target = names[targetIdx[0]];
+                    // 二次确认
+                    StringBuilder msg = new StringBuilder("将以下计划合并到「" + target + "」：\n");
+                    for (String s : sources) msg.append("• ").append(s).append("\n");
+                    msg.append("\n动作部位将通过名称智能识别，合并后源计划将被清空。");
+                    new MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("确认合并")
+                            .setMessage(msg.toString())
+                            .setPositiveButton("确认合并", (d2, w2) -> {
+                                viewModel.mergePersonalPlans(sources, target);
+                                Toast.makeText(requireContext(),
+                                        "已合并 " + sources.size() + " 个计划到「" + target + "」", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton("取消", null)
+                            .show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    /**
+     * 统一负重管理对话框：列出所有器械动作，批量设置重量
+     */
+    private void showWeightManagerDialog() {
+        new Thread(() -> {
+            List<TrainingPlan> allPlans = AppDatabase.getInstance(requireContext().getApplicationContext())
+                    .trainingPlanDao().getAllPlansList();
+            if (allPlans == null || allPlans.isEmpty()) return;
+
+            // 只筛选当前激活计划的动作（按分类前缀过滤）
+            String activePlan = viewModel.getActivePersonalPlanName().getValue();
+            String prefix = "自定义-" + (activePlan != null ? activePlan : "默认自定义计划") + "-";
+            String currentMode = viewModel.getFilterMode().getValue();
+            if (!"自定义".equals(currentMode)) {
+                prefix = (currentMode != null ? currentMode : "基础") + "-";
+            }
+
+            // 筛选需要负重的动作（含器械关键词或 weight>0 且在激活计划中）
+            List<TrainingPlan> equipmentPlans = new ArrayList<>();
+            for (TrainingPlan p : allPlans) {
+                if (p.getCategory() == null || !p.getCategory().startsWith(prefix)) continue;
+                if (ExerciseMetTable.isEquipmentExercise(p.getName(), p.getCategory())
+                        || p.getWeight() > 0) {
+                    equipmentPlans.add(p);
+                }
+            }
+            final List<TrainingPlan> finalPlans = equipmentPlans;
+
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    if (finalPlans.isEmpty()) {
+                        Toast.makeText(requireContext(), "暂无需要设置负重的动作", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    LinearLayout container = new LinearLayout(requireContext());
+                    container.setOrientation(LinearLayout.VERTICAL);
+                    int pad = (int) (12 * getResources().getDisplayMetrics().density);
+
+                    TextView tvHint = new TextView(requireContext());
+                    tvHint.setText("设置器械动作的负重（哑铃=单只重 / 杠铃=单边重 / 器械=配重片重量）");
+                    tvHint.setTextSize(12);
+                    tvHint.setTextColor(0xFF888888);
+                    tvHint.setPadding(0, 0, 0, pad);
+                    container.addView(tvHint);
+
+                    List<EditText> weightInputs = new ArrayList<>();
+                    for (TrainingPlan plan : finalPlans) {
+                        LinearLayout row = new LinearLayout(requireContext());
+                        row.setOrientation(LinearLayout.HORIZONTAL);
+                        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                        row.setPadding(0, 4, 0, 4);
+
+                        TextView tvName = new TextView(requireContext());
+                        tvName.setText(plan.getName());
+                        tvName.setTextSize(14);
+                        tvName.setTextColor(0xFF333333);
+                        tvName.setLayoutParams(new LinearLayout.LayoutParams(
+                                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                        row.addView(tvName);
+
+                        EditText et = new EditText(requireContext());
+                        et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                        et.setText(plan.getWeight() > 0 ? String.valueOf((int) plan.getWeight()) : "");
+                        et.setHint("kg");
+                        et.setTextSize(14);
+                        et.setWidth((int) (80 * getResources().getDisplayMetrics().density));
+                        et.setGravity(android.view.Gravity.CENTER);
+                        row.addView(et);
+                        weightInputs.add(et);
+
+                        container.addView(row);
+                    }
+
+                    new MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("⚖️ 负重管理 (" + finalPlans.size() + " 个动作)")
+                            .setView(container)
+                            .setPositiveButton("保存全部", (d, w) -> {
+                                new Thread(() -> {
+                                    for (int i = 0; i < finalPlans.size(); i++) {
+                                        String s = weightInputs.get(i).getText().toString().trim();
+                                        float newWeight = 0f;
+                                        try { newWeight = Float.parseFloat(s); } catch (NumberFormatException ignored) {}
+                                        if (newWeight != finalPlans.get(i).getWeight()) {
+                                            finalPlans.get(i).setWeight(newWeight);
+                                            viewModel.updatePlan(finalPlans.get(i));
+                                        }
+                                    }
+                                }).start();
+                                Toast.makeText(requireContext(), "负重设置已保存", Toast.LENGTH_SHORT).show();
+                            })
+                            .setNegativeButton("取消", null)
+                            .show();
+                });
+            }
+        }).start();
     }
 
     private void updateEmptyStatePrompt(String mode) {

@@ -206,6 +206,9 @@ public class User {
     @ColumnInfo(name = "target_carbs")
     private int targetCarbs; // 每日目标碳水 (g)
 
+    @ColumnInfo(name = "target_fat")
+    private int targetFat; // 每日目标脂肪 (g)
+
     // === 2.X 新增字段 ===
     @ColumnInfo(name = "daily_water_target", defaultValue = "2000")
     private int dailyWaterTarget = 2000; // 每日饮水目标 (ml)
@@ -232,5 +235,17 @@ public class User {
 
     public void setDailyWaterTarget(int dailyWaterTarget) {
         this.dailyWaterTarget = dailyWaterTarget;
+    }
+
+    public int getTargetFat() {
+        if (targetFat > 0) {
+            return targetFat;
+        }
+        // 兼容旧数据：按热量的 25% 估算脂肪目标
+        return (int) Math.round((dailyCalorieTarget * 0.25) / 9.0);
+    }
+
+    public void setTargetFat(int targetFat) {
+        this.targetFat = targetFat;
     }
 }

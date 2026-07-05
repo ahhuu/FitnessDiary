@@ -73,7 +73,7 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
     private android.widget.ProgressBar progressWaterCircle;
 
     private BarChart chartTraining, chartSleep, chartSteps;
-    private LineChart chartCalories, chartWeight;
+    private LineChart chartCalories;
 
     private boolean isMonthMode = false;
     private List<String> currentLabels = new ArrayList<>();
@@ -103,8 +103,6 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
         tvTrainingDaysValue    = v.findViewById(R.id.tv_training_days_value);
         tvCaloriesIntakeValue  = v.findViewById(R.id.tv_calories_intake_value);
         tvCaloriesTargetValue  = v.findViewById(R.id.tv_calories_target_value);
-        tvWeightBmiValue       = v.findViewById(R.id.tv_weight_bmi_value);
-        tvWeightEmpty          = v.findViewById(R.id.tv_weight_empty);
         tvSleepAvgValue        = v.findViewById(R.id.tv_sleep_avg_value);
         tvSleepQualityAvgValue = v.findViewById(R.id.tv_sleep_quality_avg_value);
         tvWaterAvg             = v.findViewById(R.id.tv_water_avg);
@@ -117,7 +115,6 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
 
         chartTraining = v.findViewById(R.id.chart_training);
         chartCalories = v.findViewById(R.id.chart_calories);
-        chartWeight   = v.findViewById(R.id.chart_weight);
         chartSleep    = v.findViewById(R.id.chart_sleep);
         chartSteps    = v.findViewById(R.id.chart_steps);
     }
@@ -125,7 +122,6 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
     private void initCharts() {
         styleBarChart(chartTraining, "暂无训练记录");
         styleLineChart(chartCalories, "暂无饮食记录");
-        styleLineChart(chartWeight,   "暂无体重记录");
         styleBarChart(chartSleep,     "暂无睡眠记录");
         styleBarChart(chartSteps,     "暂无步数记录");
     }
@@ -175,29 +171,7 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
             tvCaloriesTargetValue.setText("— 虚线为目标 " + target + " kcal");
         });
 
-        // 体重趋势折线
-        viewModel.getWeightHistory().observe(getViewLifecycleOwner(), records -> {
-            if (records != null && !records.isEmpty()) {
-                tvWeightEmpty.setVisibility(View.GONE);
-                chartWeight.setVisibility(View.VISIBLE);
-                List<Float> weights = new ArrayList<>();
-                List<String> labels = new ArrayList<>();
-                SimpleDateFormat sdf = new SimpleDateFormat("M/d", Locale.getDefault());
-                List<WeightRecord> reversed = new ArrayList<>(records);
-                Collections.reverse(reversed);
-                for (WeightRecord wr : reversed) {
-                    weights.add(wr.getWeight());
-                    labels.add(sdf.format(wr.getTimestamp()));
-                }
-                renderLineChart(chartWeight, weights, labels, COLOR_WEIGHT, 0f);
-            } else {
-                tvWeightEmpty.setVisibility(View.VISIBLE);
-                chartWeight.setVisibility(View.GONE);
-            }
-        });
-        viewModel.getWeightSuggestion().observe(getViewLifecycleOwner(), s -> {
-            tvWeightBmiValue.setText(s);
-        });
+
 
         // 睡眠柱状图
         viewModel.getAvgSleepDuration().observe(getViewLifecycleOwner(), dur -> {

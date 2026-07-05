@@ -6,7 +6,7 @@
     android:layout_margin="16dp"
     app:cardCornerRadius="16dp"
     app:cardElevation="4dp"
-    app:strokeColor="#E0E0E0"
+    app:strokeColor="@color/divider"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -21,7 +21,7 @@
             android:text="训练实验室"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="@color/black"
+            android:textColor="@color/text_primary"
             android:layout_marginBottom="12dp"/>
 
         <!-- 本周训练趋势图 -->

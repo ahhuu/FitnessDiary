@@ -24,6 +24,12 @@ public interface FoodRecordDao {
     void insert(FoodRecord foodRecord);
 
     /**
+     * 更新食物记录
+     */
+    @androidx.room.Update
+    void update(FoodRecord foodRecord);
+
+    /**
      * 删除食物记录
      */
     @Delete
@@ -81,4 +87,10 @@ public interface FoodRecordDao {
 
     @Query("SELECT COUNT(*) FROM food_record WHERE record_date >= :startDate AND record_date < :endDate")
     int getRecordCountByDateRangeSync(long startDate, long endDate);
+
+    @Query("SELECT SUM(fat) FROM food_record WHERE record_date >= :startDate AND record_date < :endDate")
+    LiveData<Double> getTotalFatByDateRange(long startDate, long endDate);
+
+    @Query("SELECT food_name FROM food_record WHERE record_date >= :oneWeekAgo GROUP BY food_name ORDER BY COUNT(*) DESC LIMIT :limit")
+    LiveData<List<String>> getFrequentFoodNames(long oneWeekAgo, int limit);
 }

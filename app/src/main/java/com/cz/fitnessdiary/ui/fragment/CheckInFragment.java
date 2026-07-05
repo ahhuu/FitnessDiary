@@ -36,6 +36,7 @@ import com.cz.fitnessdiary.model.DailyMission;
 import com.cz.fitnessdiary.ui.adapter.EditCardsAdapter;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ErrorHandler;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.utils.RestTimerManager;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
@@ -57,12 +58,12 @@ import android.widget.ImageView;
 import com.cz.fitnessdiary.model.DailyHealthSnapshot;
 import com.cz.fitnessdiary.model.HealthScoreBreakdown;
 import com.cz.fitnessdiary.repository.HealthAggregationRepository;
-import com.cz.fitnessdiary.service.DailyBriefingService;
 import com.cz.fitnessdiary.ui.guide.GuideStateManager;
 import com.cz.fitnessdiary.ui.guide.GuideStep;
 import com.cz.fitnessdiary.ui.guide.PageGuide;
 import com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay;
 import com.cz.fitnessdiary.utils.HealthScoreCalculator;
+import com.cz.fitnessdiary.utils.UnitUtils;
 
 import java.util.Arrays;
 
@@ -111,9 +112,25 @@ public class CheckInFragment extends Fragment {
     private RestTimerManager restTimerManager;
     private int timerSelectedSeconds = 60;
     private com.cz.fitnessdiary.utils.StepSensorHelper stepSensorHelper;
-    private DailyBriefingService briefingService;
-    private boolean isBriefingExpanded = false;
     private SharedPreferences.OnSharedPreferenceChangeListener homeCardsChangeListener;
+
+    // 顶部 3 高亮轻量化标签常量与配置
+    private static final int TAG_TYPE_CAL_REMAIN = 0; // 剩余热量
+    private static final int TAG_TYPE_SPORT_BURN = 1; // 运动消耗
+    private static final int TAG_TYPE_WATER = 2; // 饮水量
+    private static final int TAG_TYPE_STEPS = 3; // 今日步数
+    private static final int TAG_TYPE_SLEEP = 4; // 睡眠时长
+    private static final int TAG_TYPE_MOOD = 5; // 今日心情
+    private static final int TAG_TYPE_HABIT = 6; // 习惯打卡
+    private static final int TAG_TYPE_WEIGHT = 7; // 当前体重
+    private static final int TAG_TYPE_BOWEL = 8; // 便便记录
+    private static final int TAG_TYPE_MEDICATION = 9; // 药物记录
+    private static final int TAG_TYPE_MENSTRUAL = 10; // 生理期天数
+
+    private int tag1Type = TAG_TYPE_CAL_REMAIN;
+    private int tag2Type = TAG_TYPE_SPORT_BURN;
+    private int tag3Type = TAG_TYPE_WATER;
+    private int exerciseCalories = 0;
 
     public CheckInFragment() {
         super();
@@ -136,7 +153,6 @@ public class CheckInFragment extends Fragment {
         achievementCenterViewModel = new ViewModelProvider(requireActivity()).get(AchievementCenterViewModel.class);
         restTimerManager = new RestTimerManager();
         stepSensorHelper = new com.cz.fitnessdiary.utils.StepSensorHelper(requireContext());
-        briefingService = new DailyBriefingService(requireActivity().getApplication());
         setupActions();
         setupRestTimer();
         cacheCards();
@@ -159,11 +175,29 @@ public class CheckInFragment extends Fragment {
         updateDateHeader();
         updateSummaryCard();
         achievementCenterViewModel.refreshAll();
-        loadDailyBriefing();
     }
 
     public void showPageGuide(GuideStateManager guideManager) {
-        // 主页极简清晰，无需页面引导
+        String pageKey = "guide_checkin";
+        if (guideManager.isPageGuideDone(pageKey)) return;
+        binding.getRoot().postDelayed(() -> {
+            if (!isAdded()) return;
+            java.util.List<com.cz.fitnessdiary.ui.guide.GuideStep> steps = new java.util.ArrayList<>();
+            steps.add(new com.cz.fitnessdiary.ui.guide.GuideStep(R.id.fl_total_circle,
+                    "健康评分", "每日五维度健康评分环，点击可查看各维度详细得分",
+                    com.cz.fitnessdiary.ui.guide.GuideStep.Anchor.BOTTOM));
+            steps.add(new com.cz.fitnessdiary.ui.guide.GuideStep(R.id.card_sport,
+                    "运动打卡", "查看今日训练计划完成度、消耗热量和热量来源分解",
+                    com.cz.fitnessdiary.ui.guide.GuideStep.Anchor.TOP));
+            steps.add(new com.cz.fitnessdiary.ui.guide.GuideStep(R.id.card_diet,
+                    "饮食记录", "追踪每日热量与三大宏量营养素摄入情况",
+                    com.cz.fitnessdiary.ui.guide.GuideStep.Anchor.TOP));
+            steps.add(new com.cz.fitnessdiary.ui.guide.GuideStep(R.id.grid_cards,
+                    "健康小卡片", "饮水/睡眠/习惯/体重/步数等10个小卡片，拖拽排序、自由开关",
+                    com.cz.fitnessdiary.ui.guide.GuideStep.Anchor.TOP));
+            com.cz.fitnessdiary.ui.guide.PageGuide guide = new com.cz.fitnessdiary.ui.guide.PageGuide(pageKey, steps);
+            new com.cz.fitnessdiary.ui.guide.TargetedGuideOverlay(requireActivity(), guide, guideManager, null).start();
+        }, 800);
     }
 
     @Override
@@ -252,6 +286,7 @@ public class CheckInFragment extends Fragment {
             updateDateHeader();
             // 选中的不是今天则显示“回到今天”
             binding.btnBackToToday.setVisibility(DateUtils.isToday(ts) ? View.GONE : View.VISIBLE);
+            updateTopTagsValues();
         });
 
         // 综合运动和饮食记录日期，更新横滑绿点
@@ -299,11 +334,13 @@ public class CheckInFragment extends Fragment {
         // 这里的观察已移至底部逻辑
         dietViewModel.getTodayTotalCalories().observe(getViewLifecycleOwner(), calories -> {
             int consumed = calories != null ? calories : 0;
-            binding.tvDietConsumed.setText(consumed + " 千卡");
+            binding.tvDietConsumed.setText(UnitUtils.formatEnergy(consumed, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+            updateTopTagsValues();
         });
 
         dietViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
             updateDietProgress();
+            updateTopTagsValues();
         });
 
         dietViewModel.getSmartFeedback().observe(getViewLifecycleOwner(), feedback -> {
@@ -320,12 +357,26 @@ public class CheckInFragment extends Fragment {
         dietViewModel.getTodayTotalCalories().observe(getViewLifecycleOwner(), calories -> {
             updateDietProgress();
             updateOverallProgress();
+            updateTopTagsValues();
         });
 
         // 饮食宏量营养素观察
-        dietViewModel.getTodayTotalCarbs().observe(getViewLifecycleOwner(), carbs -> updateDietMacros());
-        dietViewModel.getTodayTotalProtein().observe(getViewLifecycleOwner(), protein -> updateDietMacros());
-        dietViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> updateDietMacros());
+        dietViewModel.getTodayTotalCarbs().observe(getViewLifecycleOwner(), carbs -> {
+            updateDietMacros();
+            updateTopTagsValues();
+        });
+        dietViewModel.getTodayTotalProtein().observe(getViewLifecycleOwner(), protein -> {
+            updateDietMacros();
+            updateTopTagsValues();
+        });
+        dietViewModel.getTodayTotalFat().observe(getViewLifecycleOwner(), fat -> {
+            updateDietMacros();
+            updateTopTagsValues();
+        });
+        dietViewModel.getCurrentUser().observe(getViewLifecycleOwner(), user -> {
+            updateDietMacros();
+            updateTopTagsValues();
+        });
     }
 
     private void updateDietProgress() {
@@ -364,9 +415,11 @@ public class CheckInFragment extends Fragment {
         v(R.id.fl_total_circle).setOnClickListener(v -> showOverallProgressDetails());
         v(R.id.card_sport).setOnClickListener(v -> openDetail(R.id.sportRecordDetailFragment));
         v(R.id.card_diet).setOnClickListener(v -> {
-            Fragment parent = getParentFragment();
-            if (parent instanceof MainHomeFragment) {
-                ((MainHomeFragment) parent).switchToTab(2); // 饮食页
+            try {
+                androidx.navigation.fragment.NavHostFragment.findNavController(CheckInFragment.this)
+                        .navigate(R.id.dietFragment);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         });
         v(R.id.card_water).setOnClickListener(v -> openDetail(R.id.waterRecordDetailFragment));
@@ -382,20 +435,17 @@ public class CheckInFragment extends Fragment {
         v(R.id.card_mood).setOnClickListener(v2 -> showMoodPicker());
         v(R.id.btn_add_step).setOnClickListener(v2 -> showStepInputDialog());
 
+        // [Removed v2.4] 顶部 3 高亮轻量化标签已永久隐藏
+        // binding.layoutTopTag1.setOnClickListener(v -> showSelectTagDialog(1));
+        // binding.layoutTopTag2.setOnClickListener(v -> showSelectTagDialog(2));
+        // binding.layoutTopTag3.setOnClickListener(v -> showSelectTagDialog(3));
+        // loadTopTagsConfig();
+        // updateTopTagsValues();
+
         View btnAiQuick = v(R.id.btn_ai_quick);
         if (btnAiQuick != null) {
             btnAiQuick.setOnClickListener(va -> {
                 QuickAiChatBottomSheet.newInstance().show(getParentFragmentManager(), "QUICK_AI_CHAT");
-            });
-        }
-
-        View btnRefreshBriefing = v(R.id.btn_refresh_briefing);
-        if (btnRefreshBriefing != null) {
-            btnRefreshBriefing.setOnClickListener(va -> {
-                if (briefingService != null) {
-                    briefingService.invalidateCache();
-                    loadDailyBriefing();
-                }
             });
         }
 
@@ -416,7 +466,7 @@ public class CheckInFragment extends Fragment {
         v(R.id.btn_add_water).setOnClickListener(
                 v -> quickNumberInput("记录喝水(ml)", value -> homeDashboardViewModel.addWater(value.intValue(), null)));
         v(R.id.btn_add_weight).setOnClickListener(
-                v -> quickNumberInput("添加体重(kg)", value -> homeDashboardViewModel.addWeight(value.floatValue(), null)));
+                v -> quickNumberInput("添加体重(" + UnitUtils.getWeightUnitSymbol(requireContext()) + ")", value -> homeDashboardViewModel.addWeight(value.floatValue(), null)));
         v(R.id.btn_add_medication).setOnClickListener(
                 v -> quickTextInput("添加用药", text -> homeDashboardViewModel.addMedication(text, "", true, null)));
         v(R.id.btn_add_sleep).setOnClickListener(v -> openDetail(R.id.sleepRecordDetailFragment));
@@ -424,7 +474,6 @@ public class CheckInFragment extends Fragment {
         v(R.id.btn_add_measure).setOnClickListener(v -> openDetail(R.id.bodyMeasurementDetailFragment));
         v(R.id.btn_add_bowel).setOnClickListener(v -> openDetail(R.id.bowelMovementDetailFragment));
         v(R.id.btn_add_menstrual).setOnClickListener(v -> openDetail(R.id.menstrualRecordDetailFragment));
-        binding.btnEditMissions.setOnClickListener(v -> showEditMissionsDialog());
 
         binding.btnEditHomeCards.setOnClickListener(v -> showEditCardsDialog());
         binding.btnHeatmap.setOnClickListener(v -> showHeatmapDialog());
@@ -498,7 +547,9 @@ public class CheckInFragment extends Fragment {
         homeDashboardViewModel.getSelectedDateLatestWeight().observe(getViewLifecycleOwner(), r -> {
             if (r != null) {
                 setTextIfExists(R.id.tv_weight_value,
-                        String.format(java.util.Locale.getDefault(), "%.1f", r.getWeight()));
+                        UnitUtils.formatWeight(r.getWeight(), requireContext()));
+                setTextIfExists(R.id.tv_weight_unit,
+                        UnitUtils.getWeightUnitSymbol(requireContext()));
                 setTextIfExists(R.id.tv_weight_update, getSelectedDateUpdateText(r.getTimestamp()));
                 setTextIfExists(R.id.tv_weight_summary, "已记录当日体重");
                 // Compute detailed weight analysis (delta + BMI + 7-day trend)
@@ -508,16 +559,17 @@ public class CheckInFragment extends Fragment {
                     com.cz.fitnessdiary.database.AppDatabase db =
                             com.cz.fitnessdiary.database.AppDatabase.getInstance(context);
                     StringBuilder analysis = new StringBuilder();
+                    String weightUnitSymbol = UnitUtils.getWeightUnitSymbol(context);
                     // Weight delta vs previous record
                     com.cz.fitnessdiary.database.entity.WeightRecord prevRecord =
                             db.weightRecordDao().getLatestRecordBeforeSync(r.getTimestamp());
                     if (prevRecord != null) {
-                        float delta = r.getWeight() - prevRecord.getWeight();
-                        if (Math.abs(delta) < 0.05f) {
+                        float deltaAbs = Math.abs(r.getWeight() - prevRecord.getWeight());
+                        if (deltaAbs < 0.05f) {
                             analysis.append("稳定");
                         } else {
-                            String arrow = delta < 0 ? "↓" : "↑";
-                            analysis.append(arrow).append(String.format(java.util.Locale.getDefault(), "%.1fkg", Math.abs(delta)));
+                            String arrow = (r.getWeight() - prevRecord.getWeight()) < 0 ? "↓" : "↑";
+                            analysis.append(arrow).append(UnitUtils.formatWeight(deltaAbs, context)).append(weightUnitSymbol);
                         }
                     }
                     // BMI
@@ -541,7 +593,7 @@ public class CheckInFragment extends Fragment {
                             analysis.append("周平稳");
                         } else {
                             analysis.append("周").append(trend < 0 ? "↓" : "↑")
-                                    .append(String.format(java.util.Locale.getDefault(), "%.1fkg", Math.abs(trend)));
+                                    .append(UnitUtils.formatWeight(Math.abs(trend), context)).append(weightUnitSymbol);
                         }
                     }
                     final String text = analysis.length() > 0 ? analysis.toString() : "已记录当日体重";
@@ -562,11 +614,15 @@ public class CheckInFragment extends Fragment {
                             if (isAdded() && binding != null) {
                                 if (latest != null) {
                                     setTextIfExists(R.id.tv_weight_value,
-                                            String.format(java.util.Locale.getDefault(), "%.1f", latest.getWeight()));
+                                            UnitUtils.formatWeight(latest.getWeight(), requireContext()));
+                                    setTextIfExists(R.id.tv_weight_unit,
+                                            UnitUtils.getWeightUnitSymbol(requireContext()));
                                     setTextIfExists(R.id.tv_weight_update, getUpdateText(latest.getTimestamp()));
                                     setTextIfExists(R.id.tv_weight_summary, "最近一次记录");
                                 } else {
                                     setTextIfExists(R.id.tv_weight_value, "--");
+                                    setTextIfExists(R.id.tv_weight_unit,
+                                            UnitUtils.getWeightUnitSymbol(requireContext()));
                                     setTextIfExists(R.id.tv_weight_update, "暂无更新");
                                     setTextIfExists(R.id.tv_weight_summary, "点击查看体重明细");
                                 }
@@ -625,6 +681,7 @@ public class CheckInFragment extends Fragment {
                     setTextIfExists(R.id.tv_medication_summary, "已记录 " + t + " 次用药");
                 }
             }
+            updateTopTagsValues();
         });
         homeDashboardViewModel.getTodayMedicationTotal().observe(getViewLifecycleOwner(), total -> {
             Integer taken = homeDashboardViewModel.getTodayMedicationTakenCount().getValue();
@@ -633,6 +690,7 @@ public class CheckInFragment extends Fragment {
             if (target > 0) {
                 setTextIfExists(R.id.tv_medication_value, t + "/" + target);
             }
+            updateTopTagsValues();
         });
         homeDashboardViewModel.getSelectedDateLatestMedication().observe(getViewLifecycleOwner(), r -> {
             if (r != null) {
@@ -674,8 +732,6 @@ public class CheckInFragment extends Fragment {
                 }).start();
             }
         });
-
-        achievementCenterViewModel.getTodayMissions().observe(getViewLifecycleOwner(), this::renderDailyMissions);
 
         checkInViewModel.getSelectedDaySleepRecords().observe(getViewLifecycleOwner(), records -> {
             if (records != null && !records.isEmpty()) {
@@ -786,6 +842,7 @@ public class CheckInFragment extends Fragment {
                     } catch (Exception ignored) {}
                 }).start();
             }
+            updateTopTagsValues();
         });
 
         homeDashboardViewModel.getEnabledHabits().observe(getViewLifecycleOwner(), items -> {
@@ -794,6 +851,7 @@ public class CheckInFragment extends Fragment {
                 habitItems.addAll(items);
             refreshHabitCard();
             updateOverallProgress();
+            updateTopTagsValues();
         });
         homeDashboardViewModel.getSelectedDateHabitRecords().observe(getViewLifecycleOwner(), records -> {
             habitRecords.clear();
@@ -804,6 +862,7 @@ public class CheckInFragment extends Fragment {
             }
             refreshHabitCard();
             updateOverallProgress();
+            updateTopTagsValues();
         });
 
         // 围度卡片观察
@@ -871,6 +930,7 @@ public class CheckInFragment extends Fragment {
                     if (p != null) p.setProgress(Math.min(c * 33, 100));
                 }
             }
+            updateTopTagsValues();
         });
         homeDashboardViewModel.getLatestBowelSummary().observe(getViewLifecycleOwner(), summary -> {
             if (summary != null) {
@@ -965,6 +1025,7 @@ public class CheckInFragment extends Fragment {
                         card.findViewById(R.id.progress_menstrual);
                 if (p != null) p.setProgress(d > 0 ? Math.min(d * 100 / 28, 100) : 0);
             }
+            updateTopTagsValues();
         });
         homeDashboardViewModel.getMenstrualSummary().observe(getViewLifecycleOwner(), summary -> {
             if (summary != null) {
@@ -1008,7 +1069,7 @@ public class CheckInFragment extends Fragment {
                 int pct = target > 0 ? Math.min(steps * 100 / target, 100) : 0;
                 int cal = (int) (steps * 0.04);
                 setTextIfExists(R.id.tv_step_summary,
-                        "≈" + cal + "千卡 | 目标" + target + "步");
+                        "≈" + UnitUtils.formatEnergy(cal, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext()) + " | 目标" + target + "步");
                 View card = cachedCards.get(CARD_STEP);
                 if (card != null) {
                     android.widget.ProgressBar p = card.findViewById(R.id.progress_step);
@@ -1025,6 +1086,7 @@ public class CheckInFragment extends Fragment {
                     if (p != null) p.setProgress(0);
                 }
             }
+            updateTopTagsValues();
         });
 
         // 情绪卡片观察
@@ -1040,89 +1102,168 @@ public class CheckInFragment extends Fragment {
                 setTextIfExists(R.id.tv_mood_summary, "记录每日心情");
                 setTextIfExists(R.id.tv_mood_update, "暂无更新");
             }
+            updateTopTagsValues();
         });
     }
 
-    private void renderDailyMissions(List<DailyMission> missions) {
-        if (missions == null || binding == null) {
-            return;
-        }
-        latestMissions.clear();
-        latestMissions.addAll(missions);
+    // ── 顶部 3 高亮轻量化标签管理 ──
 
-        binding.layoutMissionList.removeAllViews();
-        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(requireContext());
-        for (DailyMission mission : missions) {
-            View view = inflater.inflate(R.layout.item_mission_row, binding.layoutMissionList, false);
-            CheckBox cb = view.findViewById(R.id.cb_mission);
-            TextView tv = view.findViewById(R.id.tv_mission_title);
-
-            cb.setChecked(mission.isCompleted());
-            tv.setText(mission.getTitle());
-            tv.setTextColor(getResources().getColor(
-                    mission.isCompleted() ? R.color.fitnessdiary_primary : R.color.text_secondary,
-                    null));
-
-            if (mission.isCustom()) {
-                view.setOnClickListener(v -> achievementCenterViewModel.toggleCustomMissionCompletion(mission.getId()));
-                view.setClickable(true);
-                view.setFocusable(true);
-            } else {
-                view.setOnClickListener(null);
-                view.setClickable(false);
-                view.setFocusable(false);
-            }
-            binding.layoutMissionList.addView(view);
-        }
-
-        if (missions.isEmpty()) {
-            TextView emptyTv = new TextView(requireContext());
-            emptyTv.setText("暂无任务，点击右侧编辑添加");
-            emptyTv.setTextSize(13);
-            emptyTv.setTextColor(getResources().getColor(R.color.text_hint, null));
-            emptyTv.setPadding(0, dp(4), 0, dp(4));
-            binding.layoutMissionList.addView(emptyTv);
-        }
+    private void loadTopTagsConfig() {
+        if (getContext() == null) return;
+        android.content.SharedPreferences sp = requireContext().getSharedPreferences("checkin_config", android.content.Context.MODE_PRIVATE);
+        tag1Type = sp.getInt("tag_1_type", TAG_TYPE_CAL_REMAIN);
+        tag2Type = sp.getInt("tag_2_type", TAG_TYPE_SPORT_BURN);
+        tag3Type = sp.getInt("tag_3_type", TAG_TYPE_WATER);
     }
 
-    private void showEditMissionsDialog() {
-        EditText et = new EditText(requireContext());
-        et.setMinLines(6);
-        et.setGravity(Gravity.TOP | Gravity.START);
-        et.setHint("每行一个任务，可用前缀：\n[训练] [饮食] [习惯] [自定义]");
+    private void saveTopTagsConfig(int index, int type) {
+        if (getContext() == null) return;
+        android.content.SharedPreferences sp = requireContext().getSharedPreferences("checkin_config", android.content.Context.MODE_PRIVATE);
+        sp.edit().putInt("tag_" + index + "_type", type).apply();
+    }
 
-        List<String> lines = new ArrayList<>();
-        for (DailyMission mission : latestMissions) {
-            if ("mission_training".equals(mission.getId())) {
-                lines.add("[训练] " + mission.getTitle());
-            } else if ("mission_diet".equals(mission.getId())) {
-                lines.add("[饮食] " + mission.getTitle());
-            } else if ("mission_habit".equals(mission.getId())) {
-                lines.add("[习惯] " + mission.getTitle());
-            } else {
-                lines.add("[自定义] " + mission.getTitle());
-            }
+    private void showSelectTagDialog(int index) {
+        String[] items = {"剩余热量", "运动消耗", "饮水量", "今日步数", "睡眠时长", "今日心情", "习惯打卡", "当前体重", "便便记录", "药物记录", "生理期天数"};
+        int currentType = (index == 1) ? tag1Type : ((index == 2) ? tag2Type : tag3Type);
+        int currentSelected = 0;
+        if (currentType >= 0 && currentType < items.length) {
+            currentSelected = currentType;
         }
-        et.setText(String.join("\n", lines));
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("编辑任务")
-                .setView(et)
-                .setMessage("可修改默认任务文案，删除对应行可移除该任务；新增行可添加自定义任务。")
-                .setPositiveButton("保存", (dialog, which) -> {
-                    String text = et.getText() == null ? "" : et.getText().toString();
-                    String[] rawLines = text.split("\\r?\\n");
-                    List<String> editorLines = new ArrayList<>();
-                    for (String line : rawLines) {
-                        String t = line == null ? "" : line.trim();
-                        if (!t.isEmpty()) {
-                            editorLines.add(t);
-                        }
-                    }
-                    achievementCenterViewModel.replaceMissionDefinitionsFromLines(editorLines);
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("选择要展示的指标")
+                .setSingleChoiceItems(items, currentSelected, (dialog, which) -> {
+                    saveTopTagsConfig(index, which);
+                    if (index == 1) tag1Type = which;
+                    else if (index == 2) tag2Type = which;
+                    else tag3Type = which;
+                    dialog.dismiss();
+                    updateTopTagsValues();
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    private void updateTopTagsValues() {
+        if (binding == null || getContext() == null) return;
+        updateSingleTag(1, tag1Type);
+        updateSingleTag(2, tag2Type);
+        updateSingleTag(3, tag3Type);
+    }
+
+    private void updateSingleTag(int index, int type) {
+        TextView tvValue = null;
+        TextView tvLabel = null;
+        if (index == 1) {
+            tvValue = binding.tvTopTag1Value;
+            tvLabel = binding.tvTopTag1Label;
+        } else if (index == 2) {
+            tvValue = binding.tvTopTag2Value;
+            tvLabel = binding.tvTopTag2Label;
+        } else if (index == 3) {
+            tvValue = binding.tvTopTag3Value;
+            tvLabel = binding.tvTopTag3Label;
+        }
+        if (tvValue == null || tvLabel == null) return;
+
+        String valueText = "—";
+        String labelText = "";
+
+        switch (type) {
+            case TAG_TYPE_CAL_REMAIN:
+                labelText = "剩余热量";
+                Integer consumed = dietViewModel.getTodayTotalCalories().getValue();
+                User user = dietViewModel.getCurrentUser().getValue();
+                int target = (user != null && user.getDailyCalorieTarget() > 0) ? user.getDailyCalorieTarget() : 2000;
+                int cons = consumed != null ? consumed : 0;
+                int remaining = target - cons + exerciseCalories;
+                valueText = UnitUtils.formatEnergy(remaining, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext());
+                break;
+            case TAG_TYPE_SPORT_BURN:
+                labelText = "运动消耗";
+                valueText = UnitUtils.formatEnergy(exerciseCalories, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext());
+                break;
+            case TAG_TYPE_WATER:
+                labelText = "饮水量";
+                valueText = currentWaterTotal + " ml";
+                break;
+            case TAG_TYPE_STEPS:
+                labelText = "今日步数";
+                com.cz.fitnessdiary.database.entity.StepRecord step = homeDashboardViewModel.getTodayStep().getValue();
+                int s = step != null ? step.getSteps() : 0;
+                valueText = s + " 步";
+                break;
+            case TAG_TYPE_SLEEP:
+                labelText = "睡眠时长";
+                java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> sleepRecords = checkInViewModel.getSelectedDaySleepRecords().getValue();
+                if (sleepRecords != null && !sleepRecords.isEmpty()) {
+                    float totalHours = 0;
+                    for (com.cz.fitnessdiary.database.entity.SleepRecord r : sleepRecords) {
+                        if (r.getEndTime() > r.getStartTime()) {
+                            totalHours += (r.getEndTime() - r.getStartTime()) / (1000f * 60 * 60);
+                        }
+                    }
+                    valueText = String.format(java.util.Locale.getDefault(), "%.1f h", totalHours);
+                } else {
+                    valueText = "—";
+                }
+                break;
+            case TAG_TYPE_MOOD:
+                labelText = "今日心情";
+                com.cz.fitnessdiary.database.entity.MoodRecord mood = homeDashboardViewModel.getTodayMood().getValue();
+                if (mood != null && mood.getMoodCode() != null) {
+                    valueText = MoodPickerBottomSheet.getMoodEmoji(mood.getMoodCode()) + " " + MoodPickerBottomSheet.getMoodSummary(mood.getMoodCode());
+                } else {
+                    valueText = "待记录";
+                }
+                break;
+            case TAG_TYPE_HABIT:
+                labelText = "习惯打卡";
+                int totalHabit = habitItems.size();
+                int doneHabit = 0;
+                for (HabitItem item : habitItems) {
+                    HabitRecord rec = habitRecords.get(item.getId());
+                    if (rec != null && rec.isCompleted()) {
+                        doneHabit++;
+                    }
+                }
+                valueText = doneHabit + "/" + totalHabit;
+                break;
+            case TAG_TYPE_WEIGHT:
+                labelText = "当前体重";
+                com.cz.fitnessdiary.database.entity.WeightRecord weight = homeDashboardViewModel.getSelectedDateLatestWeight().getValue();
+                if (weight != null && weight.getWeight() > 0) {
+                    valueText = UnitUtils.formatWeight(weight.getWeight(), requireContext()) + " " + UnitUtils.getWeightUnitSymbol(requireContext());
+                } else {
+                    valueText = "—";
+                }
+                break;
+            case TAG_TYPE_BOWEL:
+                labelText = "便便记录";
+                Integer bowelCount = homeDashboardViewModel.getTodayBowelCount().getValue();
+                int bc = bowelCount != null ? bowelCount : 0;
+                valueText = bc + " 次";
+                break;
+            case TAG_TYPE_MEDICATION:
+                labelText = "药物记录";
+                Integer taken = homeDashboardViewModel.getTodayMedicationTakenCount().getValue();
+                Integer totalMed = homeDashboardViewModel.getTodayMedicationTotal().getValue();
+                int tk = taken != null ? taken : 0;
+                int tot = totalMed != null ? totalMed : 0;
+                valueText = tk + "/" + tot;
+                break;
+            case TAG_TYPE_MENSTRUAL:
+                labelText = "生理期天数";
+                Integer cycleDay = homeDashboardViewModel.getCurrentCycleDay().getValue();
+                if (cycleDay != null && cycleDay > 0) {
+                    valueText = "第 " + cycleDay + " 天";
+                } else {
+                    valueText = "—";
+                }
+                break;
+        }
+
+        tvValue.setText(valueText);
+        tvLabel.setText(labelText);
     }
 
     private void updateOverallProgress() {
@@ -1169,6 +1310,7 @@ public class CheckInFragment extends Fragment {
         }
 
         updateSummaryCard();
+        updateTopTagsValues();
 
         // Compute health score on background thread using the new 5-dimension breakdown
         // (same calculation as showOverallProgressDetails, ensuring ring and popup match)
@@ -1202,9 +1344,11 @@ public class CheckInFragment extends Fragment {
                         if (u.getTargetProtein() > 0) profile.targetProteinGrams = u.getTargetProtein();
                         if (u.getTargetCarbs() > 0) profile.targetCarbsGrams = u.getTargetCarbs();
                     }
-                    // 读取目标运动时长
+                    // 读取目标运动时长 (per-date)
                     SharedPreferences sp = context.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
-                    profile.targetExerciseMinutes = sp.getInt("target_exercise_minutes", 0);
+                    profile.targetExerciseMinutes = sp.getInt("target_minutes_" + date, 0);
+                    SharedPreferences scorePrefs = context.getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
+                    profile.customTargetWeight = scorePrefs.getFloat("target_weight_kg", -1f);
                 } catch (Exception ignored) {}
 
                 HealthScoreBreakdown breakdown = HealthScoreCalculator.calculateBreakdown(snapshot, profile);
@@ -1216,22 +1360,18 @@ public class CheckInFragment extends Fragment {
                         binding.tvProgressPercent.setText(breakdown.totalScore + "分");
 
                         // 动态更新今日健康寄语
-                        int score = breakdown.totalScore;
-                        String tip = "越自律，越自由！";
-                        if (score >= 90) {
-                            tip = "状态极佳！继续保持 🏆";
-                        } else if (score >= 80) {
-                            tip = "非常棒！生活很规律哦 🌟";
-                        } else if (score >= 60) {
-                            tip = "及格啦，继续加油打卡吧 💪";
-                        } else {
-                            tip = "动起来，健康生活从现在开始 🌱";
-                        }
-                        binding.tvHeaderTip.setText(tip);
+                        updateHeaderTip(snapshot, breakdown.totalScore);
                     }
                 });
             } catch (Exception ignored) {}
         }).start();
+    }
+
+    private static String bar(float ratio) {
+        int filled = Math.round(ratio * 10);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 10; i++) sb.append(i < filled ? '█' : '░');
+        return sb.toString();
     }
 
     private void showOverallProgressDetails() {
@@ -1268,9 +1408,11 @@ public class CheckInFragment extends Fragment {
                     if (user.getTargetProtein() > 0) profile.targetProteinGrams = user.getTargetProtein();
                     if (user.getTargetCarbs() > 0) profile.targetCarbsGrams = user.getTargetCarbs();
                 }
-                // 读取目标运动时长
+                // 读取目标运动时长 (per-date)
                 SharedPreferences sp = ctx.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
-                profile.targetExerciseMinutes = sp.getInt("target_exercise_minutes", 0);
+                profile.targetExerciseMinutes = sp.getInt("target_minutes_" + date, 0);
+                SharedPreferences scorePrefs = ctx.getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
+                profile.customTargetWeight = scorePrefs.getFloat("target_weight_kg", -1f);
             } catch (Exception ignored) {}
 
             HealthScoreBreakdown breakdown = HealthScoreCalculator.calculateBreakdown(snapshot, profile);
@@ -1278,85 +1420,65 @@ public class CheckInFragment extends Fragment {
             requireActivity().runOnUiThread(() -> {
                 if (!isAdded() || binding == null) return;
 
+                String energyUnitSym = UnitUtils.getEnergyUnitSymbol(requireContext());
+                String weightUnitSym = UnitUtils.getWeightUnitSymbol(requireContext());
+
                 StringBuilder detail = new StringBuilder();
-                // Training dimension (Fix 1.2: add MET explanation + target duration)
-                if (snapshot.completedPlans > 0) {
-                    int totalCal = snapshot.exerciseCalories + snapshot.stepCalories;
-                    String targetDisplay = profile.targetExerciseMinutes > 0
-                            ? profile.targetExerciseMinutes + "分钟"
-                            : "自动估算";
-                    detail.append("🏋️ 训练：").append(breakdown.exerciseScore).append("/25（今日有训练，消耗").append(totalCal).append("kcal · MET估算:5.0(混合训练均值) · 目标时长: ").append(targetDisplay).append("）\n");
-                } else {
-                    detail.append("🏋️ 训练：").append(breakdown.exerciseScore).append("/25（今日无训练记录）\n");
-                }
-                // Diet dimension (Fix 1.3: show protein/carbs breakdown)
-                if (snapshot.dietCalories > 0) {
-                    float ratio = (float) snapshot.dietCalories / profile.dailyCalorieTarget;
-                    String calStatus;
-                    if (ratio >= 0.9f && ratio <= 1.1f) {
-                        calStatus = "热量达标";
-                    } else if (ratio >= 0.8f && ratio <= 1.2f) {
-                        calStatus = "热量接近目标";
-                    } else {
-                        calStatus = "摄入" + snapshot.dietCalories + "kcal";
-                    }
-                    String proteinInfo = "蛋白质" + snapshot.todayProtein + "g";
-                    String carbsInfo = "碳水" + snapshot.todayCarbs + "g";
-                    detail.append("🥗 饮食：").append(breakdown.dietScore).append("/25（").append(calStatus).append(" · ").append(proteinInfo).append(" · ").append(carbsInfo).append("）\n");
-                } else {
-                    detail.append("🥗 饮食：").append(breakdown.dietScore).append("/25（今日无饮食记录）\n");
-                }
-                // Habits dimension
-                StringBuilder habitDetail = new StringBuilder();
-                boolean hasAnyHabit = false;
-                if (snapshot.sleepHours >= 7 && snapshot.sleepHours <= 9) {
-                    habitDetail.append("睡眠达标/");
-                    hasAnyHabit = true;
-                } else if (snapshot.sleepHours > 0) {
-                    habitDetail.append("睡眠").append(String.format(java.util.Locale.getDefault(), "%.1f", snapshot.sleepHours)).append("h/");
-                    hasAnyHabit = true;
-                }
-                if (snapshot.waterMl >= profile.waterTargetMl) {
-                    habitDetail.append("饮水达标/");
-                    hasAnyHabit = true;
-                } else if (snapshot.waterMl >= profile.waterTargetMl / 2) {
-                    habitDetail.append("饮水").append(snapshot.waterMl).append("ml/");
-                    hasAnyHabit = true;
-                } else if (snapshot.waterMl > 0) {
-                    habitDetail.append("饮水").append(snapshot.waterMl).append("ml/");
-                    hasAnyHabit = true;
-                }
-                if (snapshot.steps >= 8000) {
-                    habitDetail.append("步数达标");
-                    hasAnyHabit = true;
-                } else if (snapshot.steps >= 5000) {
-                    habitDetail.append("步数").append(snapshot.steps).append("步");
-                    hasAnyHabit = true;
-                } else if (snapshot.steps > 0) {
-                    habitDetail.append("步数").append(snapshot.steps).append("步");
-                    hasAnyHabit = true;
-                }
-                if (!hasAnyHabit) {
-                    habitDetail.append("部分习惯未完成");
-                }
-                detail.append("💧 习惯：").append(breakdown.habitsScore).append("/20（").append(habitDetail).append("）\n");
-                // Body dimension (Fix 1.4: show target weight + trend direction)
-                String bodyDesc;
-                float targetWeight = HealthScoreCalculator.computeTargetWeight(profile);
-                if (profile.goalType != null) {
+
+                // ── 训练 ──
+                float exRatio = breakdown.exerciseScore / 25f;
+                int totalCal = snapshot.exerciseCalories + snapshot.stepCalories;
+                int calThreshold = profile.targetExerciseMinutes > 0 && profile.weightKg > 0
+                        ? (int) (5.0 * profile.weightKg * (profile.targetExerciseMinutes / 60.0)) : 300;
+                String calFlag = totalCal > calThreshold ? "✅" : "⚠️";
+                String exStatus = snapshot.completedPlans > 0
+                        ? snapshot.completedPlans + "/" + snapshot.totalPlans + "项 · 消耗" + totalCal + "kcal " + calFlag
+                        : "无训练";
+                detail.append("🏋️ 训练  ").append(bar(exRatio)).append(" ").append(breakdown.exerciseScore).append("/25  ").append(exStatus).append("\n");
+
+                // ── 饮食 ──
+                float dietRatio = snapshot.dietCalories > 0 ? (float) breakdown.dietScore / 25f : 0;
+                String dietStatus = snapshot.dietCalories > 0
+                        ? UnitUtils.formatEnergy(snapshot.dietCalories, requireContext()) + energyUnitSym + " · 🥩" + snapshot.todayProtein + "g · 🍚" + snapshot.todayCarbs + "g" + (snapshot.todayFat > 0 ? " · 🧈" + snapshot.todayFat + "g" : "")
+                        : "无记录";
+                detail.append("🥗 饮食  ").append(bar(dietRatio)).append(" ").append(breakdown.dietScore).append("/25  ").append(dietStatus).append("\n");
+
+                // ── 习惯 ──
+                float habitRatio = (float) breakdown.habitsScore / 20f;
+                StringBuilder habitStatus = new StringBuilder();
+                if (snapshot.sleepHours >= 7) habitStatus.append("😴" + (int) snapshot.sleepHours + "h ✅ ");
+                else if (snapshot.sleepHours > 0) habitStatus.append("😴" + String.format(java.util.Locale.getDefault(), "%.1f", snapshot.sleepHours) + "h ⚠️ ");
+                else habitStatus.append("😴-- ");
+                if (snapshot.waterMl >= profile.waterTargetMl) habitStatus.append("💧✅ ");
+                else if (snapshot.waterMl > 0) habitStatus.append("💧⚠️ ");
+                else habitStatus.append("💧-- ");
+                if (snapshot.steps >= 8000) habitStatus.append("👣" + snapshot.steps + " ✅");
+                else if (snapshot.steps > 0) habitStatus.append("👣" + snapshot.steps + " ⚠️");
+                else habitStatus.append("👣--");
+                detail.append("💧 习惯  ").append(bar(habitRatio)).append(" ").append(breakdown.habitsScore).append("/20  ").append(habitStatus).append("\n");
+
+                // ── 身体 ──
+                float bodyRatio = snapshot.weightKg > 0 ? (float) breakdown.bodyMetricsScore / 15f : 0;
+                String bodyStatus;
+                if (snapshot.weightKg > 0 && profile.goalType != null) {
+                    float targetWeight = HealthScoreCalculator.computeTargetWeight(profile);
                     boolean movingTowardTarget = ("lose".equals(profile.goalType) && snapshot.weightTrend > 0) ||
                         ("gain".equals(profile.goalType) && snapshot.weightTrend < 0) ||
                         ("maintain".equals(profile.goalType) && Math.abs(snapshot.weightTrend) < 0.5f);
-                    String trendLabel = movingTowardTarget ? "趋势向好" : "趋势偏离";
-                    bodyDesc = "目标体重" + String.format(java.util.Locale.getDefault(), "%.1f", targetWeight) + "kg，当前"
-                            + String.format(java.util.Locale.getDefault(), "%.1f", snapshot.weightKg) + "kg，" + trendLabel;
+                    String trend = movingTowardTarget ? "✅" : "⚠️";
+                    bodyStatus = UnitUtils.formatWeight(snapshot.weightKg, requireContext()) + weightUnitSym + " → " + UnitUtils.formatWeight(targetWeight, requireContext()) + weightUnitSym + " " + trend;
                 } else {
-                    bodyDesc = "体重数据正常";
+                    bodyStatus = "暂无记录";
                 }
-                detail.append("📏 身体：").append(breakdown.bodyMetricsScore).append("/15（").append(bodyDesc).append("）\n");
-                // Consistency dimension
-                String consistencyDesc = "连续打卡" + snapshot.consecutiveDays + "天+";
-                detail.append("🔥 坚持：").append(breakdown.consistencyScore).append("/15（").append(consistencyDesc).append("）\n\n");
+                detail.append("📏 身体  ").append(bar(bodyRatio)).append(" ").append(breakdown.bodyMetricsScore).append("/15  ").append(bodyStatus).append("\n");
+
+                // ── 坚持 ──
+                float conRatio = (float) breakdown.consistencyScore / 15f;
+                String conStatus = snapshot.activeDays7 >= 7 ? "全勤" + snapshot.activeDays7 + "/7天"
+                        : snapshot.activeDays7 > 0 ? "活跃" + snapshot.activeDays7 + "/7天"
+                        : "暂无";
+                detail.append("🔥 坚持  ").append(bar(conRatio)).append(" ").append(breakdown.consistencyScore).append("/15  ").append(conStatus).append("\n\n");
+
                 detail.append("总分：").append(breakdown.totalScore).append("/100");
 
                 String message = detail.toString();
@@ -1434,36 +1556,7 @@ public class CheckInFragment extends Fragment {
     }
 
     private void updateSummaryCard() {
-        Integer consumed = dietViewModel.getTodayTotalCalories().getValue();
-        User user = dietViewModel.getCurrentUser().getValue();
-        int target = (user != null && user.getDailyCalorieTarget() > 0) ? user.getDailyCalorieTarget() : 2000;
-        int calValue = consumed != null ? consumed : 0;
-        int balance = target - calValue;
-        String calText = balance >= 0 ? "剩" + balance : "超" + (-balance);
-
-        TextView tvCal = binding.getRoot().findViewById(R.id.tv_mission_cal_balance);
-        if (tvCal != null) {
-            tvCal.setText(calText + "千卡");
-            tvCal.setTextColor(getResources().getColor(
-                    balance >= 0 ? R.color.diet_primary : R.color.error, null));
-        }
-
-        TextView tvWater = binding.getRoot().findViewById(R.id.tv_mission_water);
-        if (tvWater != null) {
-            tvWater.setText("水" + currentWaterTotal + "ml");
-        }
-
-        int habitTotal = habitItems.size();
-        int habitDone = 0;
-        for (HabitItem item : habitItems) {
-            HabitRecord r = habitRecords.get(item.getId());
-            if (r != null && r.isCompleted())
-                habitDone++;
-        }
-        TextView tvHabit = binding.getRoot().findViewById(R.id.tv_mission_habit);
-        if (tvHabit != null) {
-            tvHabit.setText("习惯" + habitDone + "/" + habitTotal);
-        }
+        // 每日任务卡片已废弃，无需更新其子字段
     }
 
     private void refreshSportCard() {
@@ -1927,13 +2020,16 @@ public class CheckInFragment extends Fragment {
     private void updateDietMacros() {
         Double carbs = dietViewModel.getTodayTotalCarbs().getValue();
         Double protein = dietViewModel.getTodayTotalProtein().getValue();
+        Double fat = dietViewModel.getTodayTotalFat().getValue();
         User user = dietViewModel.getCurrentUser().getValue();
 
         int carbsTarget = (user != null && user.getTargetCarbs() > 0) ? user.getTargetCarbs() : 250;
         int proteinTarget = (user != null && user.getTargetProtein() > 0) ? user.getTargetProtein() : 60;
+        int fatTarget = (user != null && user.getTargetFat() > 0) ? user.getTargetFat() : 60;
 
         double carbsVal = carbs != null ? carbs : 0;
         double proteinVal = protein != null ? protein : 0;
+        double fatVal = fat != null ? fat : 0;
 
         TextView tvCarbs = binding.getRoot().findViewById(R.id.tv_diet_carbs);
         if (tvCarbs != null) {
@@ -1951,6 +2047,15 @@ public class CheckInFragment extends Fragment {
         ProgressBar pProtein = binding.getRoot().findViewById(R.id.progress_diet_protein);
         if (pProtein != null) {
             pProtein.setProgress(Math.min((int) (proteinVal * 100 / proteinTarget), 100));
+        }
+
+        TextView tvFat = binding.getRoot().findViewById(R.id.tv_diet_fat);
+        if (tvFat != null) {
+            tvFat.setText((int) fatVal + "g / " + fatTarget + "g");
+        }
+        ProgressBar pFat = binding.getRoot().findViewById(R.id.progress_diet_fat);
+        if (pFat != null) {
+            pFat.setProgress(Math.min((int) (fatVal * 100 / fatTarget), 100));
         }
     }
 
@@ -1986,9 +2091,9 @@ public class CheckInFragment extends Fragment {
                             break;
                         }
                     }
-                    if (durationSec <= 0) durationSec = 1800;
-                    double met = getMetForCategory(plan.getCategory());
-                    double cal = met * 3.5 * weightKg * durationSec / (200.0 * 60.0);
+                    if (durationSec <= 0) durationSec = ExerciseMetTable.resolveDuration(0, plan.getDuration(), requireContext());
+                    double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
+                    double cal = met * weightKg * (durationSec / 3600.0);
                     totalCal += (int) cal;
                 }
             }
@@ -2007,37 +2112,30 @@ public class CheckInFragment extends Fragment {
             }
 
             int workoutCal = totalCal - stepCal;
+            exerciseCalories = totalCal; // 赋值给成员变量以同步更新外露消耗标签
+            
             final int finalTotal = totalCal;
             final int finalWorkout = workoutCal;
             final int finalStepCal = stepCal;
 
             requireActivity().runOnUiThread(() -> {
-                setTextIfExists(R.id.tv_sport_calories, finalTotal + " 千卡");
+                String energyUnitSym = UnitUtils.getEnergyUnitSymbol(requireContext());
+                setTextIfExists(R.id.tv_sport_calories, UnitUtils.formatEnergy(finalTotal, requireContext()) + " " + energyUnitSym);
                 if (finalWorkout > 0 && finalStepCal > 0) {
                     setTextIfExists(R.id.tv_sport_cal_breakdown,
-                            "运动" + finalWorkout + " + 步数" + finalStepCal);
+                            "运动" + UnitUtils.formatEnergy(finalWorkout, requireContext()) + " + 步数" + UnitUtils.formatEnergy(finalStepCal, requireContext()));
                 } else if (finalWorkout > 0) {
                     setTextIfExists(R.id.tv_sport_cal_breakdown,
-                            "运动消耗 " + finalWorkout + " 千卡");
+                            "运动消耗 " + UnitUtils.formatEnergy(finalWorkout, requireContext()) + " " + energyUnitSym);
                 } else if (finalStepCal > 0) {
                     setTextIfExists(R.id.tv_sport_cal_breakdown,
-                            "步数消耗 " + finalStepCal + " 千卡");
+                            "步数消耗 " + UnitUtils.formatEnergy(finalStepCal, requireContext()) + " " + energyUnitSym);
                 } else {
                     setTextIfExists(R.id.tv_sport_cal_breakdown, "");
                 }
+                updateTopTagsValues(); // 同步重绘顶部指标
             });
         }).start();
-    }
-
-    private double getMetForCategory(String category) {
-        if (category == null) return 4.0;
-        String cat = category.toLowerCase();
-        if (cat.contains("有氧") || cat.contains("cardio") || cat.contains("跑步") || cat.contains("骑行"))
-            return 7.0;
-        if (cat.contains("hiit")) return 8.0;
-        if (cat.contains("瑜伽") || cat.contains("拉伸") || cat.contains("yoga")) return 2.5;
-        if (cat.contains("力量") || cat.contains("strength")) return 3.5;
-        return 4.0;
     }
 
     // ── Step & mood dialogs ──
@@ -2088,8 +2186,9 @@ public class CheckInFragment extends Fragment {
                                     homeDashboardViewModel.getTodayStep().getValue();
                             if (existing != null) {
                                 int pct = Math.min(existing.getSteps() * 100 / target, 100);
+                                int stepCalEst = (int) (existing.getSteps() * 0.04);
                                 setTextIfExists(R.id.tv_step_summary,
-                                        "≈" + (int) (existing.getSteps() * 0.04) + "千卡 | 目标" + target + "步");
+                                        "≈" + UnitUtils.formatEnergy(stepCalEst, requireContext()) + " " + UnitUtils.getEnergyUnitSymbol(requireContext()) + " | 目标" + target + "步");
                                 View card = cachedCards.get(CARD_STEP);
                                 if (card != null) {
                                     android.widget.ProgressBar p = card.findViewById(R.id.progress_step);
@@ -2140,13 +2239,18 @@ public class CheckInFragment extends Fragment {
         if (binding == null || getContext() == null) return;
 
         SharedPreferences sp = requireContext().getSharedPreferences("home_cards_prefs", Context.MODE_PRIVATE);
-        String orderStr = sp.getString("home_cards_order", "missions,briefing,sport,diet,water,sleep,habit,medication,weight,measurement,bowel,menstrual,step,mood");
+        
+        boolean showMissions = sp.getBoolean("show_card_missions", true);
+        // [Removed v2.4] top tags permanently hidden
+        // binding.layoutTopTags.setVisibility(showMissions ? View.VISIBLE : View.GONE);
+
+        String orderStr = sp.getString("home_cards_order", "missions,sport,diet,water,sleep,habit,medication,weight,measurement,bowel,menstrual,step,mood");
         
         // 自动补齐缺失的卡片ID
         if (orderStr != null) {
             List<String> list = new ArrayList<>(Arrays.asList(orderStr.split(",")));
             boolean changed = false;
-            for (String id : Arrays.asList("missions","briefing","sport","diet","water","sleep","habit","medication","weight","measurement","bowel","menstrual","step","mood")) {
+            for (String id : Arrays.asList("missions","sport","diet","water","sleep","habit","medication","weight","measurement","bowel","menstrual","step","mood")) {
                 if (!list.contains(id)) {
                     list.add(id);
                     changed = true;
@@ -2167,8 +2271,6 @@ public class CheckInFragment extends Fragment {
 
         // 1. 先安全地移除所有的 View
         binding.cardsContainer.removeView(binding.cardRestTimer);
-        binding.cardsContainer.removeView(binding.layoutDailyMissions);
-        binding.cardsContainer.removeView(binding.cardAiBriefing.getRoot());
         binding.cardsContainer.removeView(binding.cardSport);
         binding.cardsContainer.removeView(binding.cardDiet);
         binding.cardsContainer.removeView(binding.shellCardWater);
@@ -2277,8 +2379,8 @@ public class CheckInFragment extends Fragment {
 
     private View getBigCardViewById(String id) {
         switch (id) {
-            case "missions": return binding.layoutDailyMissions;
-            case "briefing": return binding.cardAiBriefing.getRoot();
+            case "missions": return null; // 每日任务已废弃
+            case "briefing": return null;
             case "sport": return binding.cardSport;
             case "diet": return binding.cardDiet;
             default: return null;
@@ -2309,135 +2411,81 @@ public class CheckInFragment extends Fragment {
     // v3.0 AI Daily Briefing
     // ================================================================
 
-    private void loadDailyBriefing() {
-        if (briefingService == null) {
-            return;
-        }
-        // 尝试使用缓存
-        DailyBriefingService.DailyBriefing cached = briefingService.getCachedBriefing();
-        if (cached != null) {
-            bindBriefingCard(cached);
-            return;
-        }
-        // 显示加载状态
-        View loading = binding.getRoot().findViewById(R.id.briefing_loading);
-        if (loading != null) {
-            loading.setVisibility(View.VISIBLE);
-        }
-        View content = binding.getRoot().findViewById(R.id.briefing_content);
-        if (content != null) {
-            content.setVisibility(View.GONE);
-        }
-        // 异步生成
-        briefingService.generateBriefing(briefing -> {
-            if (isAdded() && binding != null) {
-                bindBriefingCard(briefing);
-            }
-        });
-    }
+    private void updateHeaderTip(DailyHealthSnapshot snapshot, int score) {
+        if (binding == null) return;
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+        String greeting = hour < 10 ? "晨间好" : hour < 14 ? "午间好" : hour < 18 ? "下午好" : "晚间好";
 
-    private void bindBriefingCard(DailyBriefingService.DailyBriefing briefing) {
-        if (briefing == null) {
-            return;
-        }
-        try {
-            // 日期
-            TextView briefingDate = binding.getRoot().findViewById(R.id.briefing_date);
-            if (briefingDate != null) {
-                briefingDate.setText(
-                        DateUtils.formatFullDate(DateUtils.getTodayStartTimestamp()));
-            }
-            // 问候语
-            TextView briefingGreeting = binding.getRoot().findViewById(R.id.briefing_greeting);
-            if (briefingGreeting != null) {
-                briefingGreeting.setText(briefing.greeting != null ? briefing.greeting : "");
-            }
-            // 评分评语
-            TextView briefingScoreComment = binding.getRoot().findViewById(R.id.briefing_score_comment);
-            if (briefingScoreComment != null) {
-                String comment = briefing.scoreComment != null ? briefing.scoreComment : "";
-                if (comment.isEmpty()) {
-                    comment = "查看今日健康总览";
+        // Build tip from snapshot data, picking the most notable observation
+        String tip;
+        if (snapshot == null || (snapshot.completedPlans == 0 && snapshot.dietCalories == 0
+                && snapshot.steps == 0 && snapshot.sleepHours == 0 && snapshot.waterMl == 0)) {
+            tip = greeting + "！新的一天，从记录健康开始吧 🌱";
+        } else {
+            StringBuilder sb = new StringBuilder(greeting + "！");
+
+            // Load user targets once
+            int calTarget = 2000, waterTarget = 2000, stepTarget = 8000;
+            try {
+                com.cz.fitnessdiary.database.AppDatabase db =
+                        com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+                com.cz.fitnessdiary.database.entity.User u = db.userDao().getUserSync();
+                if (u != null) {
+                    if (u.getDailyCalorieTarget() > 0) calTarget = u.getDailyCalorieTarget();
+                    if (u.getDailyWaterTarget() > 0) waterTarget = u.getDailyWaterTarget();
                 }
-                briefingScoreComment.setText(comment);
-            }
-            // 亮点列表
-            LinearLayout highlightsContainer = binding.getRoot().findViewById(R.id.briefing_highlights_container);
-            if (highlightsContainer != null) {
-                highlightsContainer.removeAllViews();
-                if (briefing.highlights != null && !briefing.highlights.isEmpty()) {
-                    for (String highlight : briefing.highlights) {
-                        if (highlight == null || highlight.isEmpty()) {
-                            continue;
-                        }
-                        TextView highlightView = new TextView(requireContext());
-                        highlightView.setText("• " + highlight);
-                        highlightView.setTextSize(14);
-                        highlightView.setTextColor(
-                                getResources().getColor(R.color.text_secondary, null));
-                        highlightView.setPadding(0, dp(2), 0, dp(2));
-                        highlightsContainer.addView(highlightView);
-                    }
-                }
-            }
-            // 建议
-            TextView briefingSuggestion = binding.getRoot().findViewById(R.id.briefing_suggestion);
-            if (briefingSuggestion != null) {
-                briefingSuggestion.setText(briefing.suggestion != null ? briefing.suggestion : "");
-            }
-            // 鼓励语
-            TextView briefingMotivation = binding.getRoot().findViewById(R.id.briefing_motivation);
-            if (briefingMotivation != null) {
-                briefingMotivation.setText(briefing.motivation != null ? briefing.motivation : "");
-            }
-            // 离线模式标签
-            TextView offlineBadge = binding.getRoot().findViewById(R.id.briefing_offline_badge);
-            if (offlineBadge != null) {
-                offlineBadge.setVisibility(briefing.isLocal ? View.VISIBLE : View.GONE);
-            }
-            // 切换加载 / 内容
-            View loading = binding.getRoot().findViewById(R.id.briefing_loading);
-            if (loading != null) {
-                loading.setVisibility(View.GONE);
-            }
-            View content = binding.getRoot().findViewById(R.id.briefing_content);
-            if (content != null) {
-                content.setVisibility(View.VISIBLE);
+                android.content.SharedPreferences sp = requireContext()
+                        .getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+                int savedStep = sp.getInt("step_target", 0);
+                if (savedStep > 0) stepTarget = savedStep;
+            } catch (Exception ignored) {}
+
+            // Pick notable highlights (up to 2)
+            java.util.List<String> notes = new java.util.ArrayList<>();
+            if (snapshot.completedPlans >= snapshot.totalPlans && snapshot.totalPlans > 0)
+                notes.add("今天的训练全部完成，干得漂亮");
+            else if (snapshot.completedPlans > 0)
+                notes.add("已完成" + snapshot.completedPlans + "/" + snapshot.totalPlans + "项训练，继续加油");
+            else if (score < 50)
+                notes.add("还没开始训练，动起来吧");
+
+            if (snapshot.dietCalories > 0) {
+                float r = (float) snapshot.dietCalories / calTarget;
+                if (r >= 0.9f && r <= 1.1f) notes.add("饮食热量刚好，控制在目标范围");
+                else if (r > 1.2f) notes.add("今天吃得偏多，注意热量摄入");
+                else if (r < 0.7f) notes.add("摄入偏少，记得吃够营养");
+            } else if (score < 70) {
+                notes.add("还没记录饮食，吃了吗？");
             }
 
-            // Card root click to toggle
-            View cardRoot = binding.cardAiBriefing.getRoot();
-            if (cardRoot != null) {
-                cardRoot.setOnClickListener(v -> toggleBriefing());
+            if (snapshot.sleepHours >= 7.5f) notes.add("睡眠充足，精力充沛");
+            else if (snapshot.sleepHours > 0 && snapshot.sleepHours < 6f) notes.add("昨晚睡得不太够，注意休息");
+
+            if (snapshot.waterMl >= waterTarget) notes.add("饮水达标");
+            else if (snapshot.waterMl > 0 && snapshot.waterMl < waterTarget / 2) notes.add("喝水偏少，多喝几杯");
+
+            if (snapshot.steps >= stepTarget) notes.add("步数达标，很活跃");
+            else if (snapshot.steps > 0 && snapshot.steps < stepTarget / 3) notes.add("今天走得不多，起来动动");
+
+            if (snapshot.consecutiveDays >= 7) notes.add("连续打卡" + snapshot.consecutiveDays + "天，超棒");
+
+            if (snapshot.weightTrend > 0.5f) notes.add("体重在下降，趋势向好");
+            else if (snapshot.weightTrend < -0.5f) notes.add("体重略涨，注意控制");
+
+            // Pick 1-2 randomly or contextually
+            if (notes.isEmpty()) {
+                sb.append(score >= 70 ? "一切平稳，继续保持" : "还有提升空间，加油");
+            } else if (notes.size() == 1) {
+                sb.append(notes.get(0));
+            } else {
+                // Pick 2 different notes
+                java.util.Collections.shuffle(notes);
+                sb.append(notes.get(0)).append(" · ").append(notes.get(1));
             }
+            tip = sb.toString();
+        }
 
-            // Toggle arrow setup (secondary toggle)
-            ImageView toggleArrow = binding.getRoot().findViewById(R.id.briefing_toggle_arrow);
-            if (toggleArrow != null) {
-                toggleArrow.setOnClickListener(v -> toggleBriefing());
-            }
-        } catch (Exception ignored) {}
-
-        // Apply initial collapsed/expanded state
-        View contentView = binding.getRoot().findViewById(R.id.briefing_content);
-        if (contentView != null) {
-            contentView.setVisibility(isBriefingExpanded ? View.VISIBLE : View.GONE);
-        }
-        ImageView arrow = binding.getRoot().findViewById(R.id.briefing_toggle_arrow);
-        if (arrow != null) {
-            arrow.setRotation(isBriefingExpanded ? 0 : 180);
-        }
-    }
-
-    private void toggleBriefing() {
-        isBriefingExpanded = !isBriefingExpanded;
-        View content = binding.getRoot().findViewById(R.id.briefing_content);
-        if (content != null) {
-            content.setVisibility(isBriefingExpanded ? View.VISIBLE : View.GONE);
-        }
-        ImageView toggleArrow = binding.getRoot().findViewById(R.id.briefing_toggle_arrow);
-        if (toggleArrow != null) {
-            toggleArrow.setRotation(isBriefingExpanded ? 0 : 180);
-        }
+        binding.tvHeaderTip.setText(tip);
     }
 }

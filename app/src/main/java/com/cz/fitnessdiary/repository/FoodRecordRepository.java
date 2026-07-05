@@ -72,6 +72,16 @@ public class FoodRecordRepository {
     }
 
     /**
+     * 更新食物记录
+     */
+    public void update(FoodRecord foodRecord) {
+        executorService.execute(() -> {
+            foodRecordDao.update(foodRecord);
+            HomeWidgetProvider.requestRefresh(application);
+        });
+    }
+
+    /**
      * 获取所有有记录的时间戳列表
      */
     public LiveData<List<Long>> getAllRecordTimestamps() {
@@ -90,5 +100,13 @@ public class FoodRecordRepository {
      */
     public List<FoodRecord> getAllRecordsSync() {
         return foodRecordDao.getAllFoodRecordsSync();
+    }
+
+    public LiveData<Double> getTotalFatByDateRange(long startDate, long endDate) {
+        return foodRecordDao.getTotalFatByDateRange(startDate, endDate);
+    }
+
+    public LiveData<List<String>> getFrequentFoodNames(long oneWeekAgo, int limit) {
+        return foodRecordDao.getFrequentFoodNames(oneWeekAgo, limit);
     }
 }

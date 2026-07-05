@@ -50,7 +50,6 @@
             android:visibility="gone"
             android:paddingHorizontal="48dp"
             app:cornerRadius="24dp"
-            app:backgroundTint="#3C3730"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"

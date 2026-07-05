@@ -45,7 +45,7 @@
                 android:layout_height="wrap_content"
                 android:text="正在整理器材..."
                 android:textSize="13sp"
-                android:textColor="#666666"/>
+                android:textColor="@color/text_secondary"/>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

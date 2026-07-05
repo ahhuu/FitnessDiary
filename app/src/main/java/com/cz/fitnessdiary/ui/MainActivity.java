@@ -15,6 +15,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -23,8 +24,10 @@ import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.ExerciseLibraryDataLoader;
 import com.cz.fitnessdiary.database.FoodLibraryDataLoader;
+import com.cz.fitnessdiary.database.ReminderPresetDataLoader;
 import com.cz.fitnessdiary.databinding.ActivityMainBinding;
 import com.cz.fitnessdiary.utils.ReminderManager;
+import com.cz.fitnessdiary.utils.UnitUtils;
 
 import java.util.concurrent.Executors;
 
@@ -38,6 +41,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Theme must be set before super.onCreate()
+        int themeMode = UnitUtils.getThemeMode(this);
+        if (themeMode == UnitUtils.THEME_LIGHT) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+        } else if (themeMode == UnitUtils.THEME_DARK) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+        }
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -49,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
         Executors.newSingleThreadExecutor().execute(() -> {
             FoodLibraryDataLoader.loadIfNeeded(getApplicationContext());
             ExerciseLibraryDataLoader.loadIfNeeded(getApplicationContext());
+            ReminderPresetDataLoader.loadIfNeeded(getApplicationContext());
+            // Schedule all enabled reminders from DB after presets are loaded
+            ReminderManager.restoreAllReminders(getApplicationContext());
             if (ReminderManager.isSmartReminderEnabled(getApplicationContext())) {
                 ReminderManager.restoreSmartReminders(getApplicationContext());
             }

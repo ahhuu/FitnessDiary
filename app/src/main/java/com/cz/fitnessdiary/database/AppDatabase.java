@@ -52,6 +52,10 @@ import com.cz.fitnessdiary.database.entity.BowelMovement;
 import com.cz.fitnessdiary.database.entity.MenstrualCycle;
 import com.cz.fitnessdiary.database.entity.StepRecord;
 import com.cz.fitnessdiary.database.entity.MoodRecord;
+import com.cz.fitnessdiary.database.entity.Recipe;
+import com.cz.fitnessdiary.database.entity.FavoriteFood;
+import com.cz.fitnessdiary.database.dao.RecipeDao;
+import com.cz.fitnessdiary.database.dao.FavoriteFoodDao;
 
 import java.util.concurrent.Executors;
 
@@ -64,7 +68,8 @@ import java.util.concurrent.Executors;
         ChatSessionEntity.class, WeightRecord.class, WaterRecord.class, MedicationRecord.class, CustomTracker.class,
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
         HabitRecord.class, BodyMeasurement.class, BowelMovement.class,
-        MenstrualCycle.class, StepRecord.class, MoodRecord.class }, version = 23, exportSchema = true)
+        MenstrualCycle.class, StepRecord.class, MoodRecord.class,
+        Recipe.class, FavoriteFood.class }, version = 27, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -117,6 +122,10 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract StepRecordDao stepRecordDao();
 
     public abstract MoodRecordDao moodRecordDao();
+
+    public abstract RecipeDao recipeDao();
+
+    public abstract FavoriteFoodDao favoriteFoodDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -505,6 +514,68 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    static final Migration MIGRATION_23_24 = new Migration(23, 24) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE food_record ADD COLUMN fat REAL NOT NULL DEFAULT 0.0");
+        }
+    };
+
+    static final Migration MIGRATION_24_25 = new Migration(24, 25) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE `user` ADD COLUMN `target_fat` INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
+    static final Migration MIGRATION_25_26 = new Migration(25, 26) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL(
+                    "UPDATE `food_record` SET `fat` = COALESCE((" +
+                            "SELECT CASE " +
+                            "WHEN COALESCE(`food_library`.`fat_per_100g`, 0) > 0 " +
+                            "THEN ROUND(COALESCE(`food_library`.`fat_per_100g`, 0) * " +
+                            "(COALESCE(`food_record`.`servings`, 1.0) * COALESCE(`food_library`.`weight_per_unit`, 100) / 100.0), 4) " +
+                            "ELSE 0 END " +
+                            "FROM `food_library` " +
+                            "WHERE `food_library`.`name` = `food_record`.`food_name` " +
+                            "LIMIT 1), `fat`) " +
+                    "WHERE `fat` IS NULL OR `fat` = 0");
+        }
+    };
+
+    static final Migration MIGRATION_26_27 = new Migration(26, 27) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // Recipe 表
+            database.execSQL("CREATE TABLE IF NOT EXISTS recipe (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "name TEXT NOT NULL, " +
+                    "foods_json TEXT NOT NULL, " +
+                    "total_calories REAL NOT NULL DEFAULT 0, " +
+                    "meal_type INTEGER NOT NULL DEFAULT -1, " +
+                    "is_favorite INTEGER NOT NULL DEFAULT 0, " +
+                    "created_at INTEGER NOT NULL, " +
+                    "updated_at INTEGER NOT NULL)");
+
+            // FavoriteFood 表
+            database.execSQL("CREATE TABLE IF NOT EXISTS favorite_food (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "food_name TEXT NOT NULL, " +
+                    "calories REAL NOT NULL DEFAULT 0, " +
+                    "protein REAL NOT NULL DEFAULT 0, " +
+                    "carbs REAL NOT NULL DEFAULT 0, " +
+                    "fat REAL NOT NULL DEFAULT 0, " +
+                    "food_library_id INTEGER, " +
+                    "created_at INTEGER NOT NULL)");
+
+            // ReminderSchedule 扩展
+            database.execSQL("ALTER TABLE reminder_schedule ADD COLUMN is_preset INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE reminder_schedule ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0");
+        }
+    };
+
     /**
      * 获取数据库实例（单例模式）
      */
@@ -520,7 +591,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-                                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23)
+                                    MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
+                                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。

@@ -34,8 +34,14 @@ public class ReminderSchedule {
     @ColumnInfo(name = "content")
     private String content;
 
+    @ColumnInfo(name = "is_preset", defaultValue = "0")
+    private boolean isPreset;
+
+    @ColumnInfo(name = "sort_order", defaultValue = "0")
+    private int sortOrder;
+
     public ReminderSchedule(String moduleType, long targetId, int hour, int minute, String repeatDays, boolean isEnabled,
-            String title, String content) {
+            String title, String content, boolean isPreset, int sortOrder) {
         this.moduleType = moduleType;
         this.targetId = targetId;
         this.hour = hour;
@@ -44,6 +50,8 @@ public class ReminderSchedule {
         this.isEnabled = isEnabled;
         this.title = title;
         this.content = content;
+        this.isPreset = isPreset;
+        this.sortOrder = sortOrder;
     }
 
     public long getId() {
@@ -116,5 +124,21 @@ public class ReminderSchedule {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public boolean isPreset() {
+        return isPreset;
+    }
+
+    public void setPreset(boolean isPreset) {
+        this.isPreset = isPreset;
+    }
+
+    public int getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }

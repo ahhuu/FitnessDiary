@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 24,
-    "identityHash": "dd361cd8fa4b2f175a25cc9254ce0e92",
+    "identityHash": "b957a9212284f4ae8256da1845b98027",
     "entities": [
       {
         "tableName": "user",
@@ -119,7 +119,7 @@
       },
       {
         "tableName": "training_plan",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`planId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `description` TEXT, `create_time` INTEGER NOT NULL, `sets` INTEGER NOT NULL, `reps` INTEGER NOT NULL, `media_uri` TEXT, `category` TEXT, `scheduled_days` TEXT, `duration` INTEGER NOT NULL DEFAULT 0, `weight` REAL NOT NULL DEFAULT 0, `goal` TEXT DEFAULT '自定义', `level` INTEGER NOT NULL DEFAULT 1, `equipment` TEXT DEFAULT '自重')",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`planId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `description` TEXT, `create_time` INTEGER NOT NULL, `sets` INTEGER NOT NULL, `reps` INTEGER NOT NULL, `media_uri` TEXT, `category` TEXT, `scheduled_days` TEXT, `duration` INTEGER NOT NULL DEFAULT 0, `weight` REAL NOT NULL DEFAULT 0)",
         "fields": [
           {
             "fieldPath": "planId",
@@ -188,27 +188,6 @@
             "affinity": "REAL",
             "notNull": true,
             "defaultValue": "0"
-          },
-          {
-            "fieldPath": "goal",
-            "columnName": "goal",
-            "affinity": "TEXT",
-            "notNull": false,
-            "defaultValue": "'自定义'"
-          },
-          {
-            "fieldPath": "level",
-            "columnName": "level",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "1"
-          },
-          {
-            "fieldPath": "equipment",
-            "columnName": "equipment",
-            "affinity": "TEXT",
-            "notNull": false,
-            "defaultValue": "'自重'"
           }
         ],
         "primaryKey": {
@@ -289,7 +268,7 @@
       },
       {
         "tableName": "food_record",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`foodId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `food_name` TEXT, `calories` INTEGER NOT NULL, `record_date` INTEGER NOT NULL, `protein` REAL NOT NULL, `carbs` REAL NOT NULL, `meal_type` INTEGER NOT NULL, `servings` REAL NOT NULL, `serving_unit` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`foodId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `food_name` TEXT, `calories` INTEGER NOT NULL, `record_date` INTEGER NOT NULL, `protein` REAL NOT NULL, `carbs` REAL NOT NULL, `fat` REAL NOT NULL, `meal_type` INTEGER NOT NULL, `servings` REAL NOT NULL, `serving_unit` TEXT)",
         "fields": [
           {
             "fieldPath": "foodId",
@@ -324,6 +303,12 @@
           {
             "fieldPath": "carbs",
             "columnName": "carbs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fat",
+            "columnName": "fat",
             "affinity": "REAL",
             "notNull": true
           },
@@ -1439,7 +1424,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dd361cd8fa4b2f175a25cc9254ce0e92')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b957a9212284f4ae8256da1845b98027')"
     ]
   }
 }

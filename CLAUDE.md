@@ -55,8 +55,8 @@ The launcher intent can carry a `shortcut_id` for app shortcuts or reminder rout
 Entity (@Entity table) → DAO (@Dao interface) → Repository (plain class) → ViewModel (AndroidViewModel)
 ```
 
-- **22 entities** in `database/entity/`, **22 DAOs** in `database/dao/`, **22 repositories** in `repository/` (includes `HealthAggregationRepository` added in v2.3)
-- `AppDatabase` is a Room singleton (DCL pattern), current version **23**
+- **24 entities** in `database/entity/`, **24 DAOs** in `database/dao/`, **24 repositories** in `repository/` (includes `HealthAggregationRepository` added in v2.3, `Recipe`/`FavoriteFood` added in v2.4)
+- `AppDatabase` is a Room singleton (DCL pattern), current version **27**
 - Repository classes extend `AndroidViewModel` pattern — they take `Application` in constructor to get the DB instance
 - All DB operations run on `Executors.newSingleThreadExecutor()` — not on the main thread but also not via Room's built-in async support
 - **No reactive patterns** (LiveData only at the ViewModel→View boundary); Repository methods return plain lists/objects
@@ -69,6 +69,9 @@ When adding new entities or columns:
 3. Append it to the `.addMigrations(...)` chain in `getInstance()`
 4. Bump the `version` in `@Database`
 5. Keep all old migrations in place — Room replays them sequentially on existing installs
+
+Current migration note:
+- `MIGRATION_25_26` performs a one-time backfill of historical `food_record.fat` values from the matching `food_library.fat_per_100g` and `food_record.servings`, so the app does not need to rescan the full table on page open.
 
 ### Pre-filled Data
 
@@ -95,7 +98,7 @@ The `AiCallback.kt` interface unifies callbacks across providers.
 - `DailyHealthSnapshot` / `HealthScoreBreakdown` / `WeeklyTrend` — 聚合数据模型
 
 **快捷录入**：
-- `QuickEntryBottomSheet` — 四功能区按钮快捷入口弹窗（饮食/训练/习惯/计时器）
+- `QuickEntryBottomSheet` — 四功能区按钮快捷入口弹窗（智能助理/核心记录/身体指标/生活日常）
 - `QuickEntryViewModel` — 聚合 FoodRecordRepository、TrainingPlanRepository、HomeDashboardRepository 的录入逻辑
 
 **新手引导系统** (`ui/guide/`)：

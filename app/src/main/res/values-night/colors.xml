@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark mode background colors -->
+    <color name="background">#121212</color>
+    <color name="fitnessdiary_background">#121212</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#E0E0E0</color>
+    <color name="card_background">#2C2C2C</color>
+    <color name="surface">#1E1E1E</color>
+    <color name="fitnessdiary_surface">#1E1E1E</color>
+    <color name="fitnessdiary_surface_variant">#2C2C2C</color>
+
+    <!-- Dark mode primary/text colors -->
+    <color name="fitnessdiary_primary">#D6D2C9</color>
+    <color name="primary">#D6D2C9</color>
+    <color name="primary_variant">#EDE9E1</color>
+
+    <!-- Dark mode text colors -->
+    <color name="text_primary">#E0E0E0</color>
+    <color name="fitnessdiary_text_primary">#E0E0E0</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="fitnessdiary_text_secondary">#B0B0B0</color>
+    <color name="text_hint">#808080</color>
+
+    <!-- Dark mode dividers -->
+    <color name="divider">#333333</color>
+
+    <!-- Dark mode nav -->
+    <color name="nav_pill_selected">#3A3A3A</color>
+
+    <!-- Dark mode accent -->
+    <color name="fitnessdiary_accent_container">#2D3D33</color>
+    <color name="fitnessdiary_on_accent_container">#B8D3C3</color>
+    <color name="secondary">#7B9FD1</color>
+    <color name="secondary_variant">#5A7DB0</color>
+    <color name="ai_primary">#7B9FD1</color>
+    <color name="ai_container">#252E3D</color>
+
+    <!-- Dark mode functional colors -->
+    <color name="color_success">#5EA86E</color>
+    <color name="color_warning">#C9AD5A</color>
+    <color name="error">#C96A6A</color>
+    <color name="fitnessdiary_error">#C96A6A</color>
+
+    <!-- Dark mode sport/plan blue theme -->
+    <color name="plan_blue_primary">#5A8FC9</color>
+    <color name="plan_blue_secondary">#7BA6D4</color>
+    <color name="plan_blue_container">#2A3645</color>
+    <color name="plan_blue_stroke">#3A4A5A</color>
+    <color name="plan_blue_header_collapsed">#2A3038</color>
+    <color name="plan_blue_header_expanded">#303840</color>
+    <color name="sport_gradient_start">#4A7DB5</color>
+    <color name="sport_gradient_end">#7BA6D4</color>
+
+    <!-- Dark mode diet theme -->
+    <color name="diet_primary">#E8864A</color>
+    <color name="diet_container">#3A2A20</color>
+    <color name="diet_stroke">#4A3A30</color>
+    <color name="diet_checkin_stroke">#4A3A30</color>
+    <color name="diet_accent">#D47A3A</color>
+    <color name="diet_track">#3A3028</color>
+    <color name="diet_state_low">#6D95B3</color>
+    <color name="diet_state_ok">#C79549</color>
+    <color name="diet_state_over">#C76363</color>
+    <color name="diet_protein_indicator">#7B9AAA</color>
+    <color name="diet_protein_track">#2A3238</color>
+    <color name="diet_carbs_indicator">#8A8A8A</color>
+    <color name="diet_carbs_track">#2A2A2A</color>
+    <color name="diet_gradient_start">#BD5213</color>
+    <color name="diet_gradient_end">#C47A3A</color>
+
+    <!-- Dark mode category colors -->
+    <color name="cat_water_primary">#7BADC4</color>
+    <color name="cat_water_bg">#223038</color>
+    <color name="cat_sleep_primary">#9A8EB5</color>
+    <color name="cat_sleep_bg">#2C2A38</color>
+    <color name="cat_med_primary">#C47A96</color>
+    <color name="cat_med_bg">#382A30</color>
+    <color name="cat_habit_primary">#C4A86A</color>
+    <color name="cat_habit_bg">#383228</color>
+    <color name="cat_weight_primary">#C48472</color>
+    <color name="cat_weight_bg">#382E2A</color>
+    <color name="cat_custom_primary">#9A948A</color>
+    <color name="cat_custom_bg">#2A2A2A</color>
+    <color name="cat_measure_primary">#6AAAAA</color>
+    <color name="cat_measure_bg">#222E2E</color>
+    <color name="cat_bowel_primary">#9A8A84</color>
+    <color name="cat_bowel_bg">#302A2A</color>
+    <color name="cat_menstrual_primary">#C48CB0</color>
+    <color name="cat_menstrual_bg">#382A32</color>
+
+    <!-- Dark mode guide tooltip colors -->
+    <color name="guide_tooltip_title">#E0E0E0</color>
+    <color name="guide_tooltip_desc">#B0B0B0</color>
+</resources>

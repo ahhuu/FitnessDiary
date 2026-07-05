@@ -56,3 +56,6 @@ temp/
 tmp/
 *temp_commit_msg*
 *commit_msg*
+
+# Signing keystore
+fitnessdiary.jks

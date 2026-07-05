@@ -58,9 +58,19 @@ public class FoodParser {
             carbs = Double.parseDouble(carbMatcher.group(1));
         }
 
+        // 5. 提取脂肪
+        double fat = 0;
+        Pattern fatPattern = Pattern.compile(
+                "(?:\\*\\*)?(?:脂肪)(?:\\*\\*)?[:：]?\\s*(?:约)?\\s*(\\d+(?:\\.\\d+)?)(?:-\\d+(?:\\.\\d+)?)?\\s*g",
+                Pattern.CASE_INSENSITIVE);
+        Matcher fatMatcher = fatPattern.matcher(text);
+        if (fatMatcher.find()) {
+            fat = Double.parseDouble(fatMatcher.group(1));
+        }
+
         // 只有获取到热量才认为解析有效
         if (calories > 0) {
-            return new FoodLibrary(name, calories, protein, carbs, "g", 100, FoodCategoryUtils.CAT_OTHER);
+            return new FoodLibrary(name, calories, protein, carbs, fat, "g", 100, FoodCategoryUtils.CAT_OTHER);
         }
         return null;
     }

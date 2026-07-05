@@ -38,6 +38,7 @@ import com.cz.fitnessdiary.databinding.BottomSheetQuickEntryBinding;
 import com.cz.fitnessdiary.ui.fragment.QuickAiChatBottomSheet;
 import com.cz.fitnessdiary.ui.fragment.MoodPickerBottomSheet;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.UnitUtils;
 import com.cz.fitnessdiary.viewmodel.HomeDashboardViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -230,10 +231,11 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
         binding.itemQuickMedication.setOnClickListener(v -> showQuickMedicationDialog());
 
         // 11. 记体重 (简略：一键数字)
+        String weightUnitSym = UnitUtils.getWeightUnitSymbol(requireContext());
         binding.itemQuickWeight.setOnClickListener(v -> {
-            quickNumberInput("快捷记录体重", "请输入体重 (kg)，如65.5", value -> {
+            quickNumberInput("快捷记录体重", "请输入体重 (" + weightUnitSym + ")，如65.5", value -> {
                 homeDashboardViewModel.addWeight(value.floatValue(), "快捷记录");
-                Toast.makeText(getContext(), "已记录体重 " + value.floatValue() + "kg", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "已记录体重 " + UnitUtils.formatWeight(value.floatValue(), requireContext()) + " " + UnitUtils.getWeightUnitSymbol(requireContext()), Toast.LENGTH_SHORT).show();
                 dismiss();
             });
         });
@@ -752,8 +754,15 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
                         String note = etNote.getText().toString().trim();
 
                         new Thread(() -> {
+                            String dbType = partName;
+                            if ("胸围".equals(partName)) dbType = "CHEST";
+                            else if ("腰围".equals(partName)) dbType = "WAIST";
+                            else if ("臀围".equals(partName)) dbType = "HIP";
+                            else if ("大腿围".equals(partName)) dbType = "THIGH";
+                            else if ("手臂围".equals(partName) || "臂围".equals(partName)) dbType = "ARM";
+
                             AppDatabase.getInstance(requireContext()).bodyMeasurementDao().insert(
-                                    new BodyMeasurement(partName, val, "cm", System.currentTimeMillis(), note)
+                                    new BodyMeasurement(dbType, val, "cm", System.currentTimeMillis(), note)
                             );
                             if (getActivity() != null) {
                                 getActivity().runOnUiThread(() -> {
@@ -1112,12 +1121,15 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
 
     private void showWorkspaceSettingsDialog() {
         SharedPreferences sp = requireContext().getSharedPreferences("home_cards_prefs", Context.MODE_PRIVATE);
-        String orderStr = sp.getString("home_cards_order", "missions,briefing,sport,diet,water,sleep,habit,medication,weight,measurement,bowel,menstrual,step,mood");
+        String orderStr = sp.getString("home_cards_order", "sport,diet,water,sleep,habit,medication,weight,measurement,bowel,menstrual,step,mood");
         List<String> items = new ArrayList<>(Arrays.asList(orderStr.split(",")));
+
+        // 移除已废弃的"顶部外露指标"配置项
+        items.remove("missions");
 
         // 动态补齐可能缺失的ID
         boolean changed = false;
-        for (String id : Arrays.asList("missions","briefing","sport","diet","water","sleep","habit","medication","weight","measurement","bowel","menstrual","step","mood")) {
+        for (String id : Arrays.asList("sport","diet","water","sleep","habit","medication","weight","measurement","bowel","menstrual","step","mood")) {
             if (!items.contains(id)) {
                 items.add(id);
                 changed = true;
@@ -1205,8 +1217,7 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
 
     private String getWorkspaceCardName(String id) {
         switch (id) {
-            case "missions": return "今日打卡任务";
-            case "briefing": return "健康日报";
+            // [Removed v2.4] case "briefing": return "健康日报";
             case "sport": return "运动记录卡片";
             case "diet": return "饮食记录卡片";
             case "water": return "记喝水";

@@ -293,6 +293,33 @@ public class PlanViewModel extends AndroidViewModel {
     }
 
     /**
+     * 合并个人计划：将 sourceNames 中所有计划的动作合并到 targetName 中
+     * 通过动作名智能识别部位，源计划合并后自动删除
+     */
+    public void mergePersonalPlans(java.util.List<String> sourceNames, String targetName) {
+        new Thread(() -> {
+            String newPrefix = "自定义-" + targetName + "-";
+            for (String srcName : sourceNames) {
+                if (srcName.equals(targetName)) continue; // 跳过自己
+                String oldPrefix = "自定义-" + srcName + "-";
+                // 逐条更新：用动作名推断部位
+                List<TrainingPlan> srcPlans = repository.getByCategoryPrefixSync(oldPrefix);
+                if (srcPlans != null) {
+                    for (TrainingPlan plan : srcPlans) {
+                        String bodyPart = TrainingPlanRepository.guessBodyPartFromName(plan.getName());
+                        plan.setCategory(newPrefix + bodyPart);
+                        repository.update(plan);
+                    }
+                }
+            }
+            // Room LiveData 自动刷新，切换活跃计划
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                setActivePersonalPlanName(targetName);
+            });
+        }).start();
+    }
+
+    /**
      * 将模板导入为个人自定义计划模板，并自动设置为当前执行
      */
     public void importTemplate(List<TemplateExercise> exercises, String customName) {

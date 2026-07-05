@@ -260,7 +260,9 @@ public class AiProgressSmartFragment extends Fragment {
                 "1,2,3,4,5,6,7",
                 true,
                 "每日复盘提醒",
-                "花 3 分钟复盘今天，准备明天的训练与饮食");
+                "花 3 分钟复盘今天，准备明天的训练与饮食",
+                false,
+                0);
         schedule.setId(reminderId);
         reminderScheduleRepository.insert(schedule);
         ReminderManager.schedule(requireContext(), schedule);

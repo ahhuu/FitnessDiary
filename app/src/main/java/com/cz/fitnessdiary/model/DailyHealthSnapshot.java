@@ -27,15 +27,19 @@ public class DailyHealthSnapshot {
     // 身体指标
     public float weightKg;         // 体重（公斤）
     public float weightTrend;      // 体重趋势变化
+    public float bodyFat;          // 体脂率（%）
+    public float bodyFatTrend;     // 体脂率趋势变化（正=下降）
 
     // 营养素摄入
     public int todayProtein;       // 每日蛋白质摄入（克）
     public int todayCarbs;         // 每日碳水摄入（克）
+    public int todayFat;           // 脂肪 (g)
 
     // 训练计划
     public int completedPlans;     // 已完成计划数
     public int totalPlans;         // 总计划数
     public int consecutiveDays;    // 连续打卡天数
+    public int activeDays7;        // 过去7天活跃天数（任一健康记录）
     public String currentPlanName; // 当前计划名称
 
     // 综合评分

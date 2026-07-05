@@ -46,6 +46,7 @@ public class HabitRecordDetailFragment extends Fragment {
     private TextView tvRate;
     private TextView tvEmpty;
     private ProgressBar progressLoading;
+    private android.widget.LinearLayout layoutFrequentRank;
     private long selectedDate;
 
     @Nullable
@@ -67,6 +68,7 @@ public class HabitRecordDetailFragment extends Fragment {
         tvRate = view.findViewById(R.id.tv_rate);
         tvEmpty = view.findViewById(R.id.tv_empty);
         progressLoading = view.findViewById(R.id.progress_loading);
+        layoutFrequentRank = view.findViewById(R.id.layout_frequent_rank);
 
         adapter = new DetailRecordAdapter(new DetailRecordAdapter.OnItemActionListener() {
             @Override
@@ -165,6 +167,46 @@ public class HabitRecordDetailFragment extends Fragment {
         int avgRate = total == 0 ? 0 : rateSum / total;
         tvSummary.setText("今日完成 " + completed + " / " + total);
         tvRate.setText("平均完成率 " + avgRate + "%");
+
+        // 渲染习惯坚持排行榜 (Top 3)
+        if (layoutFrequentRank != null) {
+            layoutFrequentRank.removeAllViews();
+
+            List<java.util.Map.Entry<HabitItem, Integer>> rankList = new ArrayList<>();
+            for (HabitItem item : habitItems) {
+                HabitDetailViewModel.HabitStat stat = statMap.get(item.getId());
+                int completionRate = stat == null ? 0 : stat.completionRate;
+                rankList.add(new java.util.AbstractMap.SimpleEntry<>(item, completionRate));
+            }
+
+            java.util.Collections.sort(rankList, (e1, e2) -> e2.getValue().compareTo(e1.getValue()));
+
+            int topCount = Math.min(rankList.size(), 3);
+            for (int i = 0; i < topCount; i++) {
+                java.util.Map.Entry<HabitItem, Integer> entry = rankList.get(i);
+                HabitItem item = entry.getKey();
+                int rate = entry.getValue();
+
+                View rankView = getLayoutInflater().inflate(R.layout.item_habit_rank, layoutFrequentRank, false);
+                TextView tvRankName = rankView.findViewById(R.id.tv_rank_name);
+                TextView tvRankCount = rankView.findViewById(R.id.tv_rank_count);
+                ProgressBar progressRank = rankView.findViewById(R.id.progress_rank);
+
+                tvRankName.setText((i + 1) + ". " + item.getName());
+                tvRankCount.setText(rate + "%");
+
+                progressRank.setProgress(rate);
+
+                layoutFrequentRank.addView(rankView);
+            }
+            if (topCount == 0) {
+                TextView tvTip = new TextView(requireContext());
+                tvTip.setText("暂无坚持数据，开始打卡吧");
+                tvTip.setTextColor(0xFF888888);
+                tvTip.setTextSize(12f);
+                layoutFrequentRank.addView(tvTip);
+            }
+        }
     }
 
     private void showAddHabitDialog() {

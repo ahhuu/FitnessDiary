@@ -111,6 +111,7 @@ public class ProfileViewModel extends AndroidViewModel {
         // === Plan 8 新增: 计算宏量营养素目标 ===
         int targetProtein;
         int targetCarbs;
+        int targetFat = Math.max(0, (int) Math.round((tdeeValue * 0.25) / 9.0));
 
         // 简单估算逻辑
         if ("增肌".equals(user.getGoal())) {
@@ -143,6 +144,7 @@ public class ProfileViewModel extends AndroidViewModel {
 
         user.setTargetProtein(targetProtein);
         user.setTargetCarbs(targetCarbs);
+        user.setTargetFat(targetFat);
 
         userDao.update(user);
     }
@@ -404,6 +406,10 @@ public class ProfileViewModel extends AndroidViewModel {
 
     public void refreshGameificationData() {
         loadGameificationData();
+    }
+
+    public void refreshUser() {
+        loadUserData();
     }
 
     @Override

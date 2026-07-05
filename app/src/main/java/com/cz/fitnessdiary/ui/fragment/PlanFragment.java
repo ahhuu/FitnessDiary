@@ -25,8 +25,8 @@ import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.DailyLog;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
-import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.databinding.FragmentPlanBinding;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.ui.bottomSheet.DateSummaryBottomSheet;
 import com.cz.fitnessdiary.viewmodel.PlanViewModel;
@@ -69,7 +69,8 @@ public class PlanFragment extends Fragment {
     private final Map<Long, List<DailyLog>> dailyLogsMap = new HashMap<>();
     private final Map<Integer, TrainingPlan> plansMap = new HashMap<>();
     private float userWeight = 70f;
-
+    private final Map<Long, Integer> calDietMap = new HashMap<>();
+    private final Map<Long, Integer> calStepMap = new HashMap<>();
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -222,6 +223,13 @@ public class PlanFragment extends Fragment {
 
             AppDatabase db = AppDatabase.getInstance(ctx);
 
+            // Load user weight for volume calculation
+            com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+            if (user != null && user.getWeight() > 0) {
+                final float loadedWeight = user.getWeight();
+                requireActivity().runOnUiThread(() -> userWeight = loadedWeight);
+            }
+
             // 2. 加载所有的计划以便缓存
             List<TrainingPlan> plans = db.trainingPlanDao().getAllPlansList();
             Map<Integer, TrainingPlan> tempPlansMap = new HashMap<>();
@@ -229,19 +237,7 @@ public class PlanFragment extends Fragment {
                 tempPlansMap.put(p.getPlanId(), p);
             }
 
-            // 3. 加载最新的体重
-            float tempWeight = 70f;
-            WeightRecord latestW = db.weightRecordDao().getLatestRecordSync();
-            if (latestW != null && latestW.getWeight() > 0) {
-                tempWeight = latestW.getWeight();
-            } else {
-                com.cz.fitnessdiary.database.entity.User u = db.userDao().getUserSync();
-                if (u != null && u.getWeight() > 0) {
-                    tempWeight = u.getWeight();
-                }
-            }
-
-            // 4. 加载整月每日训练数据用于日历展示
+            // 3. 加载整月每日训练数据用于日历展示
             Map<Long, List<DailyLog>> tempLogsMap = new HashMap<>();
 
             List<DailyLog> logs = db.dailyLogDao().getAllLogsSync();
@@ -257,10 +253,38 @@ public class PlanFragment extends Fragment {
                 }
             }
 
+            // 4. 加载饮食热量和步数数据用于日历展示
+            Map<Long, Integer> tempDietMap = new HashMap<>();
+            Map<Long, Integer> tempStepMap = new HashMap<>();
+
+            // 饮食数据
+            try {
+                List<com.cz.fitnessdiary.database.entity.FoodRecord> foodRecords = db.foodRecordDao().getByDateRangeSync(startDate, endDate);
+                if (foodRecords != null) {
+                    for (com.cz.fitnessdiary.database.entity.FoodRecord fr : foodRecords) {
+                        long dayStart = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(fr.getRecordDate());
+                        int prev = tempDietMap.containsKey(dayStart) ? tempDietMap.get(dayStart) : 0;
+                        tempDietMap.put(dayStart, prev + fr.getCalories());
+                    }
+                }
+            } catch (Exception e) { e.printStackTrace(); }
+
+            // 步数数据
+            try {
+                List<com.cz.fitnessdiary.database.entity.StepRecord> stepRecords = db.stepRecordDao().getRecordsByDateRangeSync(startDate, endDate);
+                if (stepRecords != null) {
+                    for (com.cz.fitnessdiary.database.entity.StepRecord sr : stepRecords) {
+                        long dayStart = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(sr.getDate());
+                        tempStepMap.put(dayStart, sr.getSteps());
+                    }
+                }
+            } catch (Exception e) { e.printStackTrace(); }
+
             final List<Long> finalDates = tempDates;
             final Map<Long, List<DailyLog>> finalLogsMap = tempLogsMap;
             final Map<Integer, TrainingPlan> finalPlansMap = tempPlansMap;
-            final float finalWeight = tempWeight;
+            final Map<Long, Integer> finalDietMap = tempDietMap;
+            final Map<Long, Integer> finalStepMap = tempStepMap;
 
             if (isAdded()) {
                 requireActivity().runOnUiThread(() -> {
@@ -270,7 +294,10 @@ public class PlanFragment extends Fragment {
                     dailyLogsMap.putAll(finalLogsMap);
                     plansMap.clear();
                     plansMap.putAll(finalPlansMap);
-                    userWeight = finalWeight;
+                    calDietMap.clear();
+                    calDietMap.putAll(finalDietMap);
+                    calStepMap.clear();
+                    calStepMap.putAll(finalStepMap);
 
                     calendarAdapter.notifyDataSetChanged();
                 });
@@ -298,8 +325,8 @@ public class PlanFragment extends Fragment {
         container.setOrientation(android.widget.LinearLayout.VERTICAL);
         container.setPadding(dpToPx(24f), dpToPx(16f), dpToPx(24f), dpToPx(16f));
 
-        String[] displayNames = {"训练部位", "锻炼容量", "完成项数", "不显示"};
-        String[] values = {"workout", "volume", "count", "none"};
+        String[] displayNames = {"训练部位", "锻炼容量", "完成项数", "饮食热量", "步数", "不显示"};
+        String[] values = {"workout", "volume", "count", "diet", "steps", "none"};
 
         Spinner spinner1 = createConfigSpinner(displayNames, values, sp.getString("display_row_1", "volume"));
         Spinner spinner2 = createConfigSpinner(displayNames, values, sp.getString("display_row_2", "workout"));
@@ -515,8 +542,8 @@ public class PlanFragment extends Fragment {
                             if (log.isCompleted()) {
                                 TrainingPlan plan = plansMap.get(log.getPlanId());
                                 if (plan != null) {
-                                    float effectiveWeight = plan.getWeight() > 0 ? plan.getWeight() : userWeight;
-                                    totalVolume += (int) (plan.getSets() * plan.getReps() * effectiveWeight);
+                                    totalVolume += ExerciseMetTable.calculateVolume(
+                                            plan.getName(), plan.getSets(), plan.getReps(), plan.getWeight(), plan.getDuration(), userWeight);
                                 }
                             }
                         }
@@ -569,6 +596,18 @@ public class PlanFragment extends Fragment {
                             // 完成项数：绿色系标签
                             container.addView(createLabelView(count + "项", "#E2EDE4", "#559664"));
                         }
+                    }
+                    break;
+                case "diet":
+                    Integer kcal = calDietMap.get(cellTime);
+                    if (kcal != null && kcal > 0) {
+                        container.addView(createLabelView(kcal + "kcal", "#E2EDE4", "#559664"));
+                    }
+                    break;
+                case "steps":
+                    Integer steps = calStepMap.get(cellTime);
+                    if (steps != null && steps > 0) {
+                        container.addView(createLabelView(steps + "步", "#E8F0FE", "#5C8AE6"));
                     }
                     break;
             }

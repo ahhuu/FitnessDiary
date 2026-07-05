@@ -17,12 +17,15 @@ import com.cz.fitnessdiary.model.HealthScoreBreakdown;
 import com.cz.fitnessdiary.model.WeeklyTrend;
 import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.utils.HealthScoreCalculator;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,12 +70,15 @@ public class HealthAggregationRepository {
         if (foodRecords != null) {
             int totalProtein = 0;
             int totalCarbs = 0;
+            int totalFat = 0;
             for (com.cz.fitnessdiary.database.entity.FoodRecord f : foodRecords) {
                 totalProtein += (int) f.getProtein();
                 totalCarbs += (int) f.getCarbs();
+                totalFat += (int) f.getFat();
             }
             s.todayProtein = totalProtein;
             s.todayCarbs = totalCarbs;
+            s.todayFat = totalFat;
         }
 
         // 2. Training data (训练计划完成情况)
@@ -130,17 +136,43 @@ public class HealthAggregationRepository {
             s.moodLevel = moodCodeToLevel(moodRecord.getMoodCode());
         }
 
-        // 9. Weight and trend (体重与趋势)
-        WeightRecord latestWeight = db.weightRecordDao().getLatestRecordSync();
-        if (latestWeight != null) {
-            s.weightKg = latestWeight.getWeight();
+        // 9. Weight and trend (体重与趋势) — 当日优先，无则取最近一次
+        List<WeightRecord> dayWeightRecords = db.weightRecordDao().getRecordsByDateRangeSync(dateTs, dayEnd);
+        if (dayWeightRecords == null || dayWeightRecords.isEmpty()) {
+            // 当日无记录，取该日期之前最近的一次
+            List<WeightRecord> allBefore = db.weightRecordDao().getRecordsByDateRangeSync(0, dayEnd);
+            if (allBefore != null && !allBefore.isEmpty())
+                dayWeightRecords = java.util.Collections.singletonList(allBefore.get(allBefore.size() - 1));
+        }
+        if (dayWeightRecords != null && !dayWeightRecords.isEmpty()) {
+            s.weightKg = dayWeightRecords.get(0).getWeight();
             long weekAgo = dateTs - 7 * 86400000L;
             List<WeightRecord> weightRecords = db.weightRecordDao().getRecordsByDateRangeSync(weekAgo, dayEnd);
             if (weightRecords != null && weightRecords.size() >= 2) {
                 float first = weightRecords.get(0).getWeight();
                 float last = weightRecords.get(weightRecords.size() - 1).getWeight();
-                // Positive = weight lost, negative = weight gained
                 s.weightTrend = first - last;
+            }
+        }
+
+        // 9b. Body fat (体脂率) + trend — 当日优先，无则取最近一次
+        List<com.cz.fitnessdiary.database.entity.BodyMeasurement> dayBfRecords =
+                db.bodyMeasurementDao().getByTypeAndDateRangeSync("BODY_FAT", dateTs, dayEnd);
+        if (dayBfRecords == null || dayBfRecords.isEmpty()) {
+            List<com.cz.fitnessdiary.database.entity.BodyMeasurement> allBefore =
+                    db.bodyMeasurementDao().getByTypeAndDateRangeSync("BODY_FAT", 0, dayEnd);
+            if (allBefore != null && !allBefore.isEmpty())
+                dayBfRecords = java.util.Collections.singletonList(allBefore.get(allBefore.size() - 1));
+        }
+        if (dayBfRecords != null && !dayBfRecords.isEmpty()) {
+            s.bodyFat = dayBfRecords.get(0).getValue();
+            long weekAgoTs = dateTs - 7 * 86400000L;
+            List<com.cz.fitnessdiary.database.entity.BodyMeasurement> bfHistory =
+                    db.bodyMeasurementDao().getByTypeAndDateRangeSync("BODY_FAT", weekAgoTs, dayEnd);
+            if (bfHistory != null && bfHistory.size() >= 2) {
+                float firstBf = bfHistory.get(0).getValue();
+                float lastBf = bfHistory.get(bfHistory.size() - 1).getValue();
+                s.bodyFatTrend = firstBf - lastBf; // positive = decreased (good)
             }
         }
 
@@ -153,22 +185,41 @@ public class HealthAggregationRepository {
             // Exercise calories from completed training plan durations
             if (user.getWeight() > 0 && s.completedPlans > 0) {
                 List<DailyLog> dailyLogs = db.dailyLogDao().getLogsByDateSync(dateTs);
+                List<TrainingPlan> plansForCal = db.trainingPlanDao().getAllPlansList();
+                Map<Integer, TrainingPlan> planMap = new HashMap<>();
+                if (plansForCal != null) {
+                    for (TrainingPlan p : plansForCal) planMap.put(p.getPlanId(), p);
+                }
                 if (dailyLogs != null) {
-                    int totalCompletedDuration = 0;
+                    int totalCal = 0;
                     for (DailyLog log : dailyLogs) {
-                        if (log.isCompleted()) {
-                            totalCompletedDuration += log.getDuration();
-                        }
+                        if (!log.isCompleted()) continue;
+                        TrainingPlan plan = planMap.get(log.getPlanId());
+                        if (plan == null) continue;
+                        int dur = log.getDuration() > 0 ? log.getDuration() :
+                            (plan.getDuration() > 0 ? plan.getDuration() : 360);
+                        double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
+                        totalCal += (int) (met * user.getWeight() * (dur / 3600.0));
                     }
-                    if (totalCompletedDuration > 0) {
-                        // Average MET of 5 for mixed exercise
-                        // Formula: MET x 3.5 x weight(kg) x duration(s) / 200 / 60
-                        s.exerciseCalories = (int) (5 * 3.5 * user.getWeight()
-                                * totalCompletedDuration / 200.0 / 60.0);
-                    }
+                    s.exerciseCalories = totalCal;
                 }
             }
         }
+
+        // 过去7天活跃天数 (任一健康数据>0即算活跃)
+        int activeDays = 0;
+        for (int d = 0; d < 7; d++) {
+            long ds = dateTs - (long) d * 86400000L;
+            long de = ds + 86400000L;
+            boolean active = false;
+            if (db.dailyLogDao().getTodayCompletedCountSync(ds) > 0) active = true;
+            if (!active) { Integer kcal = db.foodRecordDao().getTotalCaloriesByDateRangeSync(ds, de); if (kcal != null && kcal > 0) active = true; }
+            if (!active) { List<SleepRecord> sl = db.sleepRecordDao().getSleepRecordsByDateRangeSync(ds, de); if (sl != null && !sl.isEmpty()) active = true; }
+            if (!active) { if (db.waterRecordDao().getTodayTotalSync(ds, de) > 0) active = true; }
+            if (!active) { StepRecord sr = db.stepRecordDao().getByDateSync(ds); if (sr != null && sr.getSteps() > 0) active = true; }
+            if (active) activeDays++;
+        }
+        s.activeDays7 = activeDays;
 
         // Consecutive days from all daily log records
         List<Long> checkedDates = getCheckedDateTimestamps();

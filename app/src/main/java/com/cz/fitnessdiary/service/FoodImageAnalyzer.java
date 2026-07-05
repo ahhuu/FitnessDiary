@@ -60,7 +60,7 @@ public class FoodImageAnalyzer {
         return "你是 FitnessDiary 的食物识别营养助手。"
                 + "请识别图片中的食物，并在正文后附加 <action>{...}</action>。"
                 + "action 必须是 JSON，结构："
-                + "{\"type\":\"FOOD\",\"meal_name\":\"整餐名\",\"items\":[{\"name\":\"食物\",\"calories\":120,\"protein\":8,\"carbs\":15,\"unit\":\"份\",\"category\":\"其他\"}]}。"
+                + "{\"type\":\"FOOD\",\"meal_name\":\"整餐名\",\"items\":[{\"name\":\"食物\",\"calories\":120,\"protein\":8,\"carbs\":15,\"fat\":4,\"unit\":\"份\",\"category\":\"其他\"}]}。"
                 + "请尽量完整识别多个食物。";
     }
 
@@ -89,6 +89,7 @@ public class FoodImageAnalyzer {
                         Math.max(0, item.optInt("calories", 0)),
                         Math.max(0d, item.optDouble("protein", 0d)),
                         Math.max(0d, item.optDouble("carbs", 0d)),
+                    Math.max(0d, item.optDouble("fat", 0d)),
                         item.optString("unit", "份"),
                         item.optString("category", "其他"));
                 list.add(food);

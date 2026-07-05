@@ -22,6 +22,7 @@ import com.cz.fitnessdiary.databinding.BottomSheetDateSummaryBinding;
 import com.cz.fitnessdiary.model.DailyHealthSnapshot;
 import com.cz.fitnessdiary.repository.HealthAggregationRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
@@ -127,6 +128,8 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
         int totalVolume = 0;
         int totalDurationSec = 0;
         int totalCalories = 0;
+        double totalWeightedMet = 0;  // Σ(MET × dur) for weighted average
+        int totalDurForMet = 0;       // Σ(dur) for weighted average
         float userWeight = 70f;
 
         // Get user weight
@@ -155,31 +158,27 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
             int sets = plan.getSets();
             int reps = plan.getReps();
             float weight = plan.getWeight();
-            float effectiveWeight = weight > 0 ? weight : userWeight;
-            int logDuration = log.getDuration() > 0 ? log.getDuration() :
-                    (plan.getDuration() > 0 ? plan.getDuration() : 0);
-            int volume = sets > 0 && reps > 0 ? (int) (sets * reps * effectiveWeight) : 0;
+            // 时长推算: 实际>预设>默认6分钟
+            int logDuration = ExerciseMetTable.resolveDuration(
+                    log.getDuration(), plan.getDuration(), sets, reps, requireContext());
+            int volume = ExerciseMetTable.calculateVolume(name, sets, reps, weight, plan.getDuration(), userWeight);
+            String volumeUnit = ExerciseMetTable.getVolumeUnit(sets, reps, weight, plan.getDuration(), name);
 
             totalVolume += volume;
             totalDurationSec += logDuration;
 
-            // Calculate calories
-            double met = 4.0;
-            if (plan.getCategory() != null) {
-                String cat = plan.getCategory().toLowerCase();
-                if (cat.contains("有氧") || cat.contains("cardio") || cat.contains("跑步")) met = 7.0;
-                else if (cat.contains("hiit")) met = 8.0;
-                else if (cat.contains("瑜伽") || cat.contains("拉伸") || cat.contains("yoga")) met = 2.5;
-                else if (cat.contains("力量") || cat.contains("strength")) met = 3.5;
-            }
-            int durSec = logDuration > 0 ? logDuration : 600;
-            int cal = (int) (met * 3.5 * userWeight * durSec / (200.0 * 60.0));
+            // Calculate calories (使用已推算的logDuration)
+            int durSec = logDuration > 0 ? logDuration : ExerciseMetTable.resolveDuration(0, plan.getDuration(), sets, reps, requireContext());
+            double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
+            int cal = (int) (met * userWeight * (durSec / 3600.0));
             totalCalories += cal;
+            totalWeightedMet += met * durSec;
+            totalDurForMet += durSec;
 
             String line = name + " | " + sets + "组x" + reps + "次";
             if (weight > 0) line += " @" + (int) weight + "kg";
-            if (logDuration > 0) line += " " + (logDuration / 60) + "min";
-            if (volume > 0) line += " 容量" + formatVolume(volume) + "kg";
+            if (logDuration > 0) line += " " + String.format(Locale.getDefault(), "%.1f", logDuration / 60.0f) + "min";
+            if (volume > 0) line += " 容量" + ExerciseMetTable.formatVolume(volume, volumeUnit, weight, name, sets, reps);
 
             final String exerciseLine = line;
             final int exerciseCal = cal;
@@ -192,6 +191,14 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
             }
         }
 
+        // 如果用户设了当天训练总时长，按加权平均MET重算总消耗
+        int targetMin = requireContext().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE)
+                .getInt("target_minutes_" + dateTimestamp, 0);
+        if (targetMin > 0 && totalDurForMet > 0) {
+            double avgMet = totalWeightedMet / totalDurForMet;
+            totalCalories = (int) (avgMet * userWeight * (targetMin / 60.0));
+        }
+
         // Update total stats
         final int finalTotalVolume = totalVolume;
         final int finalTotalDurationSec = totalDurationSec;
@@ -201,8 +208,10 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
             requireActivity().runOnUiThread(() -> {
                 if (finalTotalVolume > 0 || finalTotalDurationSec > 0) {
                     binding.layoutTrainingTotals.setVisibility(View.VISIBLE);
-                    binding.tvTotalVolume.setText("总容量: " + formatVolume(finalTotalVolume) + " kg");
-                    binding.tvTotalDuration.setText("总时长: " + (finalTotalDurationSec / 60) + " 分钟");
+                    binding.tvTotalVolume.setText("总容量: " + finalTotalVolume);
+                    int displayDuration = ExerciseMetTable.resolveTotalDuration(
+                            finalTotalDurationSec, dateTimestamp, requireContext());
+                    binding.tvTotalDuration.setText("总时长: " + String.format(Locale.getDefault(), "%.1f", displayDuration / 60.0f) + " 分钟");
                 }
                 // Update calorie display
                 binding.tvSummaryExerciseCalories.setText(String.format(Locale.getDefault(),
@@ -241,8 +250,35 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
         if (s.dietCalories > 0) {
             binding.tvSummaryDietCalories.setText(String.format(Locale.getDefault(),
                     "摄入：%d kcal", s.dietCalories));
+            // 蛋白质
+            if (s.todayProtein > 0) {
+                binding.tvSummaryDietProtein.setVisibility(View.VISIBLE);
+                binding.tvSummaryDietProtein.setText(String.format(Locale.getDefault(),
+                        "🥩%dg", s.todayProtein));
+            } else {
+                binding.tvSummaryDietProtein.setVisibility(View.GONE);
+            }
+            // 碳水
+            if (s.todayCarbs > 0) {
+                binding.tvSummaryDietCarbs.setVisibility(View.VISIBLE);
+                binding.tvSummaryDietCarbs.setText(String.format(Locale.getDefault(),
+                        "🍚%dg", s.todayCarbs));
+            } else {
+                binding.tvSummaryDietCarbs.setVisibility(View.GONE);
+            }
+            // 脂肪
+            if (s.todayFat > 0) {
+                binding.tvSummaryDietFat.setVisibility(View.VISIBLE);
+                binding.tvSummaryDietFat.setText(String.format(Locale.getDefault(),
+                        "🧈%dg", s.todayFat));
+            } else {
+                binding.tvSummaryDietFat.setVisibility(View.GONE);
+            }
         } else {
             binding.tvSummaryDietCalories.setText("暂无饮食记录");
+            binding.tvSummaryDietProtein.setVisibility(View.GONE);
+            binding.tvSummaryDietCarbs.setVisibility(View.GONE);
+            binding.tvSummaryDietFat.setVisibility(View.GONE);
         }
 
         // 习惯行 - 睡眠 / 饮水 / 步数 / 心情
@@ -279,7 +315,7 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
         }
         binding.tvSummaryMood.setText(moodText);
 
-        // 体重行
+        // 体重 + 体脂行
         if (s.weightKg > 0) {
             binding.layoutWeightSection.setVisibility(View.VISIBLE);
             String weightText = String.format(Locale.getDefault(),
@@ -287,9 +323,23 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
             if (s.weightTrend != 0) {
                 String trendSymbol = s.weightTrend > 0 ? "↓" : "↑";
                 weightText += String.format(Locale.getDefault(),
-                        " (较上周 %s %.1f kg)", trendSymbol, Math.abs(s.weightTrend));
+                        " (%s%.1f)", trendSymbol, Math.abs(s.weightTrend));
             }
             binding.tvSummaryWeight.setText(weightText);
+            // 体脂率同行显示，带趋势
+            if (s.bodyFat > 0) {
+                binding.tvSummaryBodyFat.setVisibility(View.VISIBLE);
+                String bfText = String.format(Locale.getDefault(),
+                        "体脂 %.1f%%", s.bodyFat);
+                if (s.bodyFatTrend != 0) {
+                    String bfTrend = s.bodyFatTrend > 0 ? "↓" : "↑";
+                    bfText += String.format(Locale.getDefault(),
+                            " (%s%.1f%%)", bfTrend, Math.abs(s.bodyFatTrend));
+                }
+                binding.tvSummaryBodyFat.setText(bfText);
+            } else {
+                binding.tvSummaryBodyFat.setVisibility(View.GONE);
+            }
         } else {
             binding.layoutWeightSection.setVisibility(View.GONE);
         }

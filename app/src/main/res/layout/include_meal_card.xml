@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/card_meal_container"
     android:layout_width="match_parent"
-    android:layout_height="160dp"
+    android:layout_height="wrap_content"
     android:layout_margin="4dp"
     app:cardBackgroundColor="@android:color/transparent"
     app:cardCornerRadius="24dp"
@@ -17,9 +17,9 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:background="@drawable/bg_card_3d_meal"
-        android:padding="12dp">
+        android:padding="16dp">
 
         <!-- 餐点名称 -->
         <TextView
@@ -47,21 +47,17 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
             
-        <!-- 由于没有专门的加号图标，这里暂时复用 ic_expand_more 并旋转45度变成叉号，或者查找系统加号 -->
-        <!-- 修正：直接使用系统加号 drawable 或者 text -->
-        
-        <!-- 食物摘要列表 (中间区域) -->
+        <!-- 食物摘要列表 (中间区域，自适应高度) -->
         <TextView
             android:id="@+id/tv_food_summary"
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:text="暂无记录"
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:gravity="top|start"
-            android:ellipsize="end"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tv_meal_name"
@@ -77,6 +73,7 @@
             android:textStyle="bold"
             android:textColor="@color/diet_primary"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tv_food_summary"
             app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

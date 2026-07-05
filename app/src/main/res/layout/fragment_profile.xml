@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView 
+    
+    
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    
+    
+    
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,65 +13,57 @@
     android:clipToPadding="false"
     android:paddingBottom="100dp"
     android:clipChildren="false">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp"
+        android:padding="16dp"
         android:clipToPadding="false"
         android:clipChildren="false">
-
-        <!-- 头部用户信息卡片 (3D 悬浮) -->
+        <!-- 头部用户信息卡片 (极简白色卡片) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
+            app:cardBackgroundColor="@color/card_background"
             app:cardCornerRadius="24dp"
-            app:cardElevation="3dp"
+            app:cardElevation="1dp"
             app:strokeWidth="0dp"
-            android:layout_marginBottom="8dp"
-            android:outlineSpotShadowColor="#1A4E483F"
-            android:outlineAmbientShadowColor="#1A4E483F">
-
+            android:layout_marginBottom="16dp">
             <LinearLayout
+                android:id="@+id/layout_profile_header_click"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_3d_profile"
                 android:orientation="horizontal"
                 android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <!-- 左侧：圆形头像 (3D下凹托盘，带纯白防锯齿描边) -->
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
+                <!-- 左侧：圆形头像 -->
                 <FrameLayout
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
                     android:background="@drawable/bg_circle_sunken">
-
                     <com.google.android.material.imageview.ShapeableImageView
                         android:id="@+id/iv_avatar"
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
                         android:layout_gravity="center"
                         android:src="@android:drawable/ic_menu_myplaces"
                         android:scaleType="centerCrop"
-                        android:clickable="true"
-                        android:focusable="true"
                         app:strokeWidth="1.5dp"
-                        app:strokeColor="#FFFFFF"
+                        app:strokeColor="@color/card_background"
                         app:shapeAppearanceOverlay="@style/CircleImageView"
                         android:contentDescription="用户头像" />
                 </FrameLayout>
-
-                <!-- 中间：用户名 -->
+                <!-- 中间：用户名与基本资料 -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:layout_marginStart="16dp"
+                    android:layout_marginStart="14dp"
                     android:gravity="center_vertical">
-
                     <TextView
                         android:id="@+id/tv_username"
                         android:layout_width="wrap_content"
@@ -74,931 +72,980 @@
                         android:textSize="20sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold" />
-                    
-                    <!-- 动态等级 Badge -->
                     <TextView
-                        android:id="@+id/tv_user_level"
+                        android:id="@+id/tv_user_gender_age"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Lv.0 新手"
+                        android:layout_marginTop="4dp"
+                        android:text="🏷️ 男 · 23岁"
                         android:textSize="12sp"
-                        android:textColor="@color/text_secondary" />
-
-                </LinearLayout>
-
-                <!-- 右侧：设置按钮 (3D下凹底座) -->
-                <FrameLayout
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/bg_circle_sunken">
-
-                    <ImageButton
-                        android:id="@+id/btn_settings_top"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_gravity="center"
-                        android:background="@android:color/transparent"
-                        android:src="@drawable/ic_settings"
-                        android:scaleType="fitCenter"
-                        app:tint="@color/fitnessdiary_primary"
-                        android:contentDescription="设置" />
-                </FrameLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 核心数据 (2x2 Grid) 3D悬浮卡片 -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="3dp"
-            app:strokeWidth="0dp"
-            android:layout_marginBottom="8dp"
-            android:outlineSpotShadowColor="#1A4E483F"
-            android:outlineAmbientShadowColor="#1A4E483F">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_3d_profile"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <!-- 第一行：体重 + 身高 (3D下凹凹槽) -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <!-- 体重 -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="6dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="@drawable/bg_profile_data_sunken"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/tv_weight"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="65.0"
-                            android:textSize="32sp"
-                            android:textColor="@color/fitnessdiary_primary"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="⚖️ 体重 (kg)"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
-
-                    </LinearLayout>
-
-                    <!-- 身高 -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="6dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="@drawable/bg_profile_data_sunken"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/tv_height"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="170"
-                            android:textSize="32sp"
-                            android:textColor="@color/fitnessdiary_primary"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📏 身高 (cm)"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- 第二行：BMI + BMR (3D下凹凹槽) -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <!-- BMI -->
-                    <LinearLayout
-                        android:id="@+id/layout_bmi"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="6dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="@drawable/bg_profile_data_sunken"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/tv_bmi"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="22.5"
-                            android:textSize="32sp"
-                            android:textColor="@color/color_success"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📊 BMI"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
-
-                    </LinearLayout>
-
-                    <!-- BMR (基础代谢) -->
-                    <LinearLayout
-                        android:id="@+id/layout_bmr"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="6dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="@drawable/bg_profile_data_sunken"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/tv_bmr"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="1650"
-                            android:textSize="32sp"
-                            android:textColor="@color/color_warning"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🔥 BMR (千卡)"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- 第三行：年龄 + 性别 (3D下凹凹槽，统一对齐) -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <!-- 年龄 -->
-                    <LinearLayout
-                        android:id="@+id/layout_age"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="6dp"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="@drawable/bg_profile_data_sunken"
-                        android:padding="10dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🎂 年龄: "
-                            android:textSize="13sp"
-                            android:textColor="@color/text_secondary" />
-
-                        <TextView
-                            android:id="@+id/tv_age"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="25 岁"
-                            android:textSize="13sp"
-                            android:textColor="@color/text_primary"
-                            android:textStyle="bold" />
-
-                    </LinearLayout>
-
-                    <!-- 性别 -->
-                    <LinearLayout
-                        android:id="@+id/layout_gender"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="6dp"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="@drawable/bg_profile_data_sunken"
-                        android:padding="10dp">
-
-                        <TextView
-                            android:id="@+id/tv_gender_icon"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="👫 性别: "
-                            android:textSize="13sp"
-                            android:textColor="@color/text_secondary" />
-
-                        <TextView
-                            android:id="@+id/tv_gender"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="男"
-                            android:textSize="13sp"
-                            android:textColor="@color/text_primary"
-                            android:textStyle="bold" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 当前目标卡片 (3D 悬浮) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_goal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="3dp"
-            app:strokeWidth="0dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp"
-            android:outlineSpotShadowColor="#1A4E483F"
-            android:outlineAmbientShadowColor="#1A4E483F">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_3d_profile"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🎯 当前目标"
-                        android:textSize="14sp"
                         android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/tv_goal"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="减脂"
-                        android:textSize="18sp"
-                        android:textColor="@color/text_primary"
                         android:textStyle="bold" />
-
                 </LinearLayout>
-
-                <!-- 3D圆形编辑按钮底托 -->
-                <FrameLayout
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_circle_sunken">
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_gravity="center"
-                        android:src="@android:drawable/ic_menu_edit"
-                        app:tint="@color/text_secondary"
-                        android:contentDescription="编辑目标" />
-                </FrameLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Activity Level 卡片 (3D 悬浮) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_activity_level"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="3dp"
-            app:strokeWidth="0dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp"
-            android:outlineSpotShadowColor="#1A4E483F"
-            android:outlineAmbientShadowColor="#1A4E483F">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_3d_profile"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🏋️ 活动水平"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/tv_activity_level"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="轻度活动 (1.375)"
-                        android:textSize="18sp"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <!-- 3D圆形编辑按钮底托 -->
-                <FrameLayout
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_circle_sunken">
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:layout_gravity="center"
-                        android:src="@android:drawable/ic_menu_edit"
-                        app:tint="@color/text_secondary"
-                        android:contentDescription="编辑活动水平" />
-                </FrameLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 成就系统入口 (3D 悬浮) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_achievements"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="3dp"
-            app:strokeWidth="0dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp"
-            android:outlineSpotShadowColor="#1A4E483F"
-            android:outlineAmbientShadowColor="#1A4E483F">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_3d_profile"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <!-- 物理小凹坑装载奖杯 -->
-                <FrameLayout
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/bg_circle_sunken">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:text="🏆"
-                        android:textSize="18sp" />
-                </FrameLayout>
-
+                <!-- 右侧：等级标签 (最右边胶囊居中展示) -->
                 <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="16dp"
-                    android:text="成就勋章墙"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary" />
-
-                <TextView
-                    android:id="@+id/tv_achievement_summary"
+                    android:id="@+id/tv_user_level"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="已获得 0 枚"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_marginEnd="8dp" />
-
-                <!-- 3D圆形指示箭头底座 -->
-                <FrameLayout
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:background="@drawable/bg_circle_sunken">
-
-                    <ImageView
-                        android:layout_width="12dp"
-                        android:layout_height="12dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_arrow_right"
-                        app:tint="@color/text_hint"
-                        android:contentDescription="查看详情" />
-                </FrameLayout>
-
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@drawable/shape_chip_compact"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="5dp"
+                    android:text="Lv.3 塑形精英"
+                    android:textSize="11sp"
+                    android:textColor="@color/fitnessdiary_primary"
+                    android:textStyle="bold" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <!-- 数据周报入口 (3D 悬浮) -->
+        <!-- 我的状态分类块 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="我的状态"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" />
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_data_report"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="3dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="1dp"
             app:strokeWidth="0dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp"
-            android:outlineSpotShadowColor="#1A4E483F"
-            android:outlineAmbientShadowColor="#1A4E483F">
-
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_3d_profile"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <!-- 左侧图标 (3D下凹) -->
-                <FrameLayout
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:background="@drawable/bg_circle_sunken">
-
+                android:orientation="vertical">
+                <!-- 身体数据行 -->
+                <LinearLayout
+                    android:id="@+id/layout_body_data_click"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:layout_gravity="center"
                         android:src="@drawable/ic_analytics"
                         app:tint="@color/fitnessdiary_primary"
-                        android:contentDescription="图标" />
-                </FrameLayout>
-
-                <!-- 中间文本 -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="16dp">
-
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="身体数据图标" />
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="数据周报"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="查看本周训练与饮食分析"
-                        android:textSize="12sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="2dp" />
-
-                </LinearLayout>
-
-                <!-- 右侧箭头 (3D下凹) -->
-                <FrameLayout
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:background="@drawable/bg_circle_sunken">
-
-                    <ImageView
-                        android:layout_width="12dp"
-                        android:layout_height="12dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_arrow_right"
-                        app:tint="@color/text_hint"
-                        android:contentDescription="查看详情" />
-                </FrameLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ════════════════════════════════════════════
-             智能推送卡片（可展开式配置面板）
-             ════════════════════════════════════════════ -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_smart_reminder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="3dp"
-            app:strokeWidth="0dp"
-            android:layout_marginBottom="16dp"
-            android:outlineSpotShadowColor="#1A4E483F"
-            android:outlineAmbientShadowColor="#1A4E483F">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_card_3d_profile"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <!-- ── 顶部总控行 ── -->
-                <LinearLayout
-                    android:id="@+id/layout_smart_header"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <!-- 左侧图标 (3D下凹) -->
-                    <FrameLayout
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_circle_sunken">
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_hero_fire"
-                            app:tint="@color/fitnessdiary_primary"
-                            android:contentDescription="智能推送图标" />
-                    </FrameLayout>
-
-                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="16dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="智能推送"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="点击展开 · 独立配置每项提醒"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="2dp" />
-                    </LinearLayout>
-
-                    <!-- 总开关 -->
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_smart_reminder"
+                        android:text="身体数据"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/tv_body_data_summary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        app:trackColor="@color/selector_switch_track"
-                        app:thumbColor="@color/selector_switch_thumb"
-                        android:checked="false" />
-
-                    <!-- 展开箭头 -->
+                        android:textColor="@color/text_hint"
+                        android:textSize="14sp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:maxWidth="160dp"
+                        android:visibility="gone" />
                     <ImageView
-                        android:id="@+id/iv_smart_expand"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_marginStart="8dp"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
                         android:src="@drawable/ic_arrow_right"
                         app:tint="@color/text_hint"
-                        android:rotation="90"
-                        android:contentDescription="展开详情" />
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
                 </LinearLayout>
-
-                <!-- ── 分割线 ── -->
                 <View
-                    android:id="@+id/divider_smart"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#15000000"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="4dp"
-                    android:visibility="gone" />
-
-                <!-- ── 子项容器（默认折叠） ── -->
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 阶段健身目标行 -->
                 <LinearLayout
-                    android:id="@+id/layout_smart_sub_items"
+                    android:id="@+id/layout_phase_goal_click"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:visibility="gone">
-
-                    <!-- 子项 1：早晨概要 -->
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_ach_trophy"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="阶段目标图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="健身目标"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
                     <LinearLayout
-                        android:id="@+id/item_morning"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="?android:attr/selectableItemBackground">
-
-                        <FrameLayout
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:background="@drawable/bg_circle_sunken">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:text="🌅"
-                                android:textSize="14sp" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="早晨概要"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_morning_time"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="08:00"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="1dp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switch_morning"
+                        android:gravity="center_vertical">
+                        <TextView
+                            android:id="@+id/tv_goal"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:scaleX="0.85"
-                            android:scaleY="0.85"
-                            app:trackColor="@color/selector_switch_track"
-                            app:thumbColor="@color/selector_switch_thumb"
-                            android:checked="true" />
-                    </LinearLayout>
-
-                    <!-- 子项 2：晚间提醒 -->
-                    <LinearLayout
-                        android:id="@+id/item_evening"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="?android:attr/selectableItemBackground">
-
-                        <FrameLayout
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:background="@drawable/bg_circle_sunken">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:text="🌙"
-                                android:textSize="14sp" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="晚间提醒"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_evening_time"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="20:00"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="1dp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switch_evening"
+                            android:textColor="@color/text_hint"
+                            android:textSize="14sp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                        <TextView
+                            android:id="@+id/tv_activity_level"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:scaleX="0.85"
-                            android:scaleY="0.85"
-                            app:trackColor="@color/selector_switch_track"
-                            app:thumbColor="@color/selector_switch_thumb"
-                            android:checked="true" />
+                            android:textColor="@color/text_hint"
+                            android:textSize="14sp"
+                            android:layout_marginStart="8dp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                     </LinearLayout>
-
-                    <!-- 子项 3：健康周报 -->
-                    <LinearLayout
-                        android:id="@+id/item_weekly"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="10dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="?android:attr/selectableItemBackground">
-
-                        <FrameLayout
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:background="@drawable/bg_circle_sunken">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:text="📊"
-                                android:textSize="14sp" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="健康周报"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_weekly_time"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="周一 09:00"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="1dp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switch_weekly"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:scaleX="0.85"
-                            android:scaleY="0.85"
-                            app:trackColor="@color/selector_switch_track"
-                            app:thumbColor="@color/selector_switch_thumb"
-                            android:checked="true" />
-                    </LinearLayout>
-
-                    <!-- 子项 4：不活跃挽留 -->
-                    <LinearLayout
-                        android:id="@+id/item_inactivity"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingTop="10dp"
-                        android:paddingBottom="4dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:background="?android:attr/selectableItemBackground">
-
-                        <FrameLayout
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:background="@drawable/bg_circle_sunken">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:text="💤"
-                                android:textSize="14sp" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="不活跃挽留"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:id="@+id/tv_inactivity_time"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="18:00"
-                                android:textSize="12sp"
-                                android:textColor="@color/text_secondary"
-                                android:layout_marginTop="1dp" />
-                        </LinearLayout>
-
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switch_inactivity"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:scaleX="0.85"
-                            android:scaleY="0.85"
-                            app:trackColor="@color/selector_switch_track"
-                            app:thumbColor="@color/selector_switch_thumb"
-                            android:checked="true" />
-                    </LinearLayout>
-
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
                 </LinearLayout>
-                <!-- end sub_items -->
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
+        <!-- 我的内容资产分类块 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="我的内容资产"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="1dp"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <!-- 自定义动作/动作库 -->
+                <LinearLayout
+                    android:id="@+id/btn_my_exercises"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_dumbbell_simple"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="动作库图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="动作管理"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 常用食谱 -->
+                <LinearLayout
+                    android:id="@+id/btn_my_recipes"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_recipe"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="食谱图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="常用食谱"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <!-- 🛠️ 健身工具箱分类块 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="健身工具箱"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="1dp"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <!-- 1RM 极限重量计算器 -->
+                <LinearLayout
+                    android:id="@+id/btn_tool_1rm"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_dumbbell_simple"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="1RM图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="1RM 极限重量计算器"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- TDEE 每日总消耗精算 -->
+                <LinearLayout
+                    android:id="@+id/btn_tool_tdee"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_hero_fire"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="TDEE图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="TDEE 每日总消耗精算"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <!-- 设备与连接分类块 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备与连接"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="1dp"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <!-- 绑定三方健康生态 (待开发置灰) -->
+                <LinearLayout
+                    android:id="@+id/btn_connect_health"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:alpha="0.5">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_device_connect"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="设备连接图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="绑定 Apple Health / Google Fit"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 智能手环/秤 (待开发置灰) -->
+                <LinearLayout
+                    android:id="@+id/btn_connect_devices"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:alpha="0.5">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_hourglass"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="设备连接图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="智能手环 &amp; 智能体脂秤"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <!-- 系统通用设置分类块 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="系统通用设置"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="1dp"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <!-- 显示与单位设置 -->
+                <LinearLayout
+                    android:id="@+id/btn_settings_units"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_settings"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="显示设置图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="显示与单位设置"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/tv_unit_summary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="kg / kcal"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_hint" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 通知与提醒管理 -->
+                <LinearLayout
+                    android:id="@+id/btn_settings_notifications"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_thinking"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="提醒图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="通知与提醒管理"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 数据管理设置 -->
+                <LinearLayout
+                    android:id="@+id/btn_settings_data"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_delete"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="数据管理图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="数据管理与备份"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 每日目标综合设置 -->
+                <LinearLayout
+                    android:id="@+id/btn_daily_targets"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_hero_fire"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="目标设置图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="每日目标综合设置"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 清除缓存 -->
+                <LinearLayout
+                    android:id="@+id/btn_clear_cache"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_delete"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="清除缓存图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="清除缓存"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <!-- 荣耀与分析分类块 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="荣耀与分析"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="1dp"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <!-- 勋章墙 -->
+                <LinearLayout
+                    android:id="@+id/card_achievements"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_ach_trophy"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="成就图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="成就勋章墙"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/tv_achievement_summary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="已获得 0 枚"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_hint" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 数据周报 -->
+                <LinearLayout
+                    android:id="@+id/card_data_report"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_analytics"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="周报图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="数据综合周报"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 健康日报 -->
+                <LinearLayout
+                    android:id="@+id/btn_health_briefing"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_analytics"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="健康日报图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="健康日报回顾"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <!-- 关于健身日记分类块 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="关于健康日记"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="1dp"
+            app:strokeWidth="0dp"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_background">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <!-- 关于 App -->
+                <LinearLayout
+                    android:id="@+id/btn_about"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_globe"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="关于图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="关于 FitnessDiary"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/tv_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_hint" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 新手引导回顾 -->
+                <LinearLayout
+                    android:id="@+id/btn_replay_guide"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_brain"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="引导回顾图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="引导回顾"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 推荐给好友 -->
+                <LinearLayout
+                    android:id="@+id/btn_share_app"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_send"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="分享图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="推荐给好友"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider"
+                    android:layout_marginHorizontal="16dp" />
+                <!-- 意见反馈 -->
+                <LinearLayout
+                    android:id="@+id/btn_feedback"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackground">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_globe"
+                        app:tint="@color/fitnessdiary_primary"
+                        android:layout_marginEnd="12dp"
+                        android:contentDescription="反馈图标" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="意见反馈"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_hint"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="向右箭头" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
-
 </ScrollView>

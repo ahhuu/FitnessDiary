@@ -72,6 +72,7 @@ public class QuickEntryViewModel extends AndroidViewModel {
             int calories = 0;
             double protein = 0;
             double carbs = 0;
+            double fat = 0;
             int weightPerUnit = 100;
             String servingUnit = "份";
 
@@ -83,6 +84,7 @@ public class QuickEntryViewModel extends AndroidViewModel {
                 calories = (int) (food.getCaloriesPer100g() * ratio);
                 protein = food.getProteinPer100g() * ratio;
                 carbs = food.getCarbsPer100g() * ratio;
+                fat = food.getFatPer100g() * ratio;
             }
 
             long recordDate;
@@ -97,6 +99,7 @@ public class QuickEntryViewModel extends AndroidViewModel {
             FoodRecord record = new FoodRecord(foodName, calories, recordDate);
             record.setProtein(protein);
             record.setCarbs(carbs);
+            record.setFat(fat);
             record.setMealType(mealType);
             record.setServings(servings);
             record.setServingUnit(servingUnit);

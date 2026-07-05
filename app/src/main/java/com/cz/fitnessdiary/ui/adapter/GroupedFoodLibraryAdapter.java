@@ -310,7 +310,8 @@ public class GroupedFoodLibraryAdapter extends RecyclerView.Adapter<RecyclerView
             binding.tvDetails.setText(food.getCaloriesPer100g() + " kcal/100g · " + food.getWeightPerUnit() + "g/"
                     + food.getServingUnit());
             binding.tvMacros
-                    .setText(String.format("蛋白质: %.1fg · 碳水: %.1fg", food.getProteinPer100g(), food.getCarbsPer100g()));
+                    .setText(String.format("蛋白质: %.1fg · 碳水: %.1fg · 脂肪: %.1fg", food.getProteinPer100g(),
+                        food.getCarbsPer100g(), food.getFatPer100g()));
 
             // 如果设置了编辑监听器，显示编辑按钮
             if (editListener != null) {

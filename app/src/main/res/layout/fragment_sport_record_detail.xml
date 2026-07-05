@@ -36,7 +36,7 @@
             android:layout_height="40dp"
             android:background="@android:color/transparent"
             android:contentDescription="管理计划"
-            android:src="@drawable/ic_nav_plan_outline"
+            android:src="@drawable/ic_dumbbell_simple"
             app:tint="@color/fitnessdiary_primary" />
     </LinearLayout>
 
@@ -224,7 +224,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginTop="16dp"
-                        android:background="#0D000000" />
+                        android:background="@color/divider" />
 
                     <LinearLayout
                         android:id="@+id/week_calendar"
@@ -235,7 +235,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-    <!-- 目标运动时长 -->
+    <!-- 训练总时长 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -248,7 +248,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="目标时长(分钟)"
+            android:text="训练总时长(分钟)"
             android:textSize="14sp"
             android:textColor="@color/text_primary"
             android:layout_marginEnd="8dp" />
@@ -258,7 +258,7 @@
             android:layout_width="80dp"
             android:layout_height="40dp"
             android:inputType="number"
-            android:text="30"
+            android:hint="0"
             android:textSize="14sp"
             android:gravity="center"
             android:background="@drawable/bg_input_field" />
@@ -280,7 +280,7 @@
             android:id="@+id/btn_save_target"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="保存目标"
+            android:text="保存"
             android:textSize="12sp"
             style="@style/Widget.Material3.Button.TextButton" />
     </LinearLayout>

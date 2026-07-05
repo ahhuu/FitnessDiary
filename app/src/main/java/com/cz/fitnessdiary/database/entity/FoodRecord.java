@@ -24,6 +24,10 @@ public class FoodRecord {
     private long recordDate; // 记录日期时间戳
 
     // 构造函数
+    public FoodRecord() {
+    }
+
+    @androidx.room.Ignore
     public FoodRecord(String foodName, int calories, long recordDate) {
         this.foodName = foodName;
         this.calories = calories;
@@ -70,6 +74,9 @@ public class FoodRecord {
     @ColumnInfo(name = "carbs")
     private double carbs; // 碳水含量 (g)
 
+    @ColumnInfo(name = "fat")
+    private double fat; // 脂肪含量 (g)
+
     // === Plan 9 新增字段 ===
     @ColumnInfo(name = "meal_type")
     private int mealType; // 0=早餐, 1=午餐, 2=晚餐, 3=加餐
@@ -94,6 +101,14 @@ public class FoodRecord {
 
     public void setCarbs(double carbs) {
         this.carbs = carbs;
+    }
+
+    public double getFat() {
+        return fat;
+    }
+
+    public void setFat(double fat) {
+        this.fat = fat;
     }
 
     public int getMealType() {

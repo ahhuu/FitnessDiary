@@ -161,6 +161,11 @@ public class CheckInViewModel extends AndroidViewModel {
         if (date == null)
             date = DateUtils.getTodayStartTimestamp();
         DailyLog log = new DailyLog(planId, date, false);
+        // 从计划复制预设时长，确保后续统计页面能正确显示训练时长
+        com.cz.fitnessdiary.database.entity.TrainingPlan plan = trainingPlanRepository.getPlanById(planId);
+        if (plan != null && plan.getDuration() > 0) {
+            log.setDuration(plan.getDuration());
+        }
         dailyLogRepository.insert(log);
         calculateConsecutiveDays();
     }
@@ -248,10 +253,17 @@ public class CheckInViewModel extends AndroidViewModel {
                 for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : targetPlans) {
                     DailyLog existing = logMap.get(plan.getPlanId());
                     if (existing == null) {
-                        dailyLogRepository.insertSync(new DailyLog(plan.getPlanId(), targetDate, true));
+                        DailyLog newLog = new DailyLog(plan.getPlanId(), targetDate, true);
+                        if (plan.getDuration() > 0) {
+                            newLog.setDuration(plan.getDuration());
+                        }
+                        dailyLogRepository.insertSync(newLog);
                         affected++;
                     } else if (!existing.isCompleted()) {
                         existing.setCompleted(true);
+                        if (plan.getDuration() > 0) {
+                            existing.setDuration(plan.getDuration());
+                        }
                         dailyLogRepository.updateSync(existing);
                         affected++;
                     }

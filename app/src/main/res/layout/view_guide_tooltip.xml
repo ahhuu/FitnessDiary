@@ -22,7 +22,7 @@
         android:maxWidth="240dp"
         app:cardCornerRadius="8dp"
         app:cardElevation="8dp"
-        app:cardBackgroundColor="@android:color/white"
+        app:cardBackgroundColor="@color/card_background"
         app:contentPadding="16dp">
 
         <LinearLayout
