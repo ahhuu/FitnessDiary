@@ -128,6 +128,13 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
         loadBaseUserData();
         setupMeasureClickListeners();
         setupChartIndicators();
+
+        // 健康透视看板点击 → 弹出解释页面
+        View cardHealthInsight = view.findViewById(R.id.card_health_insight);
+        if (cardHealthInsight != null) {
+            cardHealthInsight.setOnClickListener(v ->
+                new HealthInsightExplainDialog().show(getChildFragmentManager(), "HealthInsightExplain"));
+        }
     }
 
     private void setupTabs() {

@@ -79,6 +79,13 @@ public interface FoodRecordDao {
     @Query("SELECT COUNT(*) FROM food_record")
     int getTotalRecordCountSync();
 
+    /**
+     * 获取饮食记录总天数 (去重日期) - v2.5
+     * record_date 是毫秒时间戳，需除以 86400000 归一化到天再去重
+     */
+    @Query("SELECT COUNT(DISTINCT (record_date / 86400000)) FROM food_record")
+    int getTotalDietDaysSync();
+
     @Query("SELECT SUM(calories) FROM food_record WHERE record_date >= :startDate AND record_date < :endDate")
     Integer getTotalCaloriesByDateRangeSync(long startDate, long endDate);
 

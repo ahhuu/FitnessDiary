@@ -199,6 +199,11 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
             totalCalories = (int) (avgMet * userWeight * (targetMin / 60.0));
         }
 
+        // 加上步数消耗，与首页运动消耗口径保持一致（运动消耗 + 步数消耗）
+        com.cz.fitnessdiary.database.entity.StepRecord stepRecord = database.stepRecordDao().getByDateSync(dateTimestamp);
+        int stepCal = stepRecord != null ? (int) (stepRecord.getSteps() * 0.04f) : 0;
+        totalCalories += stepCal;
+
         // Update total stats
         final int finalTotalVolume = totalVolume;
         final int finalTotalDurationSec = totalDurationSec;

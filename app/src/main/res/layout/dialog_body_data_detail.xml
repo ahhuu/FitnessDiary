@@ -658,11 +658,15 @@
                         android:layout_marginBottom="8dp" />
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_health_insight"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
                         app:cardBackgroundColor="@color/fitnessdiary_surface">
 
                         <GridLayout

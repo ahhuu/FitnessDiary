@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/fitnessdiary_background">
+
+    <!-- 顶部标题栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp"
+        android:background="@color/fitnessdiary_surface"
+        android:elevation="4dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_primary"
+            android:contentDescription="返回" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="健康透视看板"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:gravity="center" />
+
+        <View
+            android:layout_width="48dp"
+            android:layout_height="48dp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="32dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- ===== ① BMI 体重指数 ===== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📐 BMI 体重指数"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tv_bmi_live"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="您的 BMI：22.5 (正常)"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/fitnessdiary_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="身体质量指数 (Body Mass Index) 是衡量人体胖瘦程度的国际通用指标。"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="10dp" />
+
+                    <!-- 公式块 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="12dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="BMI = 体重(kg) ÷ 身高(m)²"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <!-- 分级表格 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="中国标准分级："
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="8dp" />
+
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:columnCount="3"
+                        android:rowCount="4">
+
+                        <!-- 偏瘦 -->
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="🔵 偏瘦" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="6dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="&lt; 18.5" android:textSize="13sp" android:textColor="@color/text_secondary" android:padding="6dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="2" android:text="需加强营养" android:textSize="11sp" android:textColor="@color/text_hint" android:padding="6dp" />
+
+                        <!-- 正常 -->
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="🟢 正常" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="6dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="18.5 - 24" android:textSize="13sp" android:textColor="@color/text_secondary" android:padding="6dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="2" android:text="健康范围，保持运动" android:textSize="11sp" android:textColor="@color/text_hint" android:padding="6dp" />
+
+                        <!-- 超重 -->
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="🟠 超重" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="6dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="24 - 28" android:textSize="13sp" android:textColor="@color/text_secondary" android:padding="6dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="2" android:text="建议控制饮食" android:textSize="11sp" android:textColor="@color/text_hint" android:padding="6dp" />
+
+                        <!-- 肥胖 -->
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="🔴 肥胖" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="6dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="≥ 28" android:textSize="13sp" android:textColor="@color/text_secondary" android:padding="6dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="2" android:text="需积极减重" android:textSize="11sp" android:textColor="@color/text_hint" android:padding="6dp" />
+                    </GridLayout>
+
+                    <TextView
+                        android:id="@+id/tv_bmi_ideal_range"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="建议体重范围：XX - XX kg (BMI 18.5-24)"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===== ② BMR 基础代谢 ===== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔥 BMR 基础代谢率"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tv_bmr_live"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="您的 BMR：1,650 kcal/天"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/fitnessdiary_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="基础代谢率 (Basal Metabolic Rate) 是人体在完全静止状态下维持生命所需的最低能量消耗。即使躺着不动，身体也需要这些能量来维持呼吸、心跳、体温和细胞活动。"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Mifflin-St Jeor 公式（目前公认最准确的 BMR 估算公式）："
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 男性公式 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="8dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="♂ BMR = 10×W + 6.25×H - 5×A + 5"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <!-- 女性公式 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="♀ BMR = 10×W + 6.25×H - 5×A - 161"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="W = 体重(kg)  H = 身高(cm)  A = 年龄"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_hint"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===== ③ TDEE 每日总消耗 ===== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚡ TDEE 每日总消耗"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tv_tdee_live"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="您的 TDEE：2,557 kcal/天"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/fitnessdiary_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="每日总能量消耗 (Total Daily Energy Expenditure) = 基础代谢 × 活动系数，代表你一天实际消耗的总热量。"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="10dp" />
+
+                    <!-- 公式块 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="12dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TDEE = BMR × 活动系数"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="活动系数对照："
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="8dp" />
+
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:columnCount="3"
+                        android:rowCount="5">
+
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="1.200" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:padding="5dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="久坐" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="5dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="3" android:text="很少或不运动" android:textSize="12sp" android:textColor="@color/text_secondary" android:padding="5dp" />
+
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="1.375" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:padding="5dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="轻度" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="5dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="3" android:text="每周运动 1-3 天" android:textSize="12sp" android:textColor="@color/text_secondary" android:padding="5dp" />
+
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="1.550" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:padding="5dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="中度" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="5dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="3" android:text="每周运动 3-5 天" android:textSize="12sp" android:textColor="@color/text_secondary" android:padding="5dp" />
+
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="1.725" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:padding="5dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="高度" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="5dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="3" android:text="每周运动 6-7 天" android:textSize="12sp" android:textColor="@color/text_secondary" android:padding="5dp" />
+
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="1.900" android:textSize="13sp" android:textStyle="bold" android:textColor="@color/text_primary" android:padding="5dp" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:text="极高" android:textSize="13sp" android:textColor="@color/text_primary" android:padding="5dp" />
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="3" android:text="高强度体力劳动/每日训练" android:textSize="12sp" android:textColor="@color/text_secondary" android:padding="5dp" />
+                    </GridLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===== ④ 饮食营养目标 ===== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🍽️ 饮食营养目标"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="以下目标根据您的身体数据和健身目标自动计算，每次修改体重/身高/目标时自动更新。"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="3dp"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 热量目标 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▸ 热量目标"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="10dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="目标热量 = TDEE + 调整值"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="减脂 = TDEE - 500  │  增肌 = TDEE + 300  │  保持 = TDEE"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 蛋白质目标 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▸ 蛋白质目标"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="10dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="蛋白质 = 体重 × 系数"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="增肌 ×2.0g/kg  │  减脂 ×1.5g/kg  │  保持 ×1.2g/kg"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 脂肪目标 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▸ 脂肪目标"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="10dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="12dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="脂肪 = (热量目标 × 25%) ÷ 9"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <!-- 碳水目标 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▸ 碳水目标"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="10dp"
+                        android:background="@drawable/bg_code_block"
+                        android:layout_marginBottom="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="碳水 = (热量目标 - 蛋白质热量 - 脂肪热量) ÷ 4"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <!-- 当前目标值一览 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:padding="12dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_highlight_row">
+                        <TextView
+                            android:id="@+id/tv_diet_summary"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="热量 2,659 · 蛋白质 107g · 脂肪 74g · 碳水 391g"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/fitnessdiary_primary"
+                            android:gravity="center" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===== ⑤ 您的计算参数 ===== -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📋 您的计算参数"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:columnCount="2"
+                        android:rowCount="3">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="12dp">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="性别 · 年龄" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                            <TextView android:id="@+id/tv_param_gender_age" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="男 · 23岁" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="12dp">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="健身目标" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                            <TextView android:id="@+id/tv_param_goal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="增肌" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="12dp">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="体重" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                            <TextView android:id="@+id/tv_param_weight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="53.8 kg" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical"
+                            android:layout_marginBottom="12dp">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="身高" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                            <TextView android:id="@+id/tv_param_height" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="175 cm" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="活动水平" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                            <TextView android:id="@+id/tv_param_activity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1.55 中度活动" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_columnWeight="1"
+                            android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="基础代谢 (BMR)" android:textSize="11sp" android:textColor="@color/text_secondary" />
+                            <TextView android:id="@+id/tv_param_bmr" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="1,522 kcal" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/text_primary" android:layout_marginTop="2dp" />
+                        </LinearLayout>
+                    </GridLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

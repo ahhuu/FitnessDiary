@@ -38,8 +38,10 @@ public class HealthAggregationRepository {
 
     private final AppDatabase db;
     private final ExecutorService executor;
+    private final Application application;
 
     public HealthAggregationRepository(Application application) {
+        this.application = application;
         this.db = AppDatabase.getInstance(application);
         this.executor = Executors.newSingleThreadExecutor();
     }
@@ -83,7 +85,9 @@ public class HealthAggregationRepository {
 
         // 2. Training data (训练计划完成情况)
         s.completedPlans = db.dailyLogDao().getTodayCompletedCountSync(dateTs);
-        s.totalPlans = db.dailyLogDao().getTodayPlanCountSync(dateTs);
+        // totalPlans 应从 training_plan 表计算当天安排的计划数，而非 daily_log 打卡数
+        // 否则未打卡时 totalPlans=0 会误判为「休息日无计划」
+        s.totalPlans = countScheduledPlans(dateTs);
 
         List<TrainingPlan> allPlans = db.trainingPlanDao().getAllPlansList();
         if (allPlans != null && !allPlans.isEmpty()) {
@@ -192,6 +196,8 @@ public class HealthAggregationRepository {
                 }
                 if (dailyLogs != null) {
                     int totalCal = 0;
+                    double totalWeightedMet = 0;
+                    int totalDurSec = 0;
                     for (DailyLog log : dailyLogs) {
                         if (!log.isCompleted()) continue;
                         TrainingPlan plan = planMap.get(log.getPlanId());
@@ -200,6 +206,15 @@ public class HealthAggregationRepository {
                             (plan.getDuration() > 0 ? plan.getDuration() : 360);
                         double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
                         totalCal += (int) (met * user.getWeight() * (dur / 3600.0));
+                        totalWeightedMet += met * dur;
+                        totalDurSec += dur;
+                    }
+                    // 如果用户设了当天训练总时长，按加权平均MET重算运动消耗（与日历弹窗口径一致）
+                    android.content.SharedPreferences sp = application.getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+                    int targetMin = sp.getInt("target_minutes_" + dateTs, 0);
+                    if (targetMin > 0 && totalDurSec > 0) {
+                        double avgMet = totalWeightedMet / totalDurSec;
+                        totalCal = (int) (avgMet * user.getWeight() * (targetMin / 60.0));
                     }
                     s.exerciseCalories = totalCal;
                 }
@@ -325,5 +340,51 @@ public class HealthAggregationRepository {
         List<Long> sorted = new ArrayList<>(uniqueDates);
         Collections.sort(sorted, Collections.reverseOrder());
         return sorted;
+    }
+
+    /**
+     * 从 training_plan 表计算指定日期安排的计划数（按模式+星期过滤）
+     * 与 CheckInViewModel.getSelectedDatePlans() 保持完全一致的过滤逻辑
+     */
+    private int countScheduledPlans(long dateTs) {
+        List<TrainingPlan> allPlans = this.db.trainingPlanDao().getAllPlansList();
+        if (allPlans == null) return 0;
+
+        // 读当前计划模式 + 活跃个人计划名
+        android.content.SharedPreferences sp = application.getSharedPreferences(
+                "fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+        String mode = sp.getString("current_plan_mode", "基础");
+        String filterPrefix;
+        if ("自定义".equals(mode)) {
+            String activePlan = sp.getString("active_personal_plan_name", "默认自定义计划");
+            filterPrefix = "自定义-" + activePlan + "-";
+        } else {
+            filterPrefix = mode + "-";
+        }
+
+        // 计算星期几
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setTimeInMillis(dateTs);
+        int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
+        int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
+
+        int count = 0;
+        for (TrainingPlan plan : allPlans) {
+            String cat = plan.getCategory();
+            if (cat == null || !cat.startsWith(filterPrefix)) continue;
+
+            String scheduledDays = plan.getScheduledDays();
+            if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+                count++;
+            } else {
+                for (String day : scheduledDays.split(",")) {
+                    if (day.trim().equals(String.valueOf(dayIndex))) {
+                        count++;
+                        break;
+                    }
+                }
+            }
+        }
+        return count;
     }
 }

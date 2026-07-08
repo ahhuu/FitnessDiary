@@ -24,6 +24,31 @@ public class ExerciseMetTable {
         java.util.Arrays.asList("哑铃", "杠铃", "器械", "壶铃", "拉力器", "负重", "绳索", "史密斯")
     );
 
+    // ── 明确使用器械但名称中无关键词的动作（来自 exercise_library.json）──
+    private static final java.util.Set<String> EQUIPMENT_EXERCISE_NAMES = new java.util.HashSet<>(
+        java.util.Arrays.asList(
+            // 手臂 — 哑铃
+            "锤式弯举", "集中弯举",
+            // 手臂 — 杠铃
+            "窄距卧推",
+            // 肩部 — 哑铃
+            "阿诺德推举",
+            // 肩部 — 器械
+            "跪姿面拉",
+            // 背部 — 器械
+            "面拉", "直臂下压", "坐姿划船",
+            // 胸部 — 器械
+            "龙门架夹胸",
+            // 腿部 — 杠铃
+            "保加利亚分腿蹲",
+            // 腿部 — 器械
+            "倒蹬机", "坐姿腿屈伸", "俯卧腿弯举",
+            "坐姿提踵", "站姿提踵", "髋外展机", "髋内收机",
+            // 腹部 — 器械
+            "悬垂举腿", "健腹轮", "罗马椅侧屈"
+        )
+    );
+
     // ── 静力动作关键词 ──
     private static final java.util.Set<String> STATIC_KEYWORDS = new java.util.HashSet<>(
         java.util.Arrays.asList("支撑", "静蹲", "平板", "靠墙")
@@ -183,6 +208,9 @@ public class ExerciseMetTable {
             }
         }
         if (name != null) {
+            // 精确匹配已知器械动作名
+            if (EQUIPMENT_EXERCISE_NAMES.contains(name)) return true;
+            // 关键词模糊匹配
             for (String kw : EQUIPMENT_KEYWORDS) {
                 if (name.contains(kw)) return true;
             }

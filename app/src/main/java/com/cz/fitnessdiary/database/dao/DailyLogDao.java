@@ -84,10 +84,16 @@ public interface DailyLogDao {
     LiveData<List<Long>> getAllRecordTimestamps();
 
     /**
-     * 获取总训练天数
+     * 获取总训练天数（去重日期）
      */
     @Query("SELECT COUNT(DISTINCT date) FROM daily_log")
     int getTotalTrainingDays();
+
+    /**
+     * 获取总训练打卡次数（不去重，用于成就计数）
+     */
+    @Query("SELECT COUNT(*) FROM daily_log WHERE is_completed = 1")
+    int getTotalWorkoutCountSync();
 
     @Query("SELECT COUNT(*) FROM daily_log WHERE date = :date")
     int getTodayPlanCountSync(long date);

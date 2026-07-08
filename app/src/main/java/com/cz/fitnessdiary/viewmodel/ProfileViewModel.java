@@ -43,6 +43,8 @@ public class ProfileViewModel extends AndroidViewModel {
     private final DailyLogDao dailyLogDao;
     private final TrainingPlanDao trainingPlanDao;
     private final FoodRecordDao foodRecordDao;
+    private final com.cz.fitnessdiary.database.dao.WeightRecordDao weightRecordDao;
+    private final com.cz.fitnessdiary.database.dao.BodyMeasurementDao bodyMeasurementDao;
 
     public ProfileViewModel(@NonNull Application application) {
         super(application);
@@ -51,6 +53,8 @@ public class ProfileViewModel extends AndroidViewModel {
         dailyLogDao = database.dailyLogDao();
         trainingPlanDao = database.trainingPlanDao();
         foodRecordDao = database.foodRecordDao();
+        weightRecordDao = database.weightRecordDao();
+        bodyMeasurementDao = database.bodyMeasurementDao();
         executorService = Executors.newSingleThreadExecutor();
 
         loadUserData();
@@ -282,41 +286,79 @@ public class ProfileViewModel extends AndroidViewModel {
      */
     private void loadGameificationData() {
         executorService.execute(() -> {
-            // 1. 计算总训练天数
-            int totalDays = dailyLogDao.getTotalTrainingDays();
-            totalTrainingDays.postValue(totalDays);
+            // 0. 加载当前用户（成就判定需要）
+            User user = userDao.getUserSync();
 
-            // 2. 根据天数计算等级
-            String level = calculateLevel(totalDays);
+            // 1. 计算总训练天数
+            int trainingDays = dailyLogDao.getTotalTrainingDays();
+
+            // 2. 计算饮食记录总天数
+            int dietDays = foodRecordDao.getTotalDietDaysSync();
+
+            // 3. 判定成就（需在计算等级前获取已解锁数）
+            java.util.List<Achievement> achievementList = checkAchievements(trainingDays, user);
+            int unlockedCount = 0;
+            for (Achievement a : achievementList) {
+                if (a.isUnlocked()) unlockedCount++;
+            }
+
+            // 4. 计算综合等级（三维加权 + 活跃度修正）
+            String level = calculateLevel(trainingDays, dietDays, unlockedCount);
             userLevel.postValue(level);
 
-            // 3. 判定成就
-            java.util.List<Achievement> achievementList = checkAchievements(totalDays);
+            // 5. 总训练天数单独展示用
+            totalTrainingDays.postValue(trainingDays);
+
+            // 6. 成就列表
             achievements.postValue(achievementList);
         });
     }
 
     /**
-     * Plan 10: 根据训练天数计算等级
+     * 方案A + 活跃度修正：三维加权积分 × 练食均衡系数
+     *
+     * 基础分 = 训练天数×1.5 + 饮食天数×1.0 + 已解锁成就数×5
+     * 活跃度 = min(饮食天数 / max(训练天数, 1), 1.0)   // 均衡才满分
+     * 最终积分 = 基础分 × (1.0 + 活跃度 × 0.3)
+     *
+     * 活跃度修正含义：只练不吃效率打折，练吃均衡额外加成（最多+30%）
      */
-    private String calculateLevel(int totalDays) {
-        if (totalDays == 0) {
-            return "Lv.0 新手";
-        } else if (totalDays <= 15) {
+    private String calculateLevel(int trainingDays, int dietDays, int unlockedAchievements) {
+        double trainingScore = trainingDays * 1.5;
+        double dietScore = dietDays * 1.0;
+        double achievementBonus = unlockedAchievements * 2.0;
+
+        double baseScore = trainingScore + dietScore + achievementBonus;
+
+        double activityRatio = trainingDays > 0
+                ? Math.min((double) dietDays / trainingDays, 1.0)
+                : (dietDays > 0 ? 1.0 : 0.0);
+        double finalScore = baseScore * (1.0 + activityRatio * 0.3);
+        int score = (int) Math.round(finalScore);
+
+        if (score <= 50) {
+            return "Lv.0 初来乍到 🌱";
+        } else if (score <= 130) {
             return "Lv.1 见习铁友 🐣";
-        } else if (totalDays <= 30) {
-            return "Lv.2 训练生 🔨";
-        } else if (totalDays <= 60) {
+        } else if (score <= 280) {
+            return "Lv.2 进阶训练生 🔨";
+        } else if (score <= 550) {
             return "Lv.3 健身达人 💪";
+        } else if (score <= 1000) {
+            return "Lv.4 塑形精英 ⭐";
+        } else if (score <= 1800) {
+            return "Lv.5 钢铁之躯 🛡️";
+        } else if (score <= 3200) {
+            return "Lv.6 蜕变大师 🔥";
         } else {
-            return "Lv.4 钢铁之躯 🏆";
+            return "Lv.7 传奇缔造者 👑";
         }
     }
 
     /**
      * Plan 10: 检查成就解锁状态
      */
-    private java.util.List<Achievement> checkAchievements(int totalDays) {
+    private java.util.List<Achievement> checkAchievements(int totalDays, User user) {
         java.util.List<Achievement> list = new java.util.ArrayList<>();
 
         // 基础数据查询
@@ -363,15 +405,92 @@ public class ProfileViewModel extends AndroidViewModel {
         list.add(new Achievement("plan_master", "计划大师", "创建 10+ 个训练计划", "📚", planMaster));
 
         // --- 饮食系列 ---
-        // 成就 5: 饮食先锋 (累计 10+ 条饮食记录)
+        // 成就: 饮食先锋 (累计 10+ 条饮食记录)
         boolean dietStarter = foodCount >= 10;
         list.add(new Achievement("diet_logged", "饮食先锋", "累计 10+ 条饮食记录", "🍎", dietStarter));
 
-        // 成就 6: 卡路里克星 (累计 50+ 条饮食记录)
+        // 成就: 卡路里克星 (累计 50+ 条记录)
         boolean calorieBuster = foodCount >= 50;
         list.add(new Achievement("calorie_buster", "卡路里克星", "累计 50+ 条记录", "🔥", calorieBuster));
 
+        // 成就: 饮食大师 (累计 100 条记录)
+        boolean diet100 = foodCount >= 100;
+        list.add(new Achievement("diet_100", "饮食大师", "累计记录100次饮食", "🍽️", diet100));
+
+        // --- 训练次数系列 ---
+        int workoutCount = dailyLogDao.getTotalWorkoutCountSync();
+        // 成就: 百炼成钢 (累计100次训练打卡)
+        boolean workout100 = workoutCount >= 100;
+        list.add(new Achievement("workout_100", "百炼成钢", "累计完成100次训练", "⚔️", workout100));
+
+        // 成就: 千锤百炼 (累计500次)
+        boolean workout500 = workoutCount >= 500;
+        list.add(new Achievement("workout_500", "千锤百炼", "累计完成500次训练", "🛡️", workout500));
+
+        // --- 连签记录 ---
+        android.content.SharedPreferences sp = getApplication().getSharedPreferences("fitness_diary_prefs",
+                android.content.Context.MODE_PRIVATE);
+        int recordStreak = sp.getInt("record_consecutive_days", 0);
+        boolean streakRecord = recordStreak >= 7;
+        list.add(new Achievement("streak_record", "连签破纪录", "连续打卡突破7天", "🏅", streakRecord));
+
+        // --- 体重目标 ---
+        boolean weightGoal = false;
+        if (user != null && user.getWeight() > 0) {
+            java.util.List<com.cz.fitnessdiary.database.entity.WeightRecord> weightRecords =
+                    weightRecordDao.getRecentRecordsSync(30);
+            if (weightRecords != null && weightRecords.size() >= 2) {
+                float currentW = weightRecords.get(0).getWeight();
+                int goal = user.getGoalType();
+                for (int i = 1; i < weightRecords.size(); i++) {
+                    float pastW = weightRecords.get(i).getWeight();
+                    if (goal == 0 && currentW < pastW) { weightGoal = true; break; }      // 减脂：新低
+                    if (goal == 1 && currentW > pastW) { weightGoal = true; break; }      // 增肌：新高
+                }
+                if (goal == 2) { // 保持：30天内波动 < 1kg
+                    weightGoal = true;
+                    for (com.cz.fitnessdiary.database.entity.WeightRecord r : weightRecords) {
+                        if (Math.abs(r.getWeight() - currentW) > 1.0f) { weightGoal = false; break; }
+                    }
+                    weightGoal = weightGoal && weightRecords.size() >= 3;
+                }
+            }
+        }
+        list.add(new Achievement("weight_goal", "体重新突破",
+                getWeightGoalDesc(user), "⚖️", weightGoal));
+
+        // --- 腰围目标 ---
+        boolean waistGoal = false;
+        java.util.List<com.cz.fitnessdiary.database.entity.BodyMeasurement> waistRecords =
+                bodyMeasurementDao.getByTypeAndDateRangeSync("WAIST", 0, System.currentTimeMillis());
+        if (waistRecords != null && waistRecords.size() >= 2) {
+            float currentWaist = waistRecords.get(0).getValue();
+            int goal = user != null ? user.getGoalType() : 0;
+            for (int i = 1; i < waistRecords.size(); i++) {
+                if (goal == 0 && currentWaist < waistRecords.get(i).getValue()) {
+                    waistGoal = true; break;
+                }
+            }
+        }
+        list.add(new Achievement("waist_goal", "腰围新突破",
+                getWaistGoalDesc(user), "📏", waistGoal));
+
         return list;
+    }
+
+    private String getWeightGoalDesc(User user) {
+        if (user == null) return "体重取得新突破";
+        int g = user.getGoalType();
+        if (g == 0) return "减脂目标：体重创新低";
+        if (g == 1) return "增肌目标：体重创新高";
+        return "保持目标：30天体重稳定";
+    }
+
+    private String getWaistGoalDesc(User user) {
+        if (user == null) return "腰围取得新突破";
+        int g = user != null ? user.getGoalType() : 0;
+        if (g == 0) return "减脂目标：腰围创新低";
+        return "腰围持续优化";
     }
 
     // Getters

@@ -108,6 +108,27 @@ public class CheckInViewModel extends AndroidViewModel {
     }
 
     /**
+     * [v1.2] 获取当前活跃的个人计划名称 (从 SharedPreferences 同步)
+     */
+    private String getActivePersonalPlanName() {
+        android.content.SharedPreferences sp = getApplication().getSharedPreferences("fitness_diary_prefs",
+                android.content.Context.MODE_PRIVATE);
+        return sp.getString("active_personal_plan_name", "默认自定义计划");
+    }
+
+    /**
+     * [v2.4] 根据当前模式获取完整的分类过滤前缀。
+     * 基础/进阶: "{mode}-"；自定义: "自定义-{planName}-"
+     */
+    private String getCategoryFilterPrefix() {
+        String mode = getCurrentPlanMode();
+        if ("自定义".equals(mode)) {
+            return "自定义-" + getActivePersonalPlanName() + "-";
+        }
+        return mode + "-";
+    }
+
+    /**
      * 获取选定日期需完成的训练计划 (Plan 26 + Plan 13 回溯 + [v1.2] 模式过滤)
      */
     public LiveData<List<com.cz.fitnessdiary.database.entity.TrainingPlan>> getSelectedDatePlans() {
@@ -117,8 +138,8 @@ public class CheckInViewModel extends AndroidViewModel {
                     if (allPlans == null)
                         return targetPlans;
 
-                    // [v1.2] 获取当前选中的模式前缀
-                    String mode = getCurrentPlanMode();
+                    // [v1.2] 获取当前选中的模式前缀（自定义模式需精确到具体计划名）
+                    String filterPrefix = getCategoryFilterPrefix();
 
                     // 获取选定日期是周几 (1=周一, 7=周日)
                     java.util.Calendar calendar = java.util.Calendar.getInstance();
@@ -127,9 +148,9 @@ public class CheckInViewModel extends AndroidViewModel {
                     int dayIndex = (androidDayOfWeek == java.util.Calendar.SUNDAY) ? 7 : (androidDayOfWeek - 1);
 
                     for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
-                        // [v1.2] 模式过滤：只展示当前模式下的计划
+                        // [v1.2] 模式过滤：只展示当前模式+活跃计划下的动作
                         String cat = plan.getCategory();
-                        if (cat == null || !cat.startsWith(mode + "-")) {
+                        if (cat == null || !cat.startsWith(filterPrefix)) {
                             continue;
                         }
 
@@ -184,7 +205,7 @@ public class CheckInViewModel extends AndroidViewModel {
             List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans = trainingPlanRepository.getAllPlansSync();
             List<com.cz.fitnessdiary.database.entity.TrainingPlan> targetPlans = new ArrayList<>();
             if (allPlans != null) {
-                String mode = getCurrentPlanMode();
+                String filterPrefix = getCategoryFilterPrefix();
                 java.util.Calendar calendar = java.util.Calendar.getInstance();
                 calendar.setTimeInMillis(targetDate);
                 int androidDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK);
@@ -192,7 +213,7 @@ public class CheckInViewModel extends AndroidViewModel {
 
                 for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
                     String cat = plan.getCategory();
-                    if (cat == null || !cat.startsWith(mode + "-")) {
+                    if (cat == null || !cat.startsWith(filterPrefix)) {
                         continue;
                     }
 
@@ -368,8 +389,8 @@ public class CheckInViewModel extends AndroidViewModel {
     // 检查某天是否全勤 (UTC 版本，用于日历高亮)
     private boolean isFullAttendanceUtc(long utcDateTs, List<DailyLog> allLogs,
             List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans) {
-        // [v1.2] 获取选定模式前缀
-        String modePrefix = getCurrentPlanMode() + "-";
+        // [v1.2] 获取选定模式前缀（自定义模式需精确到具体计划名）
+        String filterPrefix = getCategoryFilterPrefix();
 
         // 1. 找出当天应做的计划
         // 注意：这里用 UTC Calendar 确定周几
@@ -381,7 +402,7 @@ public class CheckInViewModel extends AndroidViewModel {
         List<Integer> targetPlanIds = new ArrayList<>();
         for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
             // [v1.2] 模式过滤
-            if (plan.getCategory() == null || !plan.getCategory().startsWith(modePrefix)) {
+            if (plan.getCategory() == null || !plan.getCategory().startsWith(filterPrefix)) {
                 continue;
             }
 
@@ -423,8 +444,8 @@ public class CheckInViewModel extends AndroidViewModel {
     // 检查某天是否全勤
     private boolean isFullAttendance(long dateStr, List<DailyLog> allLogs,
             List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans) {
-        // [v1.2] 获取选定模式前缀
-        String modePrefix = getCurrentPlanMode() + "-";
+        // [v1.2] 获取选定模式前缀（自定义模式需精确到具体计划名）
+        String filterPrefix = getCategoryFilterPrefix();
 
         // 1. 找出当天应做的计划
         java.util.Calendar calendar = java.util.Calendar.getInstance();
@@ -435,7 +456,7 @@ public class CheckInViewModel extends AndroidViewModel {
         List<Integer> targetPlanIds = new ArrayList<>();
         for (com.cz.fitnessdiary.database.entity.TrainingPlan plan : allPlans) {
             // [v1.2] 模式过滤
-            if (plan.getCategory() == null || !plan.getCategory().startsWith(modePrefix)) {
+            if (plan.getCategory() == null || !plan.getCategory().startsWith(filterPrefix)) {
                 continue;
             }
 

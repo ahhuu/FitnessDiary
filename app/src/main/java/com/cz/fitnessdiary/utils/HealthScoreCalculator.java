@@ -204,6 +204,7 @@ public class HealthScoreCalculator {
 
         // 运动目标
         public int targetExerciseMinutes; // 0 = auto (使用默认卡路里阈值 300 kcal)
+        public int stepTarget = 8000;     // 每日步数目标，默认8000
 
         // 营养素目标
         public int targetProteinGrams;  // 0 = auto (1.2g/kg)
@@ -245,8 +246,13 @@ public class HealthScoreCalculator {
      * 阶梯制：完成率≥50%→10, ≥80%→15, 100%→20, 热量阈值+5
      */
     private static int calcExerciseScore(DailyHealthSnapshot data, UserProfile profile) {
+        // 当天没有安排训练计划时，自动给满分（休息日本就该休息）
+        if (data.totalPlans == 0) {
+            return 25;
+        }
+
         int score = 0;
-        if (data.totalPlans > 0 && data.completedPlans > 0) {
+        if (data.completedPlans > 0) {
             float ratio = (float) data.completedPlans / data.totalPlans;
             if (ratio >= 1.0f) {
                 score += 20;
@@ -274,7 +280,11 @@ public class HealthScoreCalculator {
 
     /**
      * 计算饮食评分 (0-25)
-     * 热量12 + 蛋白质8 + 碳水5。不跟踪=0分，鼓励记录
+     * 热量12 + 蛋白质8 + 碳水5。不跟踪=0分，鼓励记录。
+     * 热量评分依据用户健身目标动态调整：
+     * - 增肌：多吃少罚（盈余利于增肌），少吃严罚（亏空影响合成）
+     * - 减脂：多吃严罚（超标阻碍减脂），少吃轻罚（赤字是目标）
+     * - 保持：对称评分，偏离目标均扣分
      */
     private static int calcDietScore(DailyHealthSnapshot data, UserProfile profile) {
         int target = profile.dailyCalorieTarget > 0 ? profile.dailyCalorieTarget : 2000;
@@ -285,16 +295,9 @@ public class HealthScoreCalculator {
         int score = 0;
         float ratio = (float) data.dietCalories / target;
 
-        // Calories component (0-12)
-        if (ratio >= 0.9f && ratio <= 1.1f) {
-            score += 12;
-        } else if (ratio >= 0.8f && ratio <= 1.2f) {
-            score += 8;
-        } else if (ratio < 0.5f || ratio > 1.5f) {
-            score += 2;
-        } else {
-            score += 4;
-        }
+        // Calories component (0-12) — 目标感知动态评分
+        String goal = profile.goalType != null ? profile.goalType : "maintain";
+        score += calcCalorieScoreByGoal(ratio, goal);
 
         // Protein component (0-8): 不跟踪=0，鼓励记录
         if (data.todayProtein > 0) {
@@ -338,6 +341,64 @@ public class HealthScoreCalculator {
     }
 
     /**
+     * 根据健身目标计算热量子评分 (0-12)
+     *
+     * 增肌 (gain)：盈余 OK，亏空扣分重
+     *   完美 12: 0.9~1.3 (吃到目标或适度盈余)
+     *   良好 8:  0.8~0.9 或 1.3~1.5
+     *   一般 4:  0.6~0.8
+     *   差 2:    <0.6 或 >1.5
+     *
+     * 减脂 (lose)：赤字 OK，超标扣分重
+     *   完美 12: 0.7~1.0 (适度赤字到刚好达标)
+     *   良好 8:  0.5~0.7 或 1.0~1.15
+     *   一般 4:  1.15~1.3
+     *   差 2:    <0.5 或 >1.3
+     *
+     * 保持 (maintain)：对称评分
+     *   完美 12: 0.9~1.1
+     *   良好 8:  0.8~1.2
+     *   一般 4:  0.5~1.5 (不含两端)
+     *   差 2:    <0.5 或 >1.5
+     */
+    private static int calcCalorieScoreByGoal(float ratio, String goal) {
+        switch (goal) {
+            case "gain":
+                if (ratio >= 0.9f && ratio <= 1.3f) {
+                    return 12;  // 吃到目标或适度盈余，增肌最佳区间
+                } else if ((ratio >= 0.8f && ratio < 0.9f) || (ratio > 1.3f && ratio <= 1.5f)) {
+                    return 8;   // 轻微亏空或盈余偏多
+                } else if (ratio >= 0.6f && ratio < 0.8f) {
+                    return 4;   // 明显吃不够，影响合成
+                } else {
+                    return 2;   // 严重偏离：极度节食或暴食
+                }
+
+            case "lose":
+                if (ratio >= 0.7f && ratio <= 1.0f) {
+                    return 12;  // 适度赤字到刚好达标，减脂最佳区间
+                } else if ((ratio >= 0.5f && ratio < 0.7f) || (ratio > 1.0f && ratio <= 1.15f)) {
+                    return 8;   // 激进赤字或轻微超标
+                } else if (ratio > 1.15f && ratio <= 1.3f) {
+                    return 4;   // 超标明显，影响减脂
+                } else {
+                    return 2;   // 严重偏离：极度节食或暴食
+                }
+
+            default: // "maintain"
+                if (ratio >= 0.9f && ratio <= 1.1f) {
+                    return 12;
+                } else if (ratio >= 0.8f && ratio <= 1.2f) {
+                    return 8;
+                } else if (ratio >= 0.5f && ratio <= 1.5f) {
+                    return 4;
+                } else {
+                    return 2;
+                }
+        }
+    }
+
+    /**
      * 计算生活习惯评分 (0-20)
      * 分项：睡眠(4) + 饮水(4) + 步数(3) + 用药(3) + 排便(3) + 心情(3)
      */
@@ -361,12 +422,13 @@ public class HealthScoreCalculator {
             score += 1;
         }
 
-        // Steps (0-3)
-        if (data.steps >= 8000) {
+        // Steps (0-3) — 使用用户设定的步数目标
+        int stepTarget = profile.stepTarget > 0 ? profile.stepTarget : 8000;
+        if (data.steps >= stepTarget) {
             score += 3;
-        } else if (data.steps >= 5000) {
+        } else if (data.steps >= stepTarget * 0.625f) {  // ≥62.5% 目标
             score += 2;
-        } else if (data.steps >= 3000) {
+        } else if (data.steps >= stepTarget * 0.375f) {  // ≥37.5% 目标
             score += 1;
         }
 

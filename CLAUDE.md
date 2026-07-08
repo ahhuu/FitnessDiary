@@ -119,6 +119,39 @@ The `AiCallback.kt` interface unifies callbacks across providers.
 - `PlanStatsFragment` — 日历报表页训练数据统计
 - `ReportBottomSheetFragment` / `ReportViewModel` — 个人中心数据周报
 
+### v2.4.2 New Components
+
+**等级系统重做** (`ProfileViewModel.java`)：
+- 三维加权积分公式：`(训练天数×1.5 + 饮食天数×1.0 + 已解锁成就×2.0) × (1.0 + activeRatio×0.3)`
+- 8 档等级（Lv.0~Lv.7），跨度从几十天到数年
+- 新增 `FoodRecordDao.getTotalDietDaysSync()` (归一化日期去重)、`DailyLogDao.getTotalWorkoutCountSync()`
+- 成就列表从 9 个扩展到 15 个，与 `AchievementCenterViewModel` 对齐
+
+**健康透视看板**：
+- `HealthInsightExplainDialog` — BottomSheetDialogFragment，从 `BodyDataDetailBottomSheet` 的健康透视看板区域点击进入
+- 布局 `dialog_health_insight_explain.xml` — 5 个 MaterialCardView：BMI(公式+分级表)、BMR(Mifflin-St Jeor)、TDEE(系数表)、饮食目标(热量/蛋白质/脂肪/碳水)、用户参数
+- 辅助 drawable：`bg_code_block.xml`(公式灰底)、`bg_highlight_row.xml`(数值高亮条)
+
+**每日目标独立存储**：
+- 步数/饮水/体重/运动时长目标均支持按日独立值 + 全局默认回退
+- 存储键格式：`{key}_{dateTs}`（如 `step_target_1719878400000`）
+- 读取优先级：当日值 → 全局默认 → 硬编码兜底
+
+**饮食评分动态化** (`HealthScoreCalculator.calcCalorieScoreByGoal()`)：
+- 增肌：盈余 OK（0.9~1.3 满分），亏空严罚
+- 减脂：赤字 OK（0.7~1.0 满分），超标严罚
+- 保持：对称评分（0.9~1.1 满分）
+
+**器械动作识别修复** (`ExerciseMetTable`)：
+- 新增 `EQUIPMENT_EXERCISE_NAMES` 集合（19 个动作），解决锤式弯举、阿诺德推举等无关键词器械动作被误判为自重
+
+**训练评分修复** (`HealthScoreCalculator.calcExerciseScore()`)：
+- `totalPlans == 0` → 自动 25 分（休息日）
+- `totalPlans` 数据源从 `daily_log` 改为 `training_plan` 按模式+星期过滤 (`HealthAggregationRepository.countScheduledPlans()`)
+
+**自定义计划筛选修复** (`CheckInViewModel`)：
+- 新增 `getCategoryFilterPrefix()`：自定义模式精确到 `"自定义-{计划名}-"` 前缀，不再匹配所有个人计划
+
 ### Background & Sensors
 
 - `ReminderReceiver` extends `BroadcastReceiver` — handles 6 custom actions (training reminder, record reminder, morning summary, evening reminder, inactivity nudge, weekly report) plus boot-completed to re-schedule alarms after reboot

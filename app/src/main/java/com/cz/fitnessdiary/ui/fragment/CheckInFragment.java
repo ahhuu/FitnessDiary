@@ -1347,8 +1347,15 @@ public class CheckInFragment extends Fragment {
                     // 读取目标运动时长 (per-date)
                     SharedPreferences sp = context.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
                     profile.targetExerciseMinutes = sp.getInt("target_minutes_" + date, 0);
+                    // 步数目标：优先当日独立值，无则回落全局默认
+                    profile.stepTarget = sp.getInt("step_target_" + date, sp.getInt("step_target", 8000));
+                    // 饮水目标：优先当日独立值，无则回落全局
+                    int dateWater = sp.getInt("water_target_" + date, -1);
+                    if (dateWater > 0) profile.waterTargetMl = dateWater;
                     SharedPreferences scorePrefs = context.getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
-                    profile.customTargetWeight = scorePrefs.getFloat("target_weight_kg", -1f);
+                    // 体重目标：优先当日独立值，无则回落全局
+                    profile.customTargetWeight = scorePrefs.getFloat("target_weight_kg_" + date,
+                            scorePrefs.getFloat("target_weight_kg", -1f));
                 } catch (Exception ignored) {}
 
                 HealthScoreBreakdown breakdown = HealthScoreCalculator.calculateBreakdown(snapshot, profile);
@@ -1396,7 +1403,7 @@ public class CheckInFragment extends Fragment {
                 com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
                 if (user != null) {
                     if (user.getDailyCalorieTarget() > 0) profile.dailyCalorieTarget = user.getDailyCalorieTarget();
-                    if (user.getDailyWaterTarget() > 0) profile.waterTargetMl = user.getDailyWaterTarget();
+                    // 饮水目标已在下方统一处理
                     profile.weightKg = user.getWeight();
                     profile.heightCm = user.getHeight();
                     profile.age = user.getAge();
@@ -1411,8 +1418,13 @@ public class CheckInFragment extends Fragment {
                 // 读取目标运动时长 (per-date)
                 SharedPreferences sp = ctx.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE);
                 profile.targetExerciseMinutes = sp.getInt("target_minutes_" + date, 0);
+                profile.stepTarget = sp.getInt("step_target_" + date, sp.getInt("step_target", 8000));
+                int dateWater = sp.getInt("water_target_" + date, -1);
+                if (dateWater > 0) profile.waterTargetMl = dateWater;
+                else if (user != null && user.getDailyWaterTarget() > 0) profile.waterTargetMl = user.getDailyWaterTarget();
                 SharedPreferences scorePrefs = ctx.getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
-                profile.customTargetWeight = scorePrefs.getFloat("target_weight_kg", -1f);
+                profile.customTargetWeight = scorePrefs.getFloat("target_weight_kg_" + date,
+                        scorePrefs.getFloat("target_weight_kg", -1f));
             } catch (Exception ignored) {}
 
             HealthScoreBreakdown breakdown = HealthScoreCalculator.calculateBreakdown(snapshot, profile);
@@ -1452,7 +1464,8 @@ public class CheckInFragment extends Fragment {
                 if (snapshot.waterMl >= profile.waterTargetMl) habitStatus.append("💧✅ ");
                 else if (snapshot.waterMl > 0) habitStatus.append("💧⚠️ ");
                 else habitStatus.append("💧-- ");
-                if (snapshot.steps >= 8000) habitStatus.append("👣" + snapshot.steps + " ✅");
+                int stepGoal = profile.stepTarget > 0 ? profile.stepTarget : 8000;
+                if (snapshot.steps >= stepGoal) habitStatus.append("👣" + snapshot.steps + " ✅");
                 else if (snapshot.steps > 0) habitStatus.append("👣" + snapshot.steps + " ⚠️");
                 else habitStatus.append("👣--");
                 detail.append("💧 习惯  ").append(bar(habitRatio)).append(" ").append(breakdown.habitsScore).append("/20  ").append(habitStatus).append("\n");
@@ -2064,12 +2077,12 @@ public class CheckInFragment extends Fragment {
     private void computeAndDisplayExerciseCalories() {
         new Thread(() -> {
             int totalCal = 0;
+            java.util.HashSet<Integer> donePlanIds = new java.util.HashSet<>();
+            float weightKg = 70f;
             if (!currentPlans.isEmpty()) {
-                java.util.HashSet<Integer> donePlanIds = new java.util.HashSet<>();
                 for (DailyLog log : currentLogs) {
                     if (log.isCompleted()) donePlanIds.add(log.getPlanId());
                 }
-                float weightKg = 70f;
                 try {
                     com.cz.fitnessdiary.database.AppDatabase db =
                             com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
@@ -2097,13 +2110,15 @@ public class CheckInFragment extends Fragment {
                     totalCal += (int) cal;
                 }
             }
-            // Step calories
-            long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+            // Step calories — 使用选中日期而非总是今天
+            Long selectedDate = checkInViewModel.getSelectedDate().getValue();
+            long viewDate = selectedDate != null ? selectedDate
+                    : com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
             com.cz.fitnessdiary.database.entity.StepRecord step = null;
             try {
                 com.cz.fitnessdiary.database.AppDatabase db =
                         com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
-                step = db.stepRecordDao().getByDateSync(today);
+                step = db.stepRecordDao().getByDateSync(viewDate);
             } catch (Exception ignored) {}
             int stepCal = 0;
             if (step != null && step.getSteps() > 0) {
@@ -2112,6 +2127,36 @@ public class CheckInFragment extends Fragment {
             }
 
             int workoutCal = totalCal - stepCal;
+
+            // 如果用户设了当天训练总时长，按加权平均MET重算运动消耗（与日历弹窗口径一致）
+            int targetMin = requireContext().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE)
+                    .getInt("target_minutes_" + viewDate, 0);
+            if (targetMin > 0 && workoutCal > 0) {
+                // 重新计算累计时长，用于加权平均
+                double totalDurHoursForWeighted = 0;
+                double totalWeightedMet = 0;
+                for (TrainingPlan plan : currentPlans) {
+                    if (!donePlanIds.contains(plan.getPlanId())) continue;
+                    int durSec = 0;
+                    for (DailyLog log : currentLogs) {
+                        if (log.getPlanId() == plan.getPlanId() && log.isCompleted()) {
+                            durSec = log.getDuration() > 0 ? log.getDuration() : plan.getDuration();
+                            break;
+                        }
+                    }
+                    if (durSec <= 0)
+                        durSec = ExerciseMetTable.resolveDuration(0, plan.getDuration(), requireContext());
+                    double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
+                    totalWeightedMet += met * durSec;
+                    totalDurHoursForWeighted += durSec / 3600.0;
+                }
+                if (totalDurHoursForWeighted > 0) {
+                    double avgMet = totalWeightedMet / (totalDurHoursForWeighted * 3600);
+                    workoutCal = (int) (avgMet * weightKg * (targetMin / 60.0));
+                    totalCal = workoutCal + stepCal;
+                }
+            }
+
             exerciseCalories = totalCal; // 赋值给成员变量以同步更新外露消耗标签
             
             final int finalTotal = totalCal;
@@ -2433,11 +2478,15 @@ public class CheckInFragment extends Fragment {
                 com.cz.fitnessdiary.database.entity.User u = db.userDao().getUserSync();
                 if (u != null) {
                     if (u.getDailyCalorieTarget() > 0) calTarget = u.getDailyCalorieTarget();
-                    if (u.getDailyWaterTarget() > 0) waterTarget = u.getDailyWaterTarget();
+                    waterTarget = u.getDailyWaterTarget() > 0 ? u.getDailyWaterTarget() : 2000;
                 }
                 android.content.SharedPreferences sp = requireContext()
                         .getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
-                int savedStep = sp.getInt("step_target", 0);
+                long todayTs = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                // 步数/饮水目标：优先当日独立值，无则回落全局默认
+                int savedStep = sp.getInt("step_target_" + todayTs, sp.getInt("step_target", 0));
+                int savedWater = sp.getInt("water_target_" + todayTs, -1);
+                if (savedWater > 0) waterTarget = savedWater;
                 if (savedStep > 0) stepTarget = savedStep;
             } catch (Exception ignored) {}
 

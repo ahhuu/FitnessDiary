@@ -50,7 +50,8 @@ public class StepDetailViewModel extends AndroidViewModel {
     public int getStepTarget() {
         SharedPreferences sp = getApplication().getSharedPreferences(
                 "fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
-        return sp.getInt("step_target", 8000);
+        long today = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+        return sp.getInt("step_target_" + today, sp.getInt("step_target", 8000));
     }
 
     public void setStepTarget(int target) {

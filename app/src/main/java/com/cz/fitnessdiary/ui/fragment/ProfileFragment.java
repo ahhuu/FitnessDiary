@@ -322,6 +322,13 @@ public class ProfileFragment extends Fragment {
                         androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ai_primary));
             }
         });
+
+        // 动态更新用户等级标签
+        viewModel.getUserLevel().observe(getViewLifecycleOwner(), level -> {
+            if (level != null && !level.isEmpty()) {
+                binding.tvUserLevel.setText(level);
+            }
+        });
     }
 
     private void refreshBodyDataSummaryText(User user) {
@@ -331,12 +338,9 @@ public class ProfileFragment extends Fragment {
         float hMeter = h / 100.0f;
         float bmi = (hMeter > 0) ? w / (hMeter * hMeter) : 0;
 
-        double bmr;
-        if ("女".equals(user.getGender())) {
-            bmr = 655 + (9.6 * w) + (1.8 * h) - (4.7 * user.getAge());
-        } else {
-            bmr = 66 + (13.7 * w) + (5.0 * h) - (6.8 * user.getAge());
-        }
+        // 使用 Mifflin-St Jeor 公式（与 CalorieCalculatorUtils 统一）
+        double bmr = com.cz.fitnessdiary.utils.CalorieCalculatorUtils.calculateBMR(
+                user.getGender(), w, h, user.getAge());
 
         String summary = "身高 " + String.format(Locale.getDefault(), "%.0f", h) + "cm · 体重 "
                 + UnitUtils.formatWeight(w, requireContext()) + UnitUtils.getWeightUnitSymbol(requireContext())
@@ -672,6 +676,83 @@ public class ProfileFragment extends Fragment {
             openImagePicker();
         });
         layout.addView(btnAvatar);
+
+        // ── 等级积分状态卡片 ──
+        View spacer = new View(requireContext());
+        spacer.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 20));
+        layout.addView(spacer);
+
+        com.google.android.material.card.MaterialCardView cardStats =
+                new com.google.android.material.card.MaterialCardView(requireContext());
+        cardStats.setCardBackgroundColor(
+                androidx.core.content.ContextCompat.getColor(requireContext(), R.color.fitnessdiary_surface));
+        cardStats.setCardElevation(0);
+        float density = getResources().getDisplayMetrics().density;
+        cardStats.setRadius((int) (12 * density));
+        cardStats.setContentPadding((int) (14 * density), (int) (12 * density), (int) (14 * density), (int) (12 * density));
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardStats.setLayoutParams(cardParams);
+
+        LinearLayout statsLayout = new LinearLayout(requireContext());
+        statsLayout.setOrientation(LinearLayout.VERTICAL);
+
+        TextView tvStatsTitle = new TextView(requireContext());
+        tvStatsTitle.setText("📊 当前状态");
+        tvStatsTitle.setTextSize(13);
+        tvStatsTitle.setTextColor(getResources().getColor(R.color.text_secondary, null));
+        tvStatsTitle.setPadding(0, 0, 0, 8);
+        statsLayout.addView(tvStatsTitle);
+
+        TextView tvStatsDetail = new TextView(requireContext());
+        tvStatsDetail.setText("加载中...");
+        tvStatsDetail.setTextSize(14);
+        tvStatsDetail.setTextColor(getResources().getColor(R.color.text_primary, null));
+        tvStatsDetail.setLineSpacing(4, 1);
+        statsLayout.addView(tvStatsDetail);
+
+        cardStats.addView(statsLayout);
+        layout.addView(cardStats);
+
+        // 后台加载等级数据
+        new Thread(() -> {
+            com.cz.fitnessdiary.database.AppDatabase db =
+                    com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
+            int trainingDays = db.dailyLogDao().getTotalTrainingDays();
+            int dietDays = db.foodRecordDao().getTotalDietDaysSync();
+            String level = viewModel.getUserLevel().getValue();
+            if (level == null || level.isEmpty()) level = "Lv.0 初来乍到 🌱";
+            final String fLevel = level;
+            final int fTrain = trainingDays;
+            final int fDiet = dietDays;
+
+            // 反推当前积分
+            double trainingScore = trainingDays * 1.5;
+            double dietScore = dietDays * 1.0;
+            // 成就数从 LiveData 取
+            java.util.List<com.cz.fitnessdiary.model.Achievement> achs = viewModel.getAchievements().getValue();
+            int unlocked = 0;
+            if (achs != null) {
+                for (com.cz.fitnessdiary.model.Achievement a : achs) {
+                    if (a.isUnlocked()) unlocked++;
+                }
+            }
+            double baseScore = trainingScore + dietScore + unlocked * 2.0;
+            double activityRatio = trainingDays > 0
+                    ? Math.min((double) dietDays / trainingDays, 1.0)
+                    : (dietDays > 0 ? 1.0 : 0.0);
+            int finalScore = (int) Math.round(baseScore * (1.0 + activityRatio * 0.3));
+            final int fScore = finalScore;
+            final int fUnlocked = unlocked;
+
+            if (isAdded()) {
+                requireActivity().runOnUiThread(() -> {
+                    tvStatsDetail.setText(String.format(java.util.Locale.getDefault(),
+                            "训练 %d 天 · 饮食 %d 天 · %d 成就\n当前积分 %d · %s",
+                            fTrain, fDiet, fUnlocked, fScore, fLevel));
+                });
+            }
+        }).start();
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("✏️ 编辑个人资料")
@@ -1753,13 +1834,28 @@ public class ProfileFragment extends Fragment {
                 "极重度活跃 (高强度竞技/体力劳动 - 系数 1.9)"
         };
         final double[] activityFactors = {1.2, 1.375, 1.55, 1.725, 1.9};
-        
-        final AutoCompleteTextView actv = new AutoCompleteTextView(context);
-        actv.setText(activityLevels[1], false); // 默认轻度活跃
-        actv.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_dropdown_item_1line, activityLevels));
-        actv.setFocusable(false);
-        actv.setLayoutParams(itemParams);
-        layout.addView(actv);
+        final int[] selectedIdx = {1}; // 默认轻度活跃
+
+        // 使用普通 TextView + 点击弹单选列表，避免 AutoCompleteTextView 在 AlertDialog 中无法交互
+        final TextView tvActivitySelected = new TextView(context);
+        tvActivitySelected.setText(activityLevels[1]);
+        tvActivitySelected.setTextSize(14);
+        tvActivitySelected.setTextColor(getResources().getColor(R.color.fitnessdiary_primary, null));
+        tvActivitySelected.setPadding(12, 14, 12, 14);
+        tvActivitySelected.setBackground(androidx.core.content.ContextCompat.getDrawable(context, R.drawable.bg_code_block));
+        tvActivitySelected.setLayoutParams(itemParams);
+        tvActivitySelected.setOnClickListener(v -> {
+            new MaterialAlertDialogBuilder(context)
+                    .setTitle("日常活动水平")
+                    .setSingleChoiceItems(activityLevels, selectedIdx[0], (d, i) -> {
+                        selectedIdx[0] = i;
+                        tvActivitySelected.setText(activityLevels[i]);
+                        d.dismiss();
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+        });
+        layout.addView(tvActivitySelected);
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle("TDEE 每日总能耗精算")
@@ -1771,14 +1867,7 @@ public class ProfileFragment extends Fragment {
                         double h = Double.parseDouble(etHeight.getText().toString().trim());
                         int a = Integer.parseInt(etAge.getText().toString().trim());
                         
-                        String selectedAct = actv.getText().toString();
-                        double factor = 1.375;
-                        for (int i = 0; i < activityLevels.length; i++) {
-                            if (activityLevels[i].equals(selectedAct)) {
-                                factor = activityFactors[i];
-                                break;
-                            }
-                        }
+                        double factor = activityFactors[selectedIdx[0]];
 
                         // Mifflin-St Jeor 基础代谢公式
                         double bmr;
@@ -2015,6 +2104,9 @@ public class ProfileFragment extends Fragment {
                                 if (water >= 0 && water <= 20000) {
                                     user.setDailyWaterTarget(water);
                                     AppDatabase.getInstance(ctx).userDao().update(user);
+                                    // 同时写入当日独立值
+                                    long todayTs = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                                    stepSp.edit().putInt("water_target_" + todayTs, water).apply();
                                 }
                             } catch (NumberFormatException ignored) {}
                         }
@@ -2023,7 +2115,10 @@ public class ProfileFragment extends Fragment {
                                 try {
                                     int steps = Integer.parseInt(stepStr);
                                     if (steps >= 0 && steps <= 100000) {
+                                        // 保存全局默认 + 当日独立值，避免修改影响其他日期
                                         stepSp.edit().putInt("step_target", steps).apply();
+                                        long todayTs = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                                        stepSp.edit().putInt("step_target_" + todayTs, steps).apply();
                                     }
                                 } catch (NumberFormatException ignored) {}
                             }
@@ -2032,6 +2127,10 @@ public class ProfileFragment extends Fragment {
                                     int mins = Integer.parseInt(exerciseStr);
                                     if (mins >= 0 && mins <= 600) {
                                         exerciseSp.edit().putInt("target_minutes_default", mins).apply();
+                                        // 同时写入当日独立值，避免被后续修改覆盖
+                                        long todayTs = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                                        requireContext().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE)
+                                                .edit().putInt("target_minutes_" + todayTs, mins).apply();
                                     }
                                 } catch (NumberFormatException ignored) {}
                             }
@@ -2042,6 +2141,9 @@ public class ProfileFragment extends Fragment {
                                     float w = Float.parseFloat(weightStr);
                                     if (w > 0 && w < 500) {
                                         healthSp.edit().putFloat("target_weight_kg", w).apply();
+                                        // 同时写入当日独立值
+                                        long todayTs = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+                                        healthSp.edit().putFloat("target_weight_kg_" + todayTs, w).apply();
                                     }
                                 } catch (NumberFormatException ignored) {}
                             }
