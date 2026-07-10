@@ -135,7 +135,7 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@drawable/ic_analytics"
+                        android:src="@drawable/ic_body_data"
                         app:tint="@color/fitnessdiary_primary"
                         android:layout_marginEnd="12dp"
                         android:contentDescription="身体数据图标" />
@@ -184,7 +184,7 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@drawable/ic_ach_trophy"
+                        android:src="@drawable/ic_fitness_goal"
                         app:tint="@color/fitnessdiary_primary"
                         android:layout_marginEnd="12dp"
                         android:contentDescription="阶段目标图标" />
@@ -491,7 +491,7 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@drawable/ic_hourglass"
+                        android:src="@drawable/ic_smart_devices"
                         app:tint="@color/fitnessdiary_primary"
                         android:layout_marginEnd="12dp"
                         android:contentDescription="设备连接图标" />
@@ -587,7 +587,7 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@drawable/ic_thinking"
+                        android:src="@drawable/ic_notifications_bell"
                         app:tint="@color/fitnessdiary_primary"
                         android:layout_marginEnd="12dp"
                         android:contentDescription="提醒图标" />
@@ -625,7 +625,7 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@drawable/ic_delete"
+                        android:src="@drawable/ic_data_backup"
                         app:tint="@color/fitnessdiary_primary"
                         android:layout_marginEnd="12dp"
                         android:contentDescription="数据管理图标" />
@@ -663,7 +663,7 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@drawable/ic_hero_fire"
+                        android:src="@drawable/ic_target_settings"
                         app:tint="@color/fitnessdiary_primary"
                         android:layout_marginEnd="12dp"
                         android:contentDescription="目标设置图标" />
@@ -825,45 +825,6 @@
                         android:layout_gravity="center_vertical"
                         android:contentDescription="向右箭头" />
                 </LinearLayout>
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/divider"
-                    android:layout_marginHorizontal="16dp" />
-                <!-- 健康日报 -->
-                <LinearLayout
-                    android:id="@+id/btn_health_briefing"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="16dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_analytics"
-                        app:tint="@color/fitnessdiary_primary"
-                        android:layout_marginEnd="12dp"
-                        android:scaleType="fitCenter"
-                        android:contentDescription="健康日报图标" />
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="健康日报回顾"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp" />
-                    <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_arrow_right"
-                        app:tint="@color/text_hint"
-                        android:layout_gravity="center_vertical"
-                        android:contentDescription="向右箭头" />
-                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         <!-- 关于健身日记分类块 -->
@@ -902,7 +863,7 @@
                     <ImageView
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:src="@drawable/ic_globe"
+                        android:src="@drawable/ic_about_app"
                         app:tint="@color/fitnessdiary_primary"
                         android:layout_marginEnd="12dp"
                         android:contentDescription="关于图标" />

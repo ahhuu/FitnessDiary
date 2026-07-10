@@ -80,9 +80,19 @@ public class HabitDetailViewModel extends AndroidViewModel {
                     continue;
                 int completed = repository.getCompletedCountByHabitAndDateRangeSync(item.getId(), rangeStart,
                         dayStart + 24L * 60L * 60L * 1000L);
-                int total = repository.getRecordCountByHabitAndDateRangeSync(item.getId(), rangeStart,
-                        dayStart + 24L * 60L * 60L * 1000L);
-                int rate = total == 0 ? 0 : Math.round(completed * 100f / total);
+                
+                // 以最近 30 天为统计标准，同时对新添加习惯进行分母保护
+                Long oldestRecordDate = repository.getOldestRecordDateSync(item.getId());
+                int expectedTotalDays = 30; // 默认以 30 天为分母
+                if (oldestRecordDate == null) {
+                    expectedTotalDays = 1; // 暂无记录，默认 1 天，配合已完成 0 计算完成率为 0%
+                } else {
+                    // 自最早记录日期到当前选择日期的自然天数（含当天 +1）
+                    int daysSinceCreation = (int) ((dayStart - oldestRecordDate) / (24L * 60L * 60L * 1000L)) + 1;
+                    expectedTotalDays = Math.max(1, Math.min(30, daysSinceCreation));
+                }
+                
+                int rate = Math.round(completed * 100f / expectedTotalDays);
 
                 List<HabitRecord> recent = repository.getRecentByHabitSync(item.getId(), 60);
                 Set<Long> doneDays = new HashSet<>();

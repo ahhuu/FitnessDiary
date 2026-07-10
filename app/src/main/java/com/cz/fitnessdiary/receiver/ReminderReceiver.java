@@ -22,6 +22,9 @@ import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.utils.SmartReminderHelper;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class ReminderReceiver extends BroadcastReceiver {
 
     private static final String CHANNEL_ID = "training_reminder_channel";
@@ -35,91 +38,75 @@ public class ReminderReceiver extends BroadcastReceiver {
         String action = intent.getAction();
         Log.d(TAG, "onReceive: action=" + action);
 
-        Context appContext = context.getApplicationContext();
+        final Context appContext = context.getApplicationContext();
+        final PendingResult pendingResult = goAsync();
 
-        if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            ReminderManager.restoreReminder(appContext);
-            ReminderManager.restoreAll(appContext);
-            if (ReminderManager.isSmartReminderEnabled(appContext)) {
-                ReminderManager.restoreSmartReminders(appContext);
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+                    ReminderManager.restoreReminder(appContext);
+                    ReminderManager.restoreAll(appContext);
+                    ReminderManager.restoreSmartReminders(appContext);
+                    return;
+                }
+
+                if (ReminderManager.ACTION_REMINDER.equals(action)) {
+                    showNotification(appContext, TRAINING_NOTIFICATION_ID, "该训练啦！",
+                            "今天的训练目标还没完成，点击开始打卡吧。", null, 0L, CHANNEL_ID);
+                    ReminderManager.restoreReminder(appContext);
+                    return;
+                }
+
+                if (ReminderManager.ACTION_RECORD_REMINDER.equals(action)) {
+                    long scheduleId = intent.getLongExtra(ReminderManager.EXTRA_SCHEDULE_ID, 0L);
+                    String moduleType = intent.getStringExtra(ReminderManager.EXTRA_MODULE_TYPE);
+                    String title = intent.getStringExtra(ReminderManager.EXTRA_TITLE);
+                    long targetId = intent.getLongExtra(ReminderManager.EXTRA_TARGET_ID, 0L);
+                    String content = intent.getStringExtra(ReminderManager.EXTRA_CONTENT);
+
+                    if (title == null || title.trim().isEmpty()) title = "记录提醒";
+                    if (content == null || content.trim().isEmpty()) content = "请完成今日记录";
+
+                    showNotification(appContext, 2000 + (int) (scheduleId % 500), title, content,
+                            moduleType, targetId, CHANNEL_ID);
+                    ReminderManager.restoreAll(appContext);
+                    return;
+                }
+
+                // ── Smart notifications ──
+                if (ReminderManager.ACTION_MORNING_SUMMARY.equals(action)) {
+                    String title = SmartReminderHelper.getMorningTitle();
+                    DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, -1);
+                    String content = SmartReminderHelper.getMorningContent(appContext, snapshot);
+                    showNotification(appContext, 3001, title, content, null, 0L, CHANNEL_SMART);
+                    ReminderManager.scheduleMorningSummary(appContext);
+                    return;
+                }
+
+                if (ReminderManager.ACTION_EVENING_REMINDER.equals(action)) {
+                    DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, 0);
+                    String title = SmartReminderHelper.getEveningTitle(appContext);
+                    String content = SmartReminderHelper.getEveningContent(appContext, snapshot);
+                    if (SmartReminderHelper.shouldSendEveningReminder(appContext)) {
+                        showNotification(appContext, 3002, title, content, null, 0L, CHANNEL_SMART);
+                    }
+                    ReminderManager.scheduleEveningReminder(appContext);
+                    return;
+                }
+
+                if (ReminderManager.ACTION_WEEKLY_REPORT.equals(action)) {
+                    String title = "本周健康周报已生成";
+                    String content = com.cz.fitnessdiary.utils.WeeklyReportHelper.getSummary(appContext);
+                    showNotification(appContext, 3004, title, content, "WEEKLY_REPORT", 0L, CHANNEL_SMART);
+                    ReminderManager.restoreAllReminders(appContext);
+                    return;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error handling reminder broadcast action=" + action, e);
+            } finally {
+                pendingResult.finish();
             }
-            return;
-        }
-
-        if (ReminderManager.ACTION_REMINDER.equals(action)) {
-            showNotification(appContext, TRAINING_NOTIFICATION_ID, "该训练啦！",
-                    "今天的训练目标还没完成，点击开始打卡吧。", null, 0L, CHANNEL_ID);
-            ReminderManager.restoreReminder(appContext);
-            return;
-        }
-
-        if (ReminderManager.ACTION_RECORD_REMINDER.equals(action)) {
-            long scheduleId = intent.getLongExtra(ReminderManager.EXTRA_SCHEDULE_ID, 0L);
-            String moduleType = intent.getStringExtra(ReminderManager.EXTRA_MODULE_TYPE);
-            String title = intent.getStringExtra(ReminderManager.EXTRA_TITLE);
-            long targetId = intent.getLongExtra(ReminderManager.EXTRA_TARGET_ID, 0L);
-            String content = intent.getStringExtra(ReminderManager.EXTRA_CONTENT);
-
-            if (title == null || title.trim().isEmpty()) title = "记录提醒";
-            if (content == null || content.trim().isEmpty()) content = "请完成今日记录";
-
-            showNotification(appContext, 2000 + (int) (scheduleId % 500), title, content,
-                    moduleType, targetId, CHANNEL_ID);
-            ReminderManager.restoreAll(appContext);
-            return;
-        }
-
-        // ── Smart notifications ──
-        if (ReminderManager.ACTION_MORNING_SUMMARY.equals(action)) {
-            String title = SmartReminderHelper.getMorningTitle();
-            DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, -1);
-            String content = SmartReminderHelper.getMorningContent(appContext, snapshot);
-            showNotification(appContext, 3001, title, content, null, 0L, CHANNEL_SMART);
-            ReminderManager.scheduleMorningSummary(appContext);
-            return;
-        }
-
-        if (ReminderManager.ACTION_EVENING_REMINDER.equals(action)) {
-            DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, 0);
-            String title = SmartReminderHelper.getEveningTitle(appContext);
-            String content = SmartReminderHelper.getEveningContent(appContext, snapshot);
-            if (SmartReminderHelper.shouldSendEveningReminder(appContext)) {
-                showNotification(appContext, 3002, title, content, null, 0L, CHANNEL_SMART);
-            }
-            ReminderManager.scheduleEveningReminder(appContext);
-            return;
-        }
-
-        if (ReminderManager.ACTION_INACTIVITY_NUDGE.equals(action)) {
-            if (SmartReminderHelper.shouldSendInactivityNudge(appContext)) {
-                String title = SmartReminderHelper.getInactivityTitle();
-                DailyHealthSnapshot snapshot = tryGetTodaySnapshot(appContext, 0);
-                String content = SmartReminderHelper.getInactivityContent(snapshot);
-                showNotification(appContext, 3003, title, content, null, 0L, CHANNEL_SMART);
-            }
-            ReminderManager.scheduleInactivityNudge(appContext);
-            return;
-        }
-
-        if (ReminderManager.ACTION_WEEKLY_REPORT.equals(action)) {
-            String title = "本周健康周报已生成";
-            String content = com.cz.fitnessdiary.utils.WeeklyReportHelper.getSummary(appContext);
-            showNotification(appContext, 3004, title, content, "WEEKLY_REPORT", 0L, CHANNEL_SMART);
-            ReminderManager.scheduleWeeklyReport(appContext);
-            return;
-        }
-
-        if (ReminderManager.ACTION_SMART_WELCOME.equals(action)) {
-            String morningTime = String.format("%02d:%02d",
-                    ReminderManager.getMorningHour(appContext),
-                    ReminderManager.getMorningMinute(appContext));
-            String eveningTime = String.format("%02d:%02d",
-                    ReminderManager.getEveningHour(appContext),
-                    ReminderManager.getEveningMinute(appContext));
-            String content = "早晨概要 " + morningTime + " · 晚间提醒 " + eveningTime + " · 周报 · 不活跃挽留 已全部启动 🎉";
-            showNotification(appContext, 3009, "智能助手已启动 🚀", content, null, 0L, CHANNEL_SMART);
-        }
-
+        });
     }
 
     private void showNotification(Context context, int notifyId, String title, String content,

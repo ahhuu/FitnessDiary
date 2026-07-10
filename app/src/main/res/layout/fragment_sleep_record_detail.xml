@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_detail_header_sleep">
+    android:background="@color/fitnessdiary_background">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar"
@@ -167,6 +167,152 @@
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
                         android:layout_marginTop="16dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 睡眠规律与质量分析 (近30天) Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_sleep_analysis"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/fitnessdiary_surface"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="睡眠规律与质量分析 (近30天)"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <!-- Stats columns -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="12dp"
+                        android:weightSum="3">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="平均睡眠"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary" />
+                            <TextView
+                                android:id="@+id/tv_avg_sleep_duration"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="0.0 h"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/cat_sleep_primary" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="规律达标率"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary" />
+                            <TextView
+                                android:id="@+id/tv_sleep_sufficient_ratio"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="0.0%"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:textColor="#4CAF50" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="最晚入睡"
+                                android:textSize="11sp"
+                                android:textColor="@color/text_secondary" />
+                            <TextView
+                                android:id="@+id/tv_latest_bedtime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="--"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:textColor="#FF9800" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#10000000"
+                        android:layout_marginVertical="12dp" />
+
+                    <!-- Warning Text -->
+                    <TextView
+                        android:id="@+id/tv_sleep_warning"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="睡眠异常警告：无"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <!-- Local Advice Text -->
+                    <TextView
+                        android:id="@+id/tv_sleep_local_advice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="正在收集近30天睡眠规律并分析数据..."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:alpha="0.9" />
+
+                    <!-- AI Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_sleep_ai_diagnosis"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="✨ 生成 AI 睡眠健康诊断报告"
+                        android:textColor="@color/cat_sleep_primary"
+                        app:icon="@drawable/ic_analytics"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/cat_sleep_primary" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

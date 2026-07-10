@@ -49,7 +49,20 @@ public class ReminderScheduleAdapter extends RecyclerView.Adapter<ReminderSchedu
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ReminderSchedule schedule = schedules.get(position);
         holder.tvTitle.setText(schedule.getTitle());
-        holder.tvTime.setText(String.format("⏰ %02d:%02d", schedule.getHour(), schedule.getMinute()));
+        if ("weekly_report".equals(schedule.getModuleType())) {
+            String[] days = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+            int dayIndex = 1;
+            try {
+                String repeatDaysStr = schedule.getRepeatDays();
+                if (repeatDaysStr != null && !repeatDaysStr.isEmpty()) {
+                    dayIndex = Integer.parseInt(repeatDaysStr.split(",")[0].trim());
+                }
+            } catch (Exception ignored) {}
+            if (dayIndex < 0 || dayIndex > 6) dayIndex = 1;
+            holder.tvTime.setText(String.format("⏰ %s %02d:%02d", days[dayIndex], schedule.getHour(), schedule.getMinute()));
+        } else {
+            holder.tvTime.setText(String.format("⏰ %02d:%02d", schedule.getHour(), schedule.getMinute()));
+        }
 
         holder.switchEnabled.setOnCheckedChangeListener(null);
         holder.switchEnabled.setChecked(schedule.isEnabled());

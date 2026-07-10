@@ -89,6 +89,10 @@
     <color name="cat_menstrual_primary">#C48CB0</color>
     <color name="cat_menstrual_bg">#382A32</color>
 
+    <!-- Dark mode 身体数据磨砂背景板半透明色 -->
+    <color name="panel_translucent_bg">#D92C2C2C</color>
+    <color name="panel_translucent_stroke">#1AFFFFFF</color>
+
     <!-- Dark mode guide tooltip colors -->
     <color name="guide_tooltip_title">#E0E0E0</color>
     <color name="guide_tooltip_desc">#B0B0B0</color>

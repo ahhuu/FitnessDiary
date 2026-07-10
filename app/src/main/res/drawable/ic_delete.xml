@@ -2,9 +2,40 @@
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="?attr/colorControlNormal">
+    android:viewportHeight="24">
+
+    <!-- 垃圾桶盖顶部的弧形提手 -->
     <path
-        android:fillColor="@android:color/white"
-        android:pathData="M6,19c0,1.1 0.9,2 2,2h8c1.1,0 2,-0.9 2,-2V7H6v12zM19,4h-3.5l-1,-1h-5l-1,1H5v2h14V4z"/>
+        android:pathData="M10,8 V6 C10,5.2 10.8,4.5 12,4.5 C13.2,4.5 14,5.2 14,6 V8"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- 盖子主体横条 -->
+    <path
+        android:pathData="M5,8 H19"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+
+    <!-- 垃圾桶筒身 (圆角收缩底) -->
+    <path
+        android:pathData="M7,8 V18.5 C7,19.8 8.0,20.5 9.5,20.5 H14.5 C16.0,20.5 17,19.8 17,18.5 V8"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- 筒身内的两条精致透气筋线 -->
+    <path
+        android:pathData="M10.5,12 V16.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M13.5,12 V16.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
 </vector>

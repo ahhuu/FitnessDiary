@@ -156,7 +156,9 @@ public class CheckInViewModel extends AndroidViewModel {
 
                         String scheduledDays = plan.getScheduledDays();
                         boolean isScheduled = false;
-                        if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+                        if ("none".equals(scheduledDays)) {
+                            isScheduled = false;
+                        } else if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
                             isScheduled = true;
                         } else {
                             String[] days = scheduledDays.split(",");
@@ -219,7 +221,9 @@ public class CheckInViewModel extends AndroidViewModel {
 
                     String scheduledDays = plan.getScheduledDays();
                     boolean isScheduled = false;
-                    if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+                    if ("none".equals(scheduledDays)) {
+                        isScheduled = false;
+                    } else if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
                         isScheduled = true;
                     } else {
                         String[] days = scheduledDays.split(",");
@@ -408,7 +412,9 @@ public class CheckInViewModel extends AndroidViewModel {
 
             String scheduledDays = plan.getScheduledDays();
             boolean isScheduled = false;
-            if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+            if ("none".equals(scheduledDays)) {
+                isScheduled = false;
+            } else if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
                 isScheduled = true;
             } else {
                 String[] days = scheduledDays.split(",");
@@ -462,7 +468,9 @@ public class CheckInViewModel extends AndroidViewModel {
 
             String scheduledDays = plan.getScheduledDays();
             boolean isScheduled = false;
-            if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+            if ("none".equals(scheduledDays)) {
+                isScheduled = false;
+            } else if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
                 isScheduled = true;
             } else {
                 String[] days = scheduledDays.split(",");

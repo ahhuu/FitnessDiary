@@ -19,4 +19,7 @@ public interface MoodRecordDao {
 
     @Query("SELECT * FROM mood_record WHERE date = :date LIMIT 1")
     LiveData<MoodRecord> getByDate(long date);
+
+    @Query("SELECT * FROM mood_record ORDER BY date DESC")
+    java.util.List<MoodRecord> getAllRecordsSync();
 }

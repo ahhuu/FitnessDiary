@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_challenge_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="#FFF8F8"
+    app:strokeWidth="1dp"
+    app:strokeColor="#10000000"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="14dp"
+        android:gravity="center_vertical">
+
+        <!-- Emoji 圆底座 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_item_emoji_bg"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            app:cardCornerRadius="26dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="#FFFFFF"
+            android:layout_marginEnd="14dp">
+
+            <TextView
+                android:id="@+id/tv_item_emoji"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:text="🔥"
+                android:textSize="24sp" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 文字区域 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_item_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="减脂冲刺"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_item_desc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="21天每日热量不超标 · 累计3天超标则失败"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:layout_marginTop="3dp"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+        <!-- 删除按钮（自定义专用） -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_delete_custom_challenge"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            app:icon="@drawable/ic_delete"
+            app:iconSize="18dp"
+            app:iconTint="#B0BEC5"
+            android:layout_marginStart="4dp"
+            android:visibility="gone" />
+
+        <!-- 右箭头 -->
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_arrow_right"
+            app:tint="@color/text_secondary"
+            android:layout_marginStart="4dp" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

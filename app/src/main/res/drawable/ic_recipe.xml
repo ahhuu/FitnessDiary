@@ -3,26 +3,37 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- 食谱图标: 碗/盘子 + 食物 -->
-    <!-- 碗 -->
+    
+    <!-- 常用食谱图标: 翻开的食谱书 + 优雅的刀叉/餐具剪影 (Vector Outline 风格) -->
+    
+    <!-- 左半页书页 -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M4,18c0,0 1.5,3 8,3s8-3,8-3"/>
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"
-        android:strokeWidth="1.8"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M5,10c0,0 0.5,8 7,8s7-8,7-8V6c0-2-7-2-7-2S5,4,5,6V10z"/>
-    <!-- 蒸汽/热气 -->
+        android:pathData="M 11,5 C 7,3.5 3.5,4.8 2,5 L 2,19 C 3.5,18.8 7,17.5 11,19 Z" />
+        
+    <!-- 右半页书页 -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 13,19 C 17,17.5 20.5,18.8 22,19 L 22,5 C 20.5,4.8 17,3.5 13,5 Z" />
+        
+    <!-- 左侧内容: 简极勺子线稿 -->
+    <path
+        android:strokeColor="#FF000000"
         android:strokeWidth="1.2"
         android:strokeLineCap="round"
-        android:pathData="M8,3c0,0 0,2 0,2M12,1c0,0 0,3 0,3M16,3c0,0 0,2 0,2"/>
+        android:pathData="M 6.5,14 V 9 M 5.5,9 C 5.5,7.9 6.5,7 6.5,7 C 6.5,7 7.5,7.9 7.5,9 Z" />
+        
+    <!-- 右侧内容: 简极叉子线稿 -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 17.5,14 V 9 M 16,9 H 19 M 16,7 V 9 M 17.5,7 V 9 M 19,7 V 9" />
 </vector>

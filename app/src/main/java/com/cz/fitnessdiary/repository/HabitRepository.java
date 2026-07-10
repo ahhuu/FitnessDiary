@@ -89,4 +89,8 @@ public class HabitRepository {
     public int getRecordCountByHabitAndDateRangeSync(long habitId, long startTs, long endTs) {
         return habitRecordDao.getRecordCountByHabitAndDateRangeSync(habitId, startTs, endTs);
     }
+
+    public Long getOldestRecordDateSync(long habitId) {
+        return habitRecordDao.getOldestRecordDateSync(habitId);
+    }
 }

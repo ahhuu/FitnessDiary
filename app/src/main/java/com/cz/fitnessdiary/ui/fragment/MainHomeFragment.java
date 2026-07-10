@@ -261,11 +261,7 @@ public class MainHomeFragment extends Fragment {
     }
 
     private void setupGlobalNotice() {
-        binding.btnGlobalNoticeClose.setOnClickListener(v -> dismissGlobalNotice());
-        binding.btnGlobalNoticeAction.setOnClickListener(v -> {
-            new AchievementBottomSheetFragment().show(getChildFragmentManager(), "AchievementBottomSheet");
-            dismissGlobalNotice();
-        });
+        // 旧版顶部提示通知栏已弃用，改用全新全屏居中成就弹窗
     }
 
     private void observeAchievementEvents() {
@@ -277,42 +273,30 @@ public class MainHomeFragment extends Fragment {
             if (unlock == null) {
                 return;
             }
-            showGlobalNotice(unlock);
+            // 弹出精美全屏居中成就弹窗
+            AchievementUnlockDialogFragment dialog = AchievementUnlockDialogFragment.newInstance(
+                    unlock.getEmoji(),
+                    unlock.getTitle(),
+                    unlock.getDescription(),
+                    () -> {
+                        if (achievementCenterViewModel != null) {
+                            achievementCenterViewModel.consumeUnlockEvent();
+                        }
+                    }
+            );
+            dialog.show(getChildFragmentManager(), "achievement_unlock");
         });
     }
 
     private void showGlobalNotice(AchievementUnlockEvent unlock) {
-        binding.tvGlobalNoticeEmoji.setText(unlock.getEmoji());
-        binding.tvGlobalNoticeTitle.setText(unlock.getTitle());
-        binding.tvGlobalNoticeDesc.setText(unlock.getDescription());
-        binding.btnGlobalNoticeAction.setVisibility(
-                unlock.getType() == AchievementUnlockEvent.TYPE_ACHIEVEMENT ? View.VISIBLE : View.GONE);
-        binding.cardGlobalNotice.setVisibility(View.VISIBLE);
-        binding.cardGlobalNotice.setAlpha(0f);
-        binding.cardGlobalNotice.setTranslationY(-12f);
-        binding.cardGlobalNotice.animate().alpha(1f).translationY(0f).setDuration(180).start();
-        noticeHandler.removeCallbacks(autoDismissRunnable);
-        noticeHandler.postDelayed(autoDismissRunnable, 2600);
+        // 已废弃
     }
 
     private void dismissGlobalNotice() {
-        if (binding == null || binding.cardGlobalNotice.getVisibility() != View.VISIBLE) {
-            if (achievementCenterViewModel != null) {
-                achievementCenterViewModel.consumeUnlockEvent();
-            }
-            return;
+        // 已废弃
+        if (achievementCenterViewModel != null) {
+            achievementCenterViewModel.consumeUnlockEvent();
         }
-        noticeHandler.removeCallbacks(autoDismissRunnable);
-        binding.cardGlobalNotice.animate().alpha(0f).translationY(-8f).setDuration(150).withEndAction(() -> {
-            if (binding != null) {
-                binding.cardGlobalNotice.setVisibility(View.GONE);
-                binding.cardGlobalNotice.setAlpha(1f);
-                binding.cardGlobalNotice.setTranslationY(0f);
-            }
-            if (achievementCenterViewModel != null) {
-                achievementCenterViewModel.consumeUnlockEvent();
-            }
-        }).start();
     }
 
     @Override

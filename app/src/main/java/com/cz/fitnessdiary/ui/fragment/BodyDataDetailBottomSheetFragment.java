@@ -72,6 +72,10 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
     // 当前选中的图表指标 (默认为 "体重")
     private String selectedIndicator = "体重";
 
+    // 对比分享日期
+    private long selectedBeforeDate = 0;
+    private long selectedAfterDate = 0;
+
     public interface OnDataUpdatedListener {
         void onUpdated();
     }
@@ -134,6 +138,12 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
         if (cardHealthInsight != null) {
             cardHealthInsight.setOnClickListener(v ->
                 new HealthInsightExplainDialog().show(getChildFragmentManager(), "HealthInsightExplain"));
+        }
+
+        // 身体数据对比分享按钮
+        View btnShareComparison = view.findViewById(R.id.btn_share_comparison);
+        if (btnShareComparison != null) {
+            btnShareComparison.setOnClickListener(v -> showBeforeAfterPicker());
         }
     }
 
@@ -658,5 +668,50 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
         if ("大腿围".equals(indicator) || "THIGH".equals(indicator)) return "THIGH";
         if ("小腿围".equals(indicator) || "CALF".equals(indicator)) return "CALF";
         return indicator;
+    }
+
+    private void showBeforeAfterPicker() {
+        com.google.android.material.datepicker.MaterialDatePicker<Long> picker =
+                com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
+                        .setTitleText("选择对比起点")
+                        .build();
+        picker.addOnPositiveButtonClickListener(sel -> {
+            selectedBeforeDate = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(sel);
+            com.google.android.material.datepicker.MaterialDatePicker<Long> picker2 =
+                    com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
+                            .setTitleText("选择对比终点")
+                            .build();
+            picker2.addOnPositiveButtonClickListener(sel2 -> {
+                selectedAfterDate = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(sel2);
+                generateAndShareBeforeAfter();
+            });
+            picker2.show(getChildFragmentManager(), "after_date");
+        });
+        picker.show(getChildFragmentManager(), "before_date");
+    }
+
+    private void generateAndShareBeforeAfter() {
+        new Thread(() -> {
+            android.graphics.Bitmap bitmap = com.cz.fitnessdiary.utils.ShareCardGenerator
+                    .generateBeforeAfterCard(requireContext(), selectedBeforeDate, selectedAfterDate);
+            if (getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                String dir = requireContext().getCacheDir().getAbsolutePath();
+                String path = dir + "/health_compare.png";
+                try {
+                    java.io.FileOutputStream out = new java.io.FileOutputStream(path);
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+                    out.close();
+                } catch (Exception ignored) {}
+
+                android.content.Intent si = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                si.setType("image/png");
+                si.putExtra(android.content.Intent.EXTRA_STREAM,
+                        androidx.core.content.FileProvider.getUriForFile(requireContext(),
+                                "com.cz.fitnessdiary.fileprovider", new java.io.File(path)));
+                si.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(android.content.Intent.createChooser(si, "分享前后对比"));
+            });
+        }).start();
     }
 }

@@ -43,4 +43,7 @@ public interface WeightRecordDao {
 
     @Query("SELECT * FROM weight_record WHERE timestamp >= :startTs AND timestamp < :endTs ORDER BY timestamp ASC")
     List<WeightRecord> getRecordsByDateRangeSync(long startTs, long endTs);
+
+    @Query("SELECT * FROM weight_record ORDER BY timestamp ASC LIMIT 1")
+    WeightRecord getOldestRecordSync();
 }

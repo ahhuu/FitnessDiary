@@ -374,7 +374,9 @@ public class HealthAggregationRepository {
             if (cat == null || !cat.startsWith(filterPrefix)) continue;
 
             String scheduledDays = plan.getScheduledDays();
-            if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
+            if ("none".equals(scheduledDays)) {
+                // 真正不排期，不计入当天
+            } else if (scheduledDays == null || scheduledDays.isEmpty() || scheduledDays.contains("0")) {
                 count++;
             } else {
                 for (String day : scheduledDays.split(",")) {

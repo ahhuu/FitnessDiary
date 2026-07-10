@@ -251,18 +251,28 @@
                             android:textColor="@color/text_primary"
                             android:textSize="14sp" />
                         <TextView
-                            android:id="@+id/tv_steps_label"
+                            android:id="@+id/tv_steps_avg_value"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="目标 10000 步"
-                            android:textColor="@color/text_hint"
-                            android:textSize="11sp" />
+                            android:text="均 0 步"
+                            android:textColor="@color/fitnessdiary_primary"
+                            android:textStyle="bold"
+                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <com.github.mikephil.charting.charts.BarChart
                         android:id="@+id/chart_steps"
                         android:layout_width="match_parent"
                         android:layout_height="160dp" />
+
+                    <TextView
+                        android:id="@+id/tv_steps_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="目标: -- 步"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

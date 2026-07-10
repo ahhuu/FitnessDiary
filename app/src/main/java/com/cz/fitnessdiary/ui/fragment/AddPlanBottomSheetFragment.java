@@ -161,19 +161,38 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
 
             // 填充排期
             String scheduledDays = existingPlan.getScheduledDays();
-            if (scheduledDays != null && !scheduledDays.isEmpty() && !scheduledDays.equals("0")) {
+            if ("none".equals(scheduledDays)) {
+                // 真正不排期，保持所有的 Chip 不勾选
+            } else if (scheduledDays != null && !scheduledDays.isEmpty() && !scheduledDays.equals("0")) {
                 String[] days = scheduledDays.split(",");
                 for (String day : days) {
                     for (int i = 0; i < binding.chipDaysGroup.getChildCount(); i++) {
-                        Chip chip = (Chip) binding.chipDaysGroup.getChildAt(i);
-                        if (chip.getTag() != null && chip.getTag().toString().equals(day.trim())) {
-                            chip.setChecked(true);
+                        View child = binding.chipDaysGroup.getChildAt(i);
+                        if (child instanceof Chip) {
+                            Chip chip = (Chip) child;
+                            if (chip.getTag() != null && chip.getTag().toString().equals(day.trim())) {
+                                chip.setChecked(true);
+                            }
                         }
                     }
                 }
+            } else {
+                // 如果没有排期，默认每天排期（全部勾选）
+                checkAllDays();
             }
         } else {
             binding.tvTitle.setText("新增训练计划");
+            // 新增计划时，默认每天排期（全部勾选）
+            checkAllDays();
+        }
+    }
+
+    private void checkAllDays() {
+        for (int i = 0; i < binding.chipDaysGroup.getChildCount(); i++) {
+            View child = binding.chipDaysGroup.getChildAt(i);
+            if (child instanceof Chip) {
+                ((Chip) child).setChecked(true);
+            }
         }
     }
 
@@ -358,7 +377,7 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                     daysBuilder.append(chip.getTag().toString());
                 }
             }
-            String scheduledDays = daysBuilder.length() == 0 ? "0" : daysBuilder.toString();
+            String scheduledDays = daysBuilder.length() == 0 ? "none" : daysBuilder.toString();
 
             // 新增计划统一归类为 "自定义"；编辑计划保留原有完整前缀
             String finalCategory;

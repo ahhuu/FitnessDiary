@@ -258,7 +258,7 @@
                             app:layout_constraintBottom_toBottomOf="parent"
                             android:contentDescription="人体剪影" />
 
-                        <!-- 左侧磨砂背景板 View -->
+                        <!-- 左侧磨砂背景板 View (拓宽占比至32%以防文字折行) -->
                         <View
                             android:id="@+id/view_left_panel"
                             android:layout_width="0dp"
@@ -268,11 +268,13 @@
                             android:layout_marginTop="8dp"
                             android:layout_marginBottom="8dp"
                             app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintEnd_toStartOf="@id/iv_silhouette"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintWidth_percent="0.32"
+                            app:layout_constraintHorizontal_bias="0.0"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent" />
 
-                        <!-- 右侧磨砂背景板 View -->
+                        <!-- 右侧磨砂背景板 View (拓宽占比至32%以防文字折行) -->
                         <View
                             android:id="@+id/view_right_panel"
                             android:layout_width="0dp"
@@ -281,8 +283,10 @@
                             android:layout_marginStart="6dp"
                             android:layout_marginTop="8dp"
                             android:layout_marginBottom="8dp"
-                            app:layout_constraintStart_toEndOf="@id/iv_silhouette"
+                            app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintWidth_percent="0.32"
+                            app:layout_constraintHorizontal_bias="1.0"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent" />
 
@@ -305,7 +309,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.18" />
+                            app:layout_constraintVertical_bias="0.25" />
 
                         <!-- 胸围 - bias: 0.36 -->
                         <TextView
@@ -325,7 +329,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.36" />
+                            app:layout_constraintVertical_bias="0.31" />
 
                         <!-- 臂围 - bias: 0.50 -->
                         <TextView
@@ -345,7 +349,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.50" />
+                            app:layout_constraintVertical_bias="0.37" />
 
                         <!-- 臀围 - bias: 0.66 -->
                         <TextView
@@ -365,7 +369,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.66" />
+                            app:layout_constraintVertical_bias="0.49" />
 
 
                         <!-- 右侧测量项 (肩、腰、大腿、小腿 - 精准身体部位高度 bias 锚定) -->
@@ -387,7 +391,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.26" />
+                            app:layout_constraintVertical_bias="0.27" />
 
                         <!-- 腰围 - bias: 0.46 -->
                         <TextView
@@ -407,7 +411,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.46" />
+                            app:layout_constraintVertical_bias="0.42" />
 
                         <!-- 大腿围 - bias: 0.68 -->
                         <TextView
@@ -427,7 +431,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.68" />
+                            app:layout_constraintVertical_bias="0.61" />
 
                         <!-- 小腿围 - bias: 0.86 -->
                         <TextView
@@ -447,7 +451,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.86" />
+                            app:layout_constraintVertical_bias="0.79" />
 
 
                         <!-- 人体图上的圆点定位锚点 (dot - 垂直高度对齐各自 TextView，使引线绝不拉伸) -->
@@ -485,7 +489,7 @@
                             app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
                             app:layout_constraintTop_toTopOf="@id/tv_measure_arm"
                             app:layout_constraintBottom_toBottomOf="@id/tv_measure_arm"
-                            app:layout_constraintHorizontal_bias="0.33" />
+                            app:layout_constraintHorizontal_bias="0.30" />
 
                         <!-- 左臀部点 -->
                         <View
@@ -497,7 +501,7 @@
                             app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
                             app:layout_constraintTop_toTopOf="@id/tv_measure_hip"
                             app:layout_constraintBottom_toBottomOf="@id/tv_measure_hip"
-                            app:layout_constraintHorizontal_bias="0.38" />
+                            app:layout_constraintHorizontal_bias="0.37" />
 
                         <!-- 右肩膀点 -->
                         <View
@@ -509,7 +513,7 @@
                             app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
                             app:layout_constraintTop_toTopOf="@id/tv_measure_shoulder"
                             app:layout_constraintBottom_toBottomOf="@id/tv_measure_shoulder"
-                            app:layout_constraintHorizontal_bias="0.67" />
+                            app:layout_constraintHorizontal_bias="0.62" />
 
                         <!-- 右腰部点 -->
                         <View
@@ -521,7 +525,7 @@
                             app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
                             app:layout_constraintTop_toTopOf="@id/tv_measure_waist"
                             app:layout_constraintBottom_toBottomOf="@id/tv_measure_waist"
-                            app:layout_constraintHorizontal_bias="0.62" />
+                            app:layout_constraintHorizontal_bias="0.57" />
 
                         <!-- 右大腿点 -->
                         <View
@@ -533,7 +537,7 @@
                             app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
                             app:layout_constraintTop_toTopOf="@id/tv_measure_thigh"
                             app:layout_constraintBottom_toBottomOf="@id/tv_measure_thigh"
-                            app:layout_constraintHorizontal_bias="0.58" />
+                            app:layout_constraintHorizontal_bias="0.59" />
 
                         <!-- 右小腿点 -->
                         <View
@@ -545,7 +549,7 @@
                             app:layout_constraintEnd_toEndOf="@id/iv_silhouette"
                             app:layout_constraintTop_toTopOf="@id/tv_measure_calf"
                             app:layout_constraintBottom_toBottomOf="@id/tv_measure_calf"
-                            app:layout_constraintHorizontal_bias="0.58" />
+                            app:layout_constraintHorizontal_bias="0.61" />
 
 
                         <!-- 8条平拉对齐虚线引线 (物理高度恒为3dp，绝不拉伸，保障虚线描边完美呈递) -->
@@ -771,6 +775,18 @@
                             </LinearLayout>
                         </GridLayout>
                     </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 身体数据对比分享按钮 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_share_comparison"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="16dp"
+                        android:text="📊 生成身体变化对比分享图"
+                        android:textSize="14sp"
+                        android:textColor="@color/white"
+                        app:backgroundTint="@color/fitnessdiary_primary"
+                        app:cornerRadius="24dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </ScrollView>

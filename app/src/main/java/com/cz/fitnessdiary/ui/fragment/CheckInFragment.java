@@ -67,7 +67,7 @@ import com.cz.fitnessdiary.utils.UnitUtils;
 
 import java.util.Arrays;
 
-public class CheckInFragment extends Fragment {
+public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.bottomSheet.ChallengeBottomSheetFragment.OnChallengeChangedListener {
     private static final String PREF_HOME_CARDS = "home_card_prefs";
     private static final String KEY_SHOW_WATER = "show_water";
     private static final String KEY_SHOW_SLEEP = "show_sleep";
@@ -520,16 +520,20 @@ public class CheckInFragment extends Fragment {
             updateDateHeader();
         });
         checkInViewModel.getSelectedDatePlans().observe(getViewLifecycleOwner(), plans -> {
-            currentPlans.clear();
-            if (plans != null)
-                currentPlans.addAll(plans);
+            synchronized (currentPlans) {
+                currentPlans.clear();
+                if (plans != null)
+                    currentPlans.addAll(plans);
+            }
             refreshSportCard();
             updateOverallProgress();
         });
         checkInViewModel.getSelectedDateLogs().observe(getViewLifecycleOwner(), logs -> {
-            currentLogs.clear();
-            if (logs != null)
-                currentLogs.addAll(logs);
+            synchronized (currentLogs) {
+                currentLogs.clear();
+                if (logs != null)
+                    currentLogs.addAll(logs);
+            }
             refreshSportCard();
             updateOverallProgress();
         });
@@ -1738,134 +1742,13 @@ public class CheckInFragment extends Fragment {
     }
 
     private void showChallengeDialog() {
-        String active = com.cz.fitnessdiary.utils.ChallengeManager.getActiveType(getContext());
-        String status = com.cz.fitnessdiary.utils.ChallengeManager.getStatus(getContext());
-
-        if (active != null && "ACTIVE".equals(status)) {
-            android.view.View activeVal = getLayoutInflater().inflate(R.layout.dialog_challenge_active, null);
-            
-            android.widget.TextView tvActiveEmoji = activeVal.findViewById(R.id.tv_active_emoji);
-            android.widget.TextView tvActiveTitle = activeVal.findViewById(R.id.tv_active_title);
-            android.widget.TextView tvActiveDesc = activeVal.findViewById(R.id.tv_active_desc);
-            android.widget.TextView tvActiveProgressTxt = activeVal.findViewById(R.id.tv_active_progress_txt);
-            android.widget.ProgressBar progressActiveChallenge = activeVal.findViewById(R.id.progress_active_challenge);
-            com.google.android.material.card.MaterialCardView ivChallengeEmojiBg = activeVal.findViewById(R.id.iv_challenge_emoji_bg);
-            android.widget.LinearLayout layoutFailIndicators = activeVal.findViewById(R.id.layout_fail_indicators);
-            com.google.android.material.button.MaterialButton btnActiveContinue = activeVal.findViewById(R.id.btn_active_continue);
-            com.google.android.material.button.MaterialButton btnActiveAbandon = activeVal.findViewById(R.id.btn_active_abandon);
-
-            int days = com.cz.fitnessdiary.utils.ChallengeManager.getProgressDays(getContext());
-            int fails = com.cz.fitnessdiary.utils.ChallengeManager.getFailDays(getContext());
-
-            tvActiveEmoji.setText(com.cz.fitnessdiary.utils.ChallengeManager.getTypeEmoji(active));
-            tvActiveTitle.setText(com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(active));
-            tvActiveDesc.setText(com.cz.fitnessdiary.utils.ChallengeManager.getTypeDesc(active));
-            tvActiveProgressTxt.setText("第 " + Math.min(days, 21) + " / 21 天");
-            progressActiveChallenge.setProgress(Math.min(days, 21));
-
-            // Elegant background tint for active challenge emoji wrapper
-            int bgColor = 0xFFFFF0EB;
-            if (com.cz.fitnessdiary.utils.ChallengeManager.TYPE_FAT_LOSS.equals(active)) bgColor = 0xFFFFF0F0;
-            else if (com.cz.fitnessdiary.utils.ChallengeManager.TYPE_MUSCLE_GAIN.equals(active)) bgColor = 0xFFEBF5FF;
-            else if (com.cz.fitnessdiary.utils.ChallengeManager.TYPE_EARLY_SLEEP.equals(active)) bgColor = 0xFFF3EBFF;
-            else if (com.cz.fitnessdiary.utils.ChallengeManager.TYPE_WATER_MASTER.equals(active)) bgColor = 0xFFE6F9FF;
-            ivChallengeEmojiBg.setCardBackgroundColor(bgColor);
-
-            // Failure indicators as visual circular dots
-            int maxFails = com.cz.fitnessdiary.utils.ChallengeManager.TYPE_MUSCLE_GAIN.equals(active) ? 2 : 3;
-            layoutFailIndicators.removeAllViews();
-            int dotSize = dp(14);
-            int margin = dp(4);
-            for (int i = 0; i < maxFails; i++) {
-                android.widget.ImageView dot = new android.widget.ImageView(requireContext());
-                android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(dotSize, dotSize);
-                lp.setMargins(margin, 0, margin, 0);
-                dot.setLayoutParams(lp);
-                if (i < fails) {
-                    dot.setImageResource(R.drawable.circle_red);
-                } else {
-                    dot.setImageResource(R.drawable.circle_unchecked);
-                }
-                layoutFailIndicators.addView(dot);
-            }
-
-            androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                    .setView(activeVal)
-                    .create();
-
-            btnActiveContinue.setOnClickListener(v -> dialog.dismiss());
-            btnActiveAbandon.setOnClickListener(v -> {
-                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("确认放弃挑战")
-                        .setMessage("确定要放弃当前的21天挑战吗？一旦放弃，进度将全部清零。")
-                        .setPositiveButton("确定放弃", (d, w) -> {
-                            com.cz.fitnessdiary.utils.ChallengeManager.reset(getContext());
-                            refreshChallengeCard();
-                            Toast.makeText(getContext(), "已放弃挑战", Toast.LENGTH_SHORT).show();
-                            dialog.dismiss();
-                        })
-                        .setNegativeButton("继续坚持", null)
-                        .show();
-            });
-
-            dialog.show();
-            return;
-        }
-
-        if (active != null && ("COMPLETED".equals(status) || "FAILED".equals(status))) {
-            String result = "COMPLETED".equals(status) ? "恭喜你！已圆满完成21天挑战！" : "挑战失败，别气馁，下次继续加油！";
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(active))
-                    .setMessage(result + "\n\n是否开启新的挑战？")
-                    .setPositiveButton("新挑战", (d, w) -> { showChallengeTypePicker(); })
-                    .setNegativeButton("关闭", (d, w) -> {
-                        com.cz.fitnessdiary.utils.ChallengeManager.reset(getContext());
-                        refreshChallengeCard();
-                    })
-                    .show();
-            return;
-        }
-
-        showChallengeTypePicker();
+        com.cz.fitnessdiary.ui.bottomSheet.ChallengeBottomSheetFragment.newInstance()
+                .show(getChildFragmentManager(), "CHALLENGE_PICKER");
     }
 
-    private void showChallengeTypePicker() {
-        android.view.View pickerVal = getLayoutInflater().inflate(R.layout.dialog_challenge_picker, null);
-        androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setView(pickerVal)
-                .setTitle("选择21天挑战")
-                .setNegativeButton("取消", null)
-                .create();
-
-        pickerVal.findViewById(R.id.card_challenge_fat_loss).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_FAT_LOSS);
-            refreshChallengeCard();
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        pickerVal.findViewById(R.id.card_challenge_muscle_gain).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_MUSCLE_GAIN);
-            refreshChallengeCard();
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        pickerVal.findViewById(R.id.card_challenge_early_sleep).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_EARLY_SLEEP);
-            refreshChallengeCard();
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        pickerVal.findViewById(R.id.card_challenge_water_master).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_WATER_MASTER);
-            refreshChallengeCard();
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        dialog.show();
+    @Override
+    public void onChallengeChanged() {
+        refreshChallengeCard();
     }
 
     private void showEditCardsDialog() {
@@ -2075,12 +1958,22 @@ public class CheckInFragment extends Fragment {
     // ── Exercise calorie calculation ──
 
     private void computeAndDisplayExerciseCalories() {
+        // 在主线程复制一份快照，防止多线程并发修改导致 ConcurrentModificationException
+        final List<TrainingPlan> plansSnapshot;
+        final List<DailyLog> logsSnapshot;
+        synchronized (currentPlans) {
+            plansSnapshot = new ArrayList<>(currentPlans);
+        }
+        synchronized (currentLogs) {
+            logsSnapshot = new ArrayList<>(currentLogs);
+        }
+
         new Thread(() -> {
             int totalCal = 0;
             java.util.HashSet<Integer> donePlanIds = new java.util.HashSet<>();
             float weightKg = 70f;
-            if (!currentPlans.isEmpty()) {
-                for (DailyLog log : currentLogs) {
+            if (!plansSnapshot.isEmpty()) {
+                for (DailyLog log : logsSnapshot) {
                     if (log.isCompleted()) donePlanIds.add(log.getPlanId());
                 }
                 try {
@@ -2095,10 +1988,10 @@ public class CheckInFragment extends Fragment {
                     }
                 } catch (Exception ignored) {}
 
-                for (TrainingPlan plan : currentPlans) {
+                for (TrainingPlan plan : plansSnapshot) {
                     if (!donePlanIds.contains(plan.getPlanId())) continue;
                     int durationSec = 0;
-                    for (DailyLog log : currentLogs) {
+                    for (DailyLog log : logsSnapshot) {
                         if (log.getPlanId() == plan.getPlanId() && log.isCompleted()) {
                             durationSec = log.getDuration() > 0 ? log.getDuration() : plan.getDuration();
                             break;
@@ -2135,10 +2028,10 @@ public class CheckInFragment extends Fragment {
                 // 重新计算累计时长，用于加权平均
                 double totalDurHoursForWeighted = 0;
                 double totalWeightedMet = 0;
-                for (TrainingPlan plan : currentPlans) {
+                for (TrainingPlan plan : plansSnapshot) {
                     if (!donePlanIds.contains(plan.getPlanId())) continue;
                     int durSec = 0;
-                    for (DailyLog log : currentLogs) {
+                    for (DailyLog log : logsSnapshot) {
                         if (log.getPlanId() == plan.getPlanId() && log.isCompleted()) {
                             durSec = log.getDuration() > 0 ? log.getDuration() : plan.getDuration();
                             break;

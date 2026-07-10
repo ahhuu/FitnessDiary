@@ -41,6 +41,9 @@ public class BowelMovementDetailFragment extends Fragment {
     private TextView tvHeaderSummary, tvTodayCount, tvLatestBristol;
     private TextView tvHealthScore, tvAvgBristol, tvColorSummary, tvEmpty;
     private android.widget.ImageView ivHeaderIcon;
+    private TextView tvConstipationRatio, tvNormalRatio, tvDiarrheaRatio;
+    private TextView tvAvgDuration, tvColorAlert, tvLocalAdvice;
+    private com.google.android.material.button.MaterialButton btnAiDiagnosis;
 
     private static final int[] BRISTOL_CHIP_IDS = {
             R.id.chip_b1, R.id.chip_b2, R.id.chip_b3, R.id.chip_b4, R.id.chip_b5, R.id.chip_b6, R.id.chip_b7
@@ -67,6 +70,13 @@ public class BowelMovementDetailFragment extends Fragment {
         tvAvgBristol = view.findViewById(R.id.tv_avg_bristol);
         tvColorSummary = view.findViewById(R.id.tv_color_summary);
         tvEmpty = view.findViewById(R.id.tv_empty);
+        tvConstipationRatio = view.findViewById(R.id.tv_constipation_ratio);
+        tvNormalRatio = view.findViewById(R.id.tv_normal_ratio);
+        tvDiarrheaRatio = view.findViewById(R.id.tv_diarrhea_ratio);
+        tvAvgDuration = view.findViewById(R.id.tv_avg_duration);
+        tvColorAlert = view.findViewById(R.id.tv_color_alert);
+        tvLocalAdvice = view.findViewById(R.id.tv_local_advice);
+        btnAiDiagnosis = view.findViewById(R.id.btn_ai_diagnosis);
         RecyclerView rvRecords = view.findViewById(R.id.rv_records);
         ExtendedFloatingActionButton fabAdd = view.findViewById(R.id.fab_add);
 
@@ -91,10 +101,11 @@ public class BowelMovementDetailFragment extends Fragment {
         rvRecords.setAdapter(adapter);
 
         viewModel = new ViewModelProvider(this).get(BowelDetailViewModel.class);
-        long selectedDate = requireArguments().getLong("selectedDate", System.currentTimeMillis());
+        android.os.Bundle args = getArguments();
+        long selectedDate = args != null ? args.getLong("selectedDate", System.currentTimeMillis()) : System.currentTimeMillis();
         viewModel.setSelectedDate(selectedDate);
 
-        btnBack.setOnClickListener(v -> requireActivity().onBackPressed());
+        btnBack.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigateUp());
         fabAdd.setOnClickListener(v -> showAddDialog());
 
         // Observe data
@@ -128,6 +139,88 @@ public class BowelMovementDetailFragment extends Fragment {
                 tvColorSummary.setText(sb.toString().trim());
             }
         });
+
+        // Observe newly added digestive ratios, average duration, warning and local advice
+        viewModel.getConstipationRatio().observe(getViewLifecycleOwner(), ratio -> {
+            if (tvConstipationRatio != null) tvConstipationRatio.setText(String.format(Locale.getDefault(), "%.0f%%", ratio));
+        });
+        viewModel.getNormalRatio().observe(getViewLifecycleOwner(), ratio -> {
+            if (tvNormalRatio != null) tvNormalRatio.setText(String.format(Locale.getDefault(), "%.0f%%", ratio));
+        });
+        viewModel.getDiarrheaRatio().observe(getViewLifecycleOwner(), ratio -> {
+            if (tvDiarrheaRatio != null) tvDiarrheaRatio.setText(String.format(Locale.getDefault(), "%.0f%%", ratio));
+        });
+        viewModel.getAvgDurationSeconds().observe(getViewLifecycleOwner(), avg -> {
+            if (tvAvgDuration != null) {
+                if (avg > 0) {
+                    tvAvgDuration.setText(String.format(Locale.getDefault(), "平均排便时间：%.1f 分钟", avg));
+                } else {
+                    tvAvgDuration.setText("平均排便时间：暂无数据");
+                }
+            }
+        });
+        viewModel.getColorAlert().observe(getViewLifecycleOwner(), alert -> {
+            if (tvColorAlert != null) tvColorAlert.setText("便便颜色警告：" + alert);
+        });
+        viewModel.getLocalAdvice().observe(getViewLifecycleOwner(), advice -> {
+            if (tvLocalAdvice != null) tvLocalAdvice.setText(advice);
+        });
+
+        if (btnAiDiagnosis != null) {
+            btnAiDiagnosis.setOnClickListener(v -> {
+                float constiRatio = viewModel.getConstipationRatio().getValue() != null ? viewModel.getConstipationRatio().getValue() : 0f;
+                float normRatio = viewModel.getNormalRatio().getValue() != null ? viewModel.getNormalRatio().getValue() : 100f;
+                float diarrRatio = viewModel.getDiarrheaRatio().getValue() != null ? viewModel.getDiarrheaRatio().getValue() : 0f;
+                float avgDur = viewModel.getAvgDurationSeconds().getValue() != null ? viewModel.getAvgDurationSeconds().getValue() : 0f;
+                String colorAlertStr = viewModel.getColorAlert().getValue() != null ? viewModel.getColorAlert().getValue() : "正常 ✓";
+
+                String prompt = String.format(Locale.getDefault(),
+                        "用户近30天便便规律统计如下：\n" +
+                        "- 便秘占比（Bristol 1-2 型）：%.1f%%\n" +
+                        "- 正常占比（Bristol 3-5 型）：%.1f%%\n" +
+                        "- 腹泻占比（Bristol 6-7 型）：%.1f%%\n" +
+                        "- 平均排便时长：%.1f 分钟\n" +
+                        "- 便便颜色预警：%s\n\n" +
+                        "请扮演专业消化科医生，生成一份胃肠健康评估与调理报告。包含：\n" +
+                        "1. 胃肠状态综合评估；\n" +
+                        "2. 针对性饮食调理建议（膳食纤维、饮水安排等）；\n" +
+                        "3. 生活习惯与运动指导建议。\n" +
+                        "回答要求结构清晰（Markdown格式展示），语气温柔、具亲和力，且控制在 350 字以内。",
+                        constiRatio, normRatio, diarrRatio, avgDur, colorAlertStr);
+
+                btnAiDiagnosis.setEnabled(false);
+                btnAiDiagnosis.setText("✨ AI 胃肠健康诊断报告生成中...");
+
+                String systemInstruction = "你是 FitnessDiary 消化健康智能顾问，一名资深的消化内科医生。请提供专业、简明、排版优美、字数在 350 字以内的中文评估报告。";
+                com.cz.fitnessdiary.service.DeepSeekService.sendMessage(prompt, systemInstruction, false, null, new com.cz.fitnessdiary.service.AICallback() {
+                    @Override
+                    public void onSuccess(String response, String reasoning) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                btnAiDiagnosis.setEnabled(true);
+                                btnAiDiagnosis.setText("✨ 生成 AI 胃肠健康诊断报告");
+                                showReportDialog("✨ AI 胃肠健康诊断报告", response);
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onPartialUpdate(String content, String reasoning) {}
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                btnAiDiagnosis.setEnabled(true);
+                                btnAiDiagnosis.setText("✨ 生成 AI 胃肠健康诊断报告");
+                                String localReport = generateLocalMedicalReport(constiRatio, normRatio, diarrRatio, avgDur, colorAlertStr);
+                                showReportDialog("📊 胃肠健康诊断报告 (本地智能引擎)", localReport);
+                            });
+                        }
+                    }
+                });
+            });
+        }
     }
 
     private void renderRecords(List<BowelMovement> records) {
@@ -315,5 +408,69 @@ public class BowelMovementDetailFragment extends Fragment {
     }
     private int getBristolIconRes(int type) {
         return com.cz.fitnessdiary.utils.AnalysisUtils.getBristolIconRes(type);
+    }
+
+    private String generateLocalMedicalReport(float constiRatio, float normRatio, float diarrRatio, float avgDur, String colorAlert) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("### 🩺 胃肠状态综合评估\n");
+        if (constiRatio > 30f) {
+            sb.append("近30天您的排便呈现**较明显的便秘特征**（便秘占比达 ").append(String.format(Locale.getDefault(), "%.0f%%", constiRatio)).append("）。大肠水分被过度吸收，导致便便干结、排出困难。\n\n");
+        } else if (diarrRatio > 30f) {
+            sb.append("近30天您的排便呈现**较明显的腹泻特征**（腹泻占比达 ").append(String.format(Locale.getDefault(), "%.0f%%", diarrRatio)).append("）。肠道蠕动过快，可能伴随轻度菌群失调或消化不良。\n\n");
+        } else {
+            sb.append("近30天您的肠道处于**非常健康稳定的状态**（正常比例高达 ").append(String.format(Locale.getDefault(), "%.0f%%", normRatio)).append("）。肠道微生物屏障与运动节律运行极佳。\n\n");
+        }
+
+        if (avgDur > 10f) {
+            sb.append("⚠️ **排便规律警示**：您的平均排便时间偏长（约 ").append(String.format(Locale.getDefault(), "%.1f分钟", avgDur)).append("），建议上厕所时不要看手机，久坐久蹲容易诱发痔疮或盆底肌疲劳。\n\n");
+        }
+
+        sb.append("### 🥗 针对性饮食调理建议\n");
+        if (constiRatio > 30f) {
+            sb.append("- **增加不可溶性膳食纤维**：多吃大麦、红薯、火龙果和燕麦麸皮，增加大便体积。\n");
+            sb.append("- **科学饮水**：保证每日饮水 2000-2500ml，清晨空腹饮用 300ml 温水唤醒肠道。\n");
+        } else if (diarrRatio > 30f) {
+            sb.append("- **少食多餐与低渣饮食**：减少生冷瓜果、油炸及辛辣食物的刺激，多吃米粥、烂面条等温和易消化的食物。\n");
+            sb.append("- **补液盐与益生菌**：适量补充常温淡盐水，可连续服用双歧杆菌等益生菌调理肠道菌群。\n");
+        } else {
+            sb.append("- **维持目前膳食结构**：保证每天摄入一拳头大小的水果和一盘新鲜绿色蔬菜，粗细搭配。\n");
+        }
+
+        sb.append("\n### 🏃 生活习惯与运动指导\n");
+        sb.append("- **顺时针腹部按摩**：以脐周为中心，顺时针方向轻揉按摩腹部，每日 5-10 分钟以促进胃肠蠕动。\n");
+        sb.append("- **有氧快走**：每日饭后半小时坚持散步或快走 20 分钟，物理活动有助于激活肠胃。\n");
+        sb.append("- **定期体检**：若便便颜色预警持续出现异常，或伴有突发腹痛、不明消瘦，请前往消化内科及时面诊。");
+        return sb.toString();
+    }
+
+    private void showReportDialog(String title, String content) {
+        if (getContext() == null) return;
+        TextView tv = new TextView(getContext());
+        tv.setTextSize(14f);
+        tv.setPadding(48, 36, 48, 36);
+        tv.setLineSpacing(1.3f, 1.3f);
+        
+        // 尝试从应用 Theme 中读取或直接使用标准颜色
+        int textColor = 0xFF212121;
+        try {
+            textColor = getResources().getColor(R.color.text_primary);
+        } catch (Exception ignored) {}
+        tv.setTextColor(textColor);
+
+        String formatted = content
+                .replace("\n", "<br/>")
+                .replaceAll("\\*\\*(.*?)\\*\\*", "<b>$1</b>")
+                .replaceAll("### (.*?)<br/>", "<b><font color='#4CAF50'>$1</font></b><br/>");
+
+        tv.setText(android.text.Html.fromHtml(formatted, android.text.Html.FROM_HTML_MODE_LEGACY));
+
+        android.widget.ScrollView sv = new android.widget.ScrollView(getContext());
+        sv.addView(tv);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(title)
+                .setView(sv)
+                .setPositiveButton("我知道了", null)
+                .show();
     }
 }

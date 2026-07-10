@@ -1,0 +1,60 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- 数据管理与备份图标: 循环备份箭头 + 中央数据库磁盘堆栈 (Vector Outline 风格) -->
+    
+    <!-- 数据库磁盘 1 (上层) -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 9,7 C 9,6.2 10.3,5.5 12,5.5 C 13.7,5.5 15,6.2 15,7 C 15,7.8 13.7,8.5 12,8.5 C 10.3,8.5 9,7.8 9,7 Z" />
+        
+    <!-- 数据库磁盘 2 (中层) -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 9,7 V 11 C 9,11.8 10.3,12.5 12,12.5 C 13.7,12.5 15,11.8 15,11 V 7" />
+        
+    <!-- 数据库磁盘 3 (下层) -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 9,11 V 15 C 9,15.8 10.3,16.5 12,16.5 C 13.7,16.5 15,15.8 15,15 V 11" />
+        
+    <!-- 外部逆时针循环备份半圆弧 (左上到右下) -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 6,10 C 4.5,12 4.5,16 7,18.5 C 9.5,21 14.5,21 17,18.5" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 17,18.5 H 14.5 M 17,18.5 V 16" />
+        
+    <!-- 外部顺时针循环备份半圆弧 (右下到左上) -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 18,14 C 19.5,12 19.5,8 17,5.5 C 14.5,3 9.5,3 7,5.5" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 7,5.5 H 9.5 M 7,5.5 V 8" />
+</vector>

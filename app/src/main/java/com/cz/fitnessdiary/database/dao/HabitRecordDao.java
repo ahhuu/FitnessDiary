@@ -42,4 +42,7 @@ public interface HabitRecordDao {
 
     @Query("SELECT COUNT(*) FROM habit_record WHERE habit_id = :habitId AND record_date >= :startTs AND record_date < :endTs")
     int getRecordCountByHabitAndDateRangeSync(long habitId, long startTs, long endTs);
+
+    @Query("SELECT MIN(record_date) FROM habit_record WHERE habit_id = :habitId")
+    Long getOldestRecordDateSync(long habitId);
 }

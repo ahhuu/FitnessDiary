@@ -64,9 +64,7 @@ public class MainActivity extends AppCompatActivity {
             ReminderPresetDataLoader.loadIfNeeded(getApplicationContext());
             // Schedule all enabled reminders from DB after presets are loaded
             ReminderManager.restoreAllReminders(getApplicationContext());
-            if (ReminderManager.isSmartReminderEnabled(getApplicationContext())) {
-                ReminderManager.restoreSmartReminders(getApplicationContext());
-            }
+
         });
     }
 

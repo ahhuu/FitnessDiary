@@ -4,58 +4,76 @@
     android:viewportWidth="200"
     android:viewportHeight="300">
     
-    <!-- 专业健美自律人体剪影，科技灰质感，中心力量感增强 -->
+    <!-- 专业健美自律人体剪影，科技半透明质感，中心力量感增强 -->
     <!-- 头 -->
     <path
         android:pathData="M100,20 C106.6,20 112,25.4 112,32 C112,38.6 106.6,44 100,44 C93.4,44 88,38.6 88,32 C88,25.4 93.4,20 100,20 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
     
     <!-- 脖子 -->
     <path
         android:pathData="M95,44 L105,44 L104,56 L96,56 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
         
     <!-- 躯干 (健硕胸肌与倒三角腰腹轮廓) -->
     <path
         android:pathData="M76,56 L124,56 C129,56 130,62 128,68 L114,142 C113,148 108,154 100,154 C92,154 87,148 86,142 L72,68 C70,62 71,56 76,56 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
         
     <!-- 胸肌中缝阴影/雕刻线 (让躯干显得立体专业) -->
     <path
         android:pathData="M99.5,58 L100.5,58 L100.5,100 L99.5,100 Z"
-        android:fillColor="#8C929D" />
+        android:fillColor="#4D8A95A5" />
     <path
         android:pathData="M84,85 C90,87 97,87 100,85 C103,87 110,87 116,85"
-        android:strokeColor="#8C929D"
-        android:strokeWidth="1.5" />
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
 
     <!-- 左臂 (粗壮，含三角肌及肱二头肌轮廓) -->
     <path
         android:pathData="M70,58 C66,58 62,64 61,70 L52,122 C51,127 55,130 59,128 L67,82 L71,68 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
         
     <!-- 右臂 (粗壮，对称) -->
     <path
         android:pathData="M130,58 C134,58 138,64 139,70 L148,122 C149,127 145,130 141,128 L133,82 L129,68 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
         
     <!-- 左大腿 (股四头肌粗壮线条) -->
     <path
         android:pathData="M86,155 L74,228 C73,234 78,238 82,238 L93,158 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
         
     <!-- 左小腿 -->
     <path
         android:pathData="M78,240 L72,288 C71.5,292 75,294 78,294 L85,240 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
 
     <!-- 右大腿 -->
     <path
         android:pathData="M114,155 L126,228 C127,234 122,238 118,238 L107,158 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
         
     <!-- 右小腿 -->
     <path
         android:pathData="M122,240 L128,288 C128.5,292 125,294 122,294 L115,240 Z"
-        android:fillColor="#B8BCC2" />
+        android:fillColor="#268A95A5"
+        android:strokeColor="#7F8D9F"
+        android:strokeWidth="1.2" />
 </vector>

@@ -414,6 +414,10 @@ public class PlanManageFragment extends Fragment {
                     continue;
                 }
                 String days = plan.getScheduledDays();
+                if ("none".equals(days)) {
+                    // 真正不排期，不加入频率统计
+                    continue;
+                }
                 if (days == null || days.trim().isEmpty() || "0".equals(days.trim())) {
                     weeklyFrequency += 7;
                     continue;

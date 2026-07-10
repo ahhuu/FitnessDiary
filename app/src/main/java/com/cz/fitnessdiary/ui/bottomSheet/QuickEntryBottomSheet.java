@@ -1060,61 +1060,8 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
     }
 
     private void showChallengeDialog() {
-        try {
-            String status = com.cz.fitnessdiary.utils.ChallengeManager.getStatus(getContext());
-            String active = com.cz.fitnessdiary.utils.ChallengeManager.getActiveType(getContext());
-
-            if (active != null && ("COMPLETED".equals(status) || "FAILED".equals(status))) {
-                String result = "COMPLETED".equals(status) ? "恭喜你！已圆满完成21天挑战！" : "挑战失败，别气馁，下次继续加油！";
-                new MaterialAlertDialogBuilder(requireContext())
-                        .setTitle(com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(active))
-                        .setMessage(result + "\n\n是否开启新的挑战？")
-                        .setPositiveButton("新挑战", (d, w) -> { showChallengeTypePicker(); })
-                        .setNegativeButton("关闭", (d, w) -> {
-                            com.cz.fitnessdiary.utils.ChallengeManager.reset(getContext());
-                        })
-                        .show();
-                return;
-            }
-            showChallengeTypePicker();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void showChallengeTypePicker() {
-        android.view.View pickerVal = getLayoutInflater().inflate(R.layout.dialog_challenge_picker, null);
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
-                .setView(pickerVal)
-                .setTitle("选择21天挑战")
-                .setNegativeButton("取消", null)
-                .create();
-
-        pickerVal.findViewById(R.id.card_challenge_fat_loss).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_FAT_LOSS);
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        pickerVal.findViewById(R.id.card_challenge_muscle_gain).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_MUSCLE_GAIN);
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        pickerVal.findViewById(R.id.card_challenge_early_sleep).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_EARLY_SLEEP);
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        pickerVal.findViewById(R.id.card_challenge_water_master).setOnClickListener(v -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.start(getContext(), com.cz.fitnessdiary.utils.ChallengeManager.TYPE_WATER_MASTER);
-            Toast.makeText(getContext(), "挑战已开启！", Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        });
-
-        dialog.show();
+        com.cz.fitnessdiary.ui.bottomSheet.ChallengeBottomSheetFragment.newInstance()
+                .show(getParentFragmentManager(), "CHALLENGE_PICKER");
     }
 
     // ═══════════════════════ 配置 14 个首页平级卡片 ═══════════════════════

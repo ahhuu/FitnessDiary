@@ -1,0 +1,48 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 智能体脂秤主体外框 (右下侧) -->
+    <path
+        android:pathData="M13,11 H21 C22.1,11 23,11.9 23,13 V21 C23,22.1 22.1,23 21,23 H13 C11.9,23 11,22.1 11,21 V13 C11,11.9 11.9,11 13,11 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- 体脂秤中心小屏幕 (圆角小横条) -->
+    <path
+        android:pathData="M15,14 H19"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
+
+    <!-- 体脂秤左右两侧金属脚踏触片 -->
+    <path
+        android:pathData="M14,17 V20"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M20,17 V20"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round" />
+
+    <!-- 智能手环表带 (左上侧，穿过秤的边缘上方) -->
+    <path
+        android:pathData="M6.5,2 C4.0,2 2.5,3.8 2.5,7.5 C2.5,11.2 4.0,13 6.5,13 C9.0,13 10.5,11.2 10.5,7.5 C10.5,3.8 9.0,2 6.5,2 Z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- 智能手环表盘 (主体中心小胶囊) -->
+    <path
+        android:pathData="M5.5,5.5 H7.5 C8.1,5.5 8.5,6.4 8.5,7.5 C8.5,8.6 8.1,9.5 7.5,9.5 H5.5 C4.9,9.5 4.5,8.6 4.5,7.5 C4.5,6.4 4.9,5.5 5.5,5.5 Z"
+        android:fillColor="#FF000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="0.8" />
+</vector>

@@ -3,30 +3,47 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    
-    <!-- 纯色单色哑铃，支持 app:tint 渲染 -->
-    <!-- 哑铃杆 -->
+
+    <!-- 哑铃手柄杆 -->
     <path
-        android:pathData="M6,11 L18,11 L18,13 L6,13 Z"
-        android:fillColor="#FF000000" />
-        
-    <!-- 左内片 -->
+        android:pathData="M6,12 L18,12"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
+
+    <!-- 左侧主配重片 (圆角矩形) -->
     <path
-        android:pathData="M5,7 H7 V17 H5 Z"
-        android:fillColor="#FF000000" />
-        
-    <!-- 左外片 -->
+        android:pathData="M4.5,7.5 L4.5,16.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round" />
     <path
-        android:pathData="M2,9 H4 V15 H2 Z"
-        android:fillColor="#FF000000" />
-        
-    <!-- 右内片 -->
+        android:pathData="M2,9.5 L2,14.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round" />
+
+    <!-- 右侧主配重片 (圆角矩形) -->
     <path
-        android:pathData="M17,7 H19 V17 H17 Z"
-        android:fillColor="#FF000000" />
-        
-    <!-- 右外片 -->
+        android:pathData="M19.5,7.5 L19.5,16.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round" />
     <path
-        android:pathData="M20,9 H22 V15 H20 Z"
-        android:fillColor="#FF000000" />
+        android:pathData="M22,9.5 L22,14.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round" />
+
+    <!-- 挡片限制圈 -->
+    <path
+        android:pathData="M7.5,9.5 L7.5,14.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M16.5,9.5 L16.5,14.5"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
 </vector>

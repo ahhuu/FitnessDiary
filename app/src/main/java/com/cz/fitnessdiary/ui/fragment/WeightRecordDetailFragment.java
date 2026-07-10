@@ -155,6 +155,115 @@ public class WeightRecordDetailFragment extends Fragment {
             else
                 tvBmi.setText(String.format(Locale.getDefault(), "BMI %.1f", bmi));
         });
+
+        // 绑定体重分析卡片控件
+        TextView tvWeightGoalStatus = view.findViewById(R.id.tv_weight_goal_status);
+        TextView tvWeightTrendVal = view.findViewById(R.id.tv_weight_trend_val);
+        TextView tvWeightProgressPct = view.findViewById(R.id.tv_weight_progress_pct);
+        TextView tvWeightBmi = view.findViewById(R.id.tv_weight_bmi);
+        TextView tvWeightLocalAdvice = view.findViewById(R.id.tv_weight_local_advice);
+        MaterialButton btnWeightAiDiagnosis = view.findViewById(R.id.btn_weight_ai_diagnosis);
+
+        viewModel.getWeightGoalType().observe(getViewLifecycleOwner(), goalType -> {
+            if (tvWeightGoalStatus != null) {
+                String typeStr = "保持";
+                if (goalType == 0) typeStr = "减脂";
+                else if (goalType == 1) typeStr = "增肌";
+                tvWeightGoalStatus.setText(typeStr);
+            }
+        });
+        viewModel.getWeightTrendVal().observe(getViewLifecycleOwner(), trend -> {
+            if (tvWeightTrendVal != null) {
+                String trendStr = String.format(Locale.getDefault(), "%+.1f kg", trend);
+                tvWeightTrendVal.setText(trendStr);
+                if (trend < 0) {
+                    tvWeightTrendVal.setTextColor(0xFF4CAF50); // 绿色
+                } else if (trend > 0) {
+                    tvWeightTrendVal.setTextColor(0xFFF44336); // 红色
+                } else {
+                    tvWeightTrendVal.setTextColor(0xFF757575); // 灰色
+                }
+            }
+        });
+        viewModel.getGoalProgressPct().observe(getViewLifecycleOwner(), pct -> {
+            if (tvWeightProgressPct != null) {
+                tvWeightProgressPct.setText(String.format(Locale.getDefault(), "%.1f%%", pct));
+            }
+        });
+        viewModel.getWeightBmi().observe(getViewLifecycleOwner(), bmiVal -> {
+            if (tvWeightBmi != null) {
+                String level = "正常";
+                if (bmiVal < 18.5f) level = "偏瘦";
+                else if (bmiVal >= 28f) level = "肥胖";
+                else if (bmiVal >= 24f) level = "偏重";
+                tvWeightBmi.setText(String.format(Locale.getDefault(), "当前最新 BMI：%.1f (%s)", bmiVal, level));
+            }
+        });
+        viewModel.getWeightAdvice().observe(getViewLifecycleOwner(), advice -> {
+            if (tvWeightLocalAdvice != null) {
+                tvWeightLocalAdvice.setText(advice);
+            }
+        });
+
+        if (btnWeightAiDiagnosis != null) {
+            btnWeightAiDiagnosis.setOnClickListener(v -> {
+                int gType = viewModel.getWeightGoalType().getValue() != null ? viewModel.getWeightGoalType().getValue() : 0;
+                float trendVal = viewModel.getWeightTrendVal().getValue() != null ? viewModel.getWeightTrendVal().getValue() : 0f;
+                float progressPct = viewModel.getGoalProgressPct().getValue() != null ? viewModel.getGoalProgressPct().getValue() : 0f;
+                float bmiVal = viewModel.getWeightBmi().getValue() != null ? viewModel.getWeightBmi().getValue() : 0f;
+                String adviceStr = viewModel.getWeightAdvice().getValue() != null ? viewModel.getWeightAdvice().getValue() : "";
+
+                String goalName = "保持";
+                if (gType == 0) goalName = "减脂";
+                else if (gType == 1) goalName = "增肌";
+
+                String prompt = String.format(Locale.getDefault(),
+                        "用户体重指标与健身目标分析数据如下：\n" +
+                        "- 健身目标：%s\n" +
+                        "- 近30天体重增减变化：%+.1f kg\n" +
+                        "- 目标进度完成率：%.1f%%\n" +
+                        "- 当前最新 BMI：%.1f\n" +
+                        "- 本地初步运动建议：%s\n\n" +
+                        "请扮演资深运动营养学顾问与健身教练，生成一份体重与目标分析报告。包含：\n" +
+                        "1. 当前体重与进度状态点评；\n" +
+                        "2. 增肌或减脂的膳食红利与卡路里宏量摄入指导；\n" +
+                        "3. 运动训练安排（有氧与力量比例）。\n" +
+                        "回答要求结构清晰（Markdown格式展示），语气专业硬核且具鼓励性，且控制在 350 字以内。",
+                        goalName, trendVal, progressPct, bmiVal, adviceStr);
+
+                btnWeightAiDiagnosis.setEnabled(false);
+                btnWeightAiDiagnosis.setText("✨ AI 体重健康诊断中...");
+
+                String systemInstruction = "你是 FitnessDiary 运动营养与增肌减脂专家。请提供专业、简明、排版优美、字数在 350 字以内的中文评估报告。";
+                com.cz.fitnessdiary.service.DeepSeekService.sendMessage(prompt, systemInstruction, false, null, new com.cz.fitnessdiary.service.AICallback() {
+                    @Override
+                    public void onSuccess(String response, String reasoning) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                btnWeightAiDiagnosis.setEnabled(true);
+                                btnWeightAiDiagnosis.setText("✨ 生成 AI 体重与目标分析报告");
+                                showReportDialog("✨ AI 体重与目标分析评估", response);
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onPartialUpdate(String content, String reasoning) {}
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                btnWeightAiDiagnosis.setEnabled(true);
+                                btnWeightAiDiagnosis.setText("✨ 生成 AI 体重与目标分析报告");
+                                String localReport = generateLocalWeightReport(gType, trendVal, progressPct, bmiVal);
+                                showReportDialog("📊 体重调理方案 (本地智能引擎)", localReport);
+                            });
+                        }
+                    }
+                });
+            });
+        }
     }
 
     private void updateWeightChart(List<Float> values) {
@@ -433,6 +542,67 @@ public class WeightRecordDetailFragment extends Fragment {
                     Toast.makeText(getContext(), "目标体重已更新", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private String generateLocalWeightReport(int gType, float trendVal, float progressPct, float bmiVal) {
+        StringBuilder sb = new StringBuilder();
+        String goalName = (gType == 0) ? "减脂" : ((gType == 1) ? "增肌" : "健康保持");
+        
+        sb.append("### 🩺 体重趋势与 ").append(goalName).append(" 评估\n");
+        sb.append("用户当前健身目标为**").append(goalName).append("**，近30天体重变化为 **").append(String.format(Locale.getDefault(), "%+.1f kg", trendVal)).append("**，当前进度为 **").append(String.format(Locale.getDefault(), "%.1f%%", progressPct)).append("**，BMI 值为 ").append(String.format(Locale.getDefault(), "%.1f", bmiVal)).append("。\n\n");
+
+        sb.append("### 🥗 膳食营养与热量赤字指导\n");
+        if (gType == 0) { // 减脂
+            sb.append("- **热量缺口**：保持每日 300-500 kcal 热量赤字，保证碳水摄入占总热量 45%-50%。\n");
+            sb.append("- **优质蛋白**：摄入 1.5g/kg 体重的蛋白质（鸡胸肉、鱼虾、蛋清），减缓因掉体重带来的肌肉流失。\n");
+        } else if (gType == 1) { // 增肌
+            sb.append("- **热量盈余**：维持每日 200-300 kcal 的热量多余储备，碳水占 55% 以上以保证充沛的训练体能。\n");
+            sb.append("- **足量蛋白与碳水**：运动后 30 分钟内补充 20-30g 蛋白质和 50g 快碳，促进肌糖原合成。\n");
+        } else {
+            sb.append("- **能量平衡**：每日卡路里摄入与总消耗（TDEE）齐平，维持三大宏量营养素合理占比。\n");
+        }
+
+        sb.append("\n### 🏋️ 运动训练安排 (有氧与力量比例)\n");
+        if (gType == 0) { // 减脂
+            sb.append("- **阻力训练**：每周进行 3-4 次力量抗阻练习（占 60% 训练精力），先无氧后有氧。\n");
+            sb.append("- **HIIT与有氧**：每周配合 2-3 次 20-30 分钟的慢跑或划船机，加速体脂消耗。\n");
+        } else if (gType == 1) { // 增肌
+            sb.append("- **大重量多关节复合动作**：以深蹲、硬拉、卧推等核心大肌群训练为主（占 85% 训练精力）。\n");
+            sb.append("- **控制有氧**：每周最多进行 1 次中低强度有氧（如散步），避免能量被过多消耗。\n");
+        } else {
+            sb.append("- **混合训练**：每周 2 次中等强度抗阻与 2 次常规慢跑或游泳，维持心肺与肌肉适能。");
+        }
+        return sb.toString();
+    }
+
+    private void showReportDialog(String title, String content) {
+        if (getContext() == null) return;
+        TextView tv = new TextView(getContext());
+        tv.setTextSize(14f);
+        tv.setPadding(48, 36, 48, 36);
+        tv.setLineSpacing(1.3f, 1.3f);
+        
+        int textColor = 0xFF212121;
+        try {
+            textColor = getResources().getColor(R.color.text_primary);
+        } catch (Exception ignored) {}
+        tv.setTextColor(textColor);
+
+        String formatted = content
+                .replace("\n", "<br/>")
+                .replaceAll("\\*\\*(.*?)\\*\\*", "<b>$1</b>")
+                .replaceAll("### (.*?)<br/>", "<b><font color='#4CAF50'>$1</font></b><br/>");
+
+        tv.setText(android.text.Html.fromHtml(formatted, android.text.Html.FROM_HTML_MODE_LEGACY));
+
+        android.widget.ScrollView sv = new android.widget.ScrollView(getContext());
+        sv.addView(tv);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(title)
+                .setView(sv)
+                .setPositiveButton("我知道了", null)
                 .show();
     }
 }

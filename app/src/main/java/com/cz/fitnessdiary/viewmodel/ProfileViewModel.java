@@ -16,6 +16,12 @@ import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.model.Achievement;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
+import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.database.entity.WaterRecord;
+import com.cz.fitnessdiary.database.entity.StepRecord;
+import com.cz.fitnessdiary.database.entity.SleepRecord;
+import com.cz.fitnessdiary.database.entity.BowelMovement;
+import com.cz.fitnessdiary.database.entity.MoodRecord;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -373,66 +379,76 @@ public class ProfileViewModel extends AndroidViewModel {
             }
         }
         int foodCount = foodRecordDao.getTotalRecordCountSync();
+        AppDatabase db = AppDatabase.getInstance(getApplication());
+
+        // 1. 统计饮水达标天数 (单日饮水总和 >= 2000 ml)
+        int waterGoalDays = 0;
+        java.util.List<com.cz.fitnessdiary.database.entity.WaterRecord> allWaters = db.waterRecordDao().getRecentRecordsSync(2000);
+        if (allWaters != null) {
+            java.util.Map<String, Integer> waterMap = new java.util.HashMap<>();
+            for (com.cz.fitnessdiary.database.entity.WaterRecord wr : allWaters) {
+                String dKey = DateUtils.formatDate(wr.getTimestamp());
+                waterMap.put(dKey, waterMap.getOrDefault(dKey, 0) + wr.getAmountMl());
+            }
+            for (int amount : waterMap.values()) {
+                if (amount >= 2000) waterGoalDays++;
+            }
+        }
+
+        // 2. 统计步数达标天数 (单日步数 >= 10000 步)
+        int stepGoalDays = 0;
+        java.util.List<com.cz.fitnessdiary.database.entity.StepRecord> allSteps = db.stepRecordDao().getRecordsByDateRangeSync(0, System.currentTimeMillis() + 86400000L);
+        if (allSteps != null) {
+            for (com.cz.fitnessdiary.database.entity.StepRecord sr : allSteps) {
+                if (sr.getSteps() >= 10000) stepGoalDays++;
+            }
+        }
+
+        // 3. 统计睡眠达标天数 (单次睡眠时长在 7.0 到 9.0 小时之间)
+        int sleepGoalDays = 0;
+        java.util.List<com.cz.fitnessdiary.database.entity.SleepRecord> allSleeps = db.sleepRecordDao().getRecentRecordsSync(1000);
+        if (allSleeps != null) {
+            for (com.cz.fitnessdiary.database.entity.SleepRecord sr : allSleeps) {
+                float hrs = sr.getDuration() / 3600f;
+                if (hrs >= 7.0f && hrs <= 9.0f) sleepGoalDays++;
+            }
+        }
+
+        // 4. 统计排便总记录次数
+        java.util.List<com.cz.fitnessdiary.database.entity.BowelMovement> allBowels = db.bowelMovementDao().getByDateRangeSync(0, System.currentTimeMillis() + 86400000L);
+        int bowelCount = allBowels != null ? allBowels.size() : 0;
+
+        // 5. 统计情绪总记录天数
+        java.util.List<com.cz.fitnessdiary.database.entity.MoodRecord> allMoods = db.moodRecordDao().getAllRecordsSync();
+        int moodCount = allMoods != null ? allMoods.size() : 0;
 
         // --- 训练天数系列 ---
-        // 成就 1: 初出茅庐
-        boolean firstDay = totalDays >= 1;
-        list.add(new Achievement("first_day", "初出茅庐", "完成第一次训练", "🌱", firstDay));
-
-        // 成就 2: 渐入佳境 (累计 10 天)
-        boolean streak10 = totalDays >= 10;
-        list.add(new Achievement("streak_10", "渐入佳境", "累计训练 10 天", "🥉", streak10));
-
-        // 成就 3: 健身达人 (累计 30 天)
-        boolean streak30 = totalDays >= 30;
-        list.add(new Achievement("streak_30", "健身达人", "累计训练 30 天", "🥈", streak30));
-
-        // 成就 7: 健身专家 (60 天)
-        boolean expert = totalDays >= 60;
-        list.add(new Achievement("expert", "健身专家", "累计训练 60 天", "🥇", expert));
-
-        // 成就 8: 钢铁之躯 (100 天)
-        boolean ironBody = totalDays >= 100;
-        list.add(new Achievement("iron_body", "钢铁之躯", "累计训练 100 天", "🏆", ironBody));
+        list.add(new Achievement("first_day", "初出茅庐", "完成第一次训练", "🌱", totalDays >= 1));
+        list.add(new Achievement("streak_10", "习惯养成", "累计训练 15 天", "🥉", totalDays >= 15));
+        list.add(new Achievement("streak_30", "百日筑基", "累计训练 50 天", "🥈", totalDays >= 50));
+        list.add(new Achievement("expert", "持之以恒", "累计训练 100 天", "🥇", totalDays >= 100));
+        list.add(new Achievement("iron_body", "钢铁意志", "累计训练 365 天", "🏆", totalDays >= 365));
 
         // --- 计划系列 ---
-        // 成就: 初识规划 (3+ 计划)
-        boolean planStarter = planCount >= 3;
-        list.add(new Achievement("plan_starter", "初识规划", "创建 3+ 个训练计划", "📄", planStarter));
-
-        // 成就: 计划大师 (10+ 计划)
-        boolean planMaster = planCount >= 10;
-        list.add(new Achievement("plan_master", "计划大师", "创建 10+ 个训练计划", "📚", planMaster));
+        list.add(new Achievement("plan_starter", "初识规划", "创建 5+ 个训练计划", "📄", planCount >= 5));
+        list.add(new Achievement("plan_master", "计划大师", "创建 15+ 个训练计划", "📚", planCount >= 15));
 
         // --- 饮食系列 ---
-        // 成就: 饮食先锋 (累计 10+ 条饮食记录)
-        boolean dietStarter = foodCount >= 10;
-        list.add(new Achievement("diet_logged", "饮食先锋", "累计 10+ 条饮食记录", "🍎", dietStarter));
-
-        // 成就: 卡路里克星 (累计 50+ 条记录)
-        boolean calorieBuster = foodCount >= 50;
-        list.add(new Achievement("calorie_buster", "卡路里克星", "累计 50+ 条记录", "🔥", calorieBuster));
-
-        // 成就: 饮食大师 (累计 100 条记录)
-        boolean diet100 = foodCount >= 100;
-        list.add(new Achievement("diet_100", "饮食大师", "累计记录100次饮食", "🍽️", diet100));
+        list.add(new Achievement("diet_logged", "饮食先锋", "累计 30+ 条饮食记录", "🍎", foodCount >= 30));
+        list.add(new Achievement("calorie_buster", "卡路里克星", "累计 150+ 条记录", "🔥", foodCount >= 150));
+        list.add(new Achievement("diet_100", "饮食大师", "累计记录 300 次饮食", "🍽️", foodCount >= 300));
 
         // --- 训练次数系列 ---
         int workoutCount = dailyLogDao.getTotalWorkoutCountSync();
-        // 成就: 百炼成钢 (累计100次训练打卡)
-        boolean workout100 = workoutCount >= 100;
-        list.add(new Achievement("workout_100", "百炼成钢", "累计完成100次训练", "⚔️", workout100));
+        list.add(new Achievement("workout_100", "百炼成钢", "累计完成 200 次训练", "⚔️", workoutCount >= 200));
+        list.add(new Achievement("workout_500", "千锤百炼", "累计完成 1000 次训练", "🛡️", workoutCount >= 1000));
 
-        // 成就: 千锤百炼 (累计500次)
-        boolean workout500 = workoutCount >= 500;
-        list.add(new Achievement("workout_500", "千锤百炼", "累计完成500次训练", "🛡️", workout500));
-
-        // --- 连签记录 ---
-        android.content.SharedPreferences sp = getApplication().getSharedPreferences("fitness_diary_prefs",
-                android.content.Context.MODE_PRIVATE);
-        int recordStreak = sp.getInt("record_consecutive_days", 0);
-        boolean streakRecord = recordStreak >= 7;
-        list.add(new Achievement("streak_record", "连签破纪录", "连续打卡突破7天", "🏅", streakRecord));
+        // 新增扩展维度成就
+        list.add(new Achievement("water_master_50", "水合卫士", "累计 50 天饮水达标", "💧", waterGoalDays >= 50));
+        list.add(new Achievement("steps_master_30", "万步先行者", "累计 30 天步行达标", "👣", stepGoalDays >= 30));
+        list.add(new Achievement("sleep_master_30", "睡眠守护神", "累计 30 天健康睡眠", "💤", sleepGoalDays >= 30));
+        list.add(new Achievement("mood_master_30", "心理调节员", "累计打卡每日心情 30 次", "🧠", moodCount >= 30));
+        list.add(new Achievement("bowel_master_30", "畅通无阻", "累计打卡排便记录 30 次", "🚽", bowelCount >= 30));
 
         // --- 体重目标 ---
         boolean weightGoal = false;
@@ -474,6 +490,13 @@ public class ProfileViewModel extends AndroidViewModel {
         }
         list.add(new Achievement("waist_goal", "腰围新突破",
                 getWaistGoalDesc(user), "📏", waistGoal));
+
+        // --- 连签记录 ---
+        android.content.SharedPreferences sp = getApplication().getSharedPreferences("fitness_diary_prefs",
+                android.content.Context.MODE_PRIVATE);
+        int recordStreak = sp.getInt("record_consecutive_days", 0);
+        boolean streakRecord = recordStreak >= 7;
+        list.add(new Achievement("streak_record", "连签破纪录", "连续打卡突破7天", "🏅", streakRecord));
 
         return list;
     }

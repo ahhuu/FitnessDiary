@@ -70,6 +70,8 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
     private TextView tvWaterAvg;
     private TextView tvWaterTarget;
     private TextView tvWaterPercent;
+    private TextView tvStepsTarget;
+    private TextView tvStepsAvgValue;
     private android.widget.ProgressBar progressWaterCircle;
 
     private BarChart chartTraining, chartSleep, chartSteps;
@@ -108,6 +110,8 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
         tvWaterAvg             = v.findViewById(R.id.tv_water_avg);
         tvWaterTarget          = v.findViewById(R.id.tv_water_target);
         tvWaterPercent         = v.findViewById(R.id.tv_water_percent);
+        tvStepsTarget          = v.findViewById(R.id.tv_steps_label);
+        tvStepsAvgValue        = v.findViewById(R.id.tv_steps_avg_value);
         progressWaterCircle    = v.findViewById(R.id.progress_water_circle);
         btnGenerateAnalysis    = v.findViewById(R.id.btn_generate_analysis);
         cardAnalysisResult     = v.findViewById(R.id.card_analysis_result);
@@ -195,36 +199,56 @@ public class ReportBottomSheetFragment extends BottomSheetDialogFragment {
         });
 
         // 步数柱状图
+        viewModel.getTargetStep().observe(getViewLifecycleOwner(), stepGoal -> {
+            if (tvStepsTarget != null) {
+                tvStepsTarget.setText("每日目标: " + stepGoal + " 步");
+            }
+            // 重新渲染步数图表以更新参考线
+            List<Integer> stepList = viewModel.getDailyStepList().getValue();
+            if (stepList != null && !stepList.isEmpty()) {
+                renderBarChart(chartSteps, stepList, currentLabels, COLOR_STEP, stepGoal.floatValue());
+            }
+        });
         viewModel.getDailyStepList().observe(getViewLifecycleOwner(), stepList -> {
             if (stepList != null && !stepList.isEmpty()) {
-                // 10000步参考线
-                renderBarChart(chartSteps, stepList, currentLabels, COLOR_STEP, 10000f);
+                Integer stepGoal = viewModel.getTargetStep().getValue();
+                float goal = (stepGoal != null && stepGoal > 0) ? stepGoal : 10000f;
+                renderBarChart(chartSteps, stepList, currentLabels, COLOR_STEP, goal);
+            }
+        });
+        viewModel.getAvgSteps().observe(getViewLifecycleOwner(), avg -> {
+            if (tvStepsAvgValue != null) {
+                tvStepsAvgValue.setText("均 " + avg + " 步");
             }
         });
 
-        // 喝水达标率
-        viewModel.getDailyWaterList().observe(getViewLifecycleOwner(), waterList -> {
-            if (waterList != null && !waterList.isEmpty()) {
-                int total = 0;
-                for (int w : waterList) total += w;
-                int avg = total / waterList.size();
-                int target = 2000;
-                Integer tgt = viewModel.getTargetWater().getValue();
-                if (tgt != null) target = tgt;
-                int pct = Math.min((int) (avg * 100.0 / target), 100);
-                tvWaterAvg.setText("日均摄入: " + avg + " ml");
-                tvWaterTarget.setText("每日目标: " + target + " ml");
-                tvWaterPercent.setText(pct + "%");
-                progressWaterCircle.setMax(100);
-                progressWaterCircle.setProgress(pct);
-            }
-        });
+        // 喝水达标率 —— 同时观察水量列表和目标值，哪个后到就触发刷新
+        viewModel.getDailyWaterList().observe(getViewLifecycleOwner(), waterList ->
+                updateWaterDisplay(waterList, viewModel.getTargetWater().getValue()));
+        viewModel.getTargetWater().observe(getViewLifecycleOwner(), target ->
+                updateWaterDisplay(viewModel.getDailyWaterList().getValue(), target));
 
         // 检查今日是否已分析
         checkAnalysisState();
     }
 
+    /** 喝水达标率刷新辅助方法，两个 LiveData 任意一个更新都会触发 */
+    private void updateWaterDisplay(List<Integer> waterList, Integer targetWater) {
+        if (waterList == null || waterList.isEmpty()) return;
+        int total = 0;
+        for (int w : waterList) total += w;
+        int avg = total / waterList.size();
+        int target = (targetWater != null && targetWater > 0) ? targetWater : 2000;
+        int pct = Math.min((int) (avg * 100.0 / target), 100);
+        tvWaterAvg.setText("日均摄入: " + avg + " ml");
+        tvWaterTarget.setText("每日目标: " + target + " ml");
+        tvWaterPercent.setText(pct + "%");
+        progressWaterCircle.setMax(100);
+        progressWaterCircle.setProgress(pct);
+    }
+
     // -----------------------------------------------------------------------
+
     private void renderBarChart(BarChart chart, List<Integer> data,
                                 List<String> labels, int color, Float limitVal) {
         List<BarEntry> entries = new ArrayList<>();

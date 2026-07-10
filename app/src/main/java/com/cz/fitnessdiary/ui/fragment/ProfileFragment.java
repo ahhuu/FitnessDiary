@@ -38,6 +38,10 @@ import com.cz.fitnessdiary.database.entity.ReminderSchedule;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.HabitItem;
 import com.cz.fitnessdiary.database.entity.HabitRecord;
+import com.cz.fitnessdiary.database.entity.StepRecord;
+import com.cz.fitnessdiary.database.entity.SleepRecord;
+import com.cz.fitnessdiary.database.entity.BowelMovement;
+import com.cz.fitnessdiary.database.entity.MoodRecord;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
@@ -350,9 +354,18 @@ public class ProfileFragment extends Fragment {
     }
 
     private void showUnitAndDisplaySettingsDialog() {
+        String currentThemeText = "跟随系统";
+        int currentTheme = UnitUtils.getThemeMode(requireContext());
+        if (currentTheme == UnitUtils.THEME_LIGHT) {
+            currentThemeText = "浅色模式";
+        } else if (currentTheme == UnitUtils.THEME_DARK) {
+            currentThemeText = "深色模式";
+        }
+
         String[] settings = {"重量单位 (当前: " + UnitUtils.getWeightUnitDisplay(UnitUtils.getWeightUnit(requireContext())) + ")",
                 "热量单位 (当前: " + UnitUtils.getEnergyUnitDisplay(UnitUtils.getEnergyUnit(requireContext())) + ")",
-                "外观显示设置"};
+                "外观显示设置 (当前: " + currentThemeText + ")"};
+
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("🌓 显示与单位设置")
                 .setItems(settings, (dialog, which) -> {
@@ -382,7 +395,7 @@ public class ProfileFragment extends Fragment {
                         String[] themes = {"浅色模式", "深色模式", "跟随系统"};
                         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("外观显示设置")
-                                .setItems(themes, (d, t) -> {
+                                .setSingleChoiceItems(themes, currentTheme, (d, t) -> {
                                     UnitUtils.setThemeMode(requireContext(), t);
                                     int mode;
                                     if (t == 0) {
@@ -394,6 +407,7 @@ public class ProfileFragment extends Fragment {
                                     }
                                     androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(mode);
                                     Toast.makeText(getContext(), "外观主题已设为：" + themes[t], Toast.LENGTH_SHORT).show();
+                                    d.dismiss();
                                     // 立即重建Activity使主题生效
                                     requireActivity().recreate();
                                 })
@@ -450,7 +464,6 @@ public class ProfileFragment extends Fragment {
 
         androidx.recyclerview.widget.RecyclerView rvPreset = dialogView.findViewById(R.id.rv_preset_reminders);
         androidx.recyclerview.widget.RecyclerView rvCustom = dialogView.findViewById(R.id.rv_custom_reminders);
-        com.google.android.material.button.MaterialButton btnAddCustom = dialogView.findViewById(R.id.btn_add_custom_reminder);
 
         rvPreset.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(getContext()));
         rvCustom.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(getContext()));
@@ -464,7 +477,7 @@ public class ProfileFragment extends Fragment {
                     schedule.setEnabled(enabled);
                     dao.update(schedule);
                     if (enabled) {
-                        ReminderManager.scheduleReminder(requireContext(), schedule);
+                        ReminderManager.scheduleReminder(requireContext(), schedule, true);
                     } else {
                         ReminderManager.cancelReminder(requireContext(), schedule);
                     }
@@ -474,21 +487,57 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onTimeClick(ReminderSchedule schedule) {
                 ReminderScheduleAdapter.OnReminderActionListener self = this;
-                TimePickerDialog timePicker = new TimePickerDialog(getContext(), (view, hour, minute) -> {
-                    schedule.setHour(hour);
-                    schedule.setMinute(minute);
-                    new Thread(() -> {
-                        dao.update(schedule);
-                        ReminderManager.cancelReminder(requireContext(), schedule);
-                        if (schedule.isEnabled()) {
-                            ReminderManager.scheduleReminder(requireContext(), schedule);
+                if ("weekly_report".equals(schedule.getModuleType())) {
+                    String[] days = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+                    int dayIndex = 1;
+                    try {
+                        String repeatDaysStr = schedule.getRepeatDays();
+                        if (repeatDaysStr != null && !repeatDaysStr.isEmpty()) {
+                            dayIndex = Integer.parseInt(repeatDaysStr.split(",")[0].trim());
                         }
-                        if (getActivity() != null) {
-                            getActivity().runOnUiThread(() -> refreshReminderLists(dao, rvPreset, rvCustom, self));
-                        }
-                    }).start();
-                }, schedule.getHour(), schedule.getMinute(), true);
-                timePicker.show();
+                    } catch (Exception ignored) {}
+                    if (dayIndex < 0 || dayIndex > 6) dayIndex = 1;
+
+                    new MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("选择健康周报发送日")
+                            .setSingleChoiceItems(days, dayIndex, (d, which) -> {
+                                d.dismiss();
+                                TimePickerDialog timePicker = new TimePickerDialog(getContext(), (view, hour, minute) -> {
+                                    schedule.setHour(hour);
+                                    schedule.setMinute(minute);
+                                    schedule.setRepeatDays(String.valueOf(which));
+                                    new Thread(() -> {
+                                        dao.update(schedule);
+                                        ReminderManager.cancelReminder(requireContext(), schedule);
+                                        if (schedule.isEnabled()) {
+                                            ReminderManager.scheduleReminder(requireContext(), schedule, true);
+                                        }
+                                        if (getActivity() != null) {
+                                            getActivity().runOnUiThread(() -> refreshReminderLists(dao, rvPreset, rvCustom, self));
+                                        }
+                                    }).start();
+                                }, schedule.getHour(), schedule.getMinute(), true);
+                                timePicker.show();
+                            })
+                            .setNegativeButton("取消", null)
+                            .show();
+                } else {
+                    TimePickerDialog timePicker = new TimePickerDialog(getContext(), (view, hour, minute) -> {
+                        schedule.setHour(hour);
+                        schedule.setMinute(minute);
+                        new Thread(() -> {
+                            dao.update(schedule);
+                            ReminderManager.cancelReminder(requireContext(), schedule);
+                            if (schedule.isEnabled()) {
+                                ReminderManager.scheduleReminder(requireContext(), schedule, true);
+                            }
+                            if (getActivity() != null) {
+                                getActivity().runOnUiThread(() -> refreshReminderLists(dao, rvPreset, rvCustom, self));
+                            }
+                        }).start();
+                    }, schedule.getHour(), schedule.getMinute(), true);
+                    timePicker.show();
+                }
             }
 
             @Override
@@ -516,6 +565,13 @@ public class ProfileFragment extends Fragment {
             }
         };
 
+        showNotificationSettingsDialogSmart(dialogView, dao, rvPreset, rvCustom, listener);
+    }
+
+    private void showNotificationSettingsDialogSmart(View dialogView, ReminderScheduleDao dao,
+                                                     androidx.recyclerview.widget.RecyclerView rvPreset,
+                                                     androidx.recyclerview.widget.RecyclerView rvCustom,
+                                                     ReminderScheduleAdapter.OnReminderActionListener listener) {
         ReminderScheduleAdapter presetAdapter = new ReminderScheduleAdapter(listener);
         ReminderScheduleAdapter customAdapter = new ReminderScheduleAdapter(listener);
         rvPreset.setAdapter(presetAdapter);
@@ -523,12 +579,15 @@ public class ProfileFragment extends Fragment {
 
         refreshReminderLists(dao, rvPreset, rvCustom, listener);
 
-        btnAddCustom.setOnClickListener(v -> {
-            ReminderSchedule newSchedule = new ReminderSchedule(
-                    "custom", 0, 8, 0, "0,1,2,3,4,5,6",
-                    true, "新提醒", "", false, 99);
-            showEditReminderDialog(newSchedule, dao, () -> refreshReminderLists(dao, rvPreset, rvCustom, listener));
-        });
+        com.google.android.material.button.MaterialButton btnAddCustom = dialogView.findViewById(R.id.btn_add_custom_reminder);
+        if (btnAddCustom != null) {
+            btnAddCustom.setOnClickListener(v -> {
+                ReminderSchedule newSchedule = new ReminderSchedule(
+                        "custom", 0, 8, 0, "0,1,2,3,4,5,6",
+                        true, "新提醒", "", false, 99);
+                showEditReminderDialog(newSchedule, dao, () -> refreshReminderLists(dao, rvPreset, rvCustom, listener));
+            });
+        }
 
         new MaterialAlertDialogBuilder(requireContext())
                 .setView(dialogView)
@@ -598,7 +657,7 @@ public class ProfileFragment extends Fragment {
                         }
                         ReminderManager.cancelReminder(requireContext(), schedule);
                         if (schedule.isEnabled()) {
-                            ReminderManager.scheduleReminder(requireContext(), schedule);
+                            ReminderManager.scheduleReminder(requireContext(), schedule, true);
                         }
                         if (onDone != null && getActivity() != null) {
                             getActivity().runOnUiThread(() -> onDone.run());
@@ -810,65 +869,18 @@ public class ProfileFragment extends Fragment {
         binding.cardDataReport.setOnClickListener(v -> {
             new MaterialAlertDialogBuilder(requireContext())
                     .setTitle("数据周报")
-                    .setItems(new String[] { "查看分析", "分享周报图片", "前后对比分享" }, (dialog, which) -> {
+                    .setItems(new String[] { "查看分析", "分享周报图片" }, (dialog, which) -> {
                         if (which == 0) {
                             new ReportBottomSheetFragment().show(getChildFragmentManager(), "ReportBottomSheet");
-                        } else if (which == 1) {
-                            generateAndShareWeekReport();
                         } else {
-                            showBeforeAfterPicker();
+                            generateAndShareWeekReport();
                         }
                     })
                     .show();
         });
     }
 
-    private long selectedBeforeDate = 0;
-    private long selectedAfterDate = 0;
 
-    private void showBeforeAfterPicker() {
-        com.google.android.material.datepicker.MaterialDatePicker<Long> picker =
-                com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
-                        .setTitleText("选择对比起点")
-                        .build();
-        picker.addOnPositiveButtonClickListener(sel -> {
-            selectedBeforeDate = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(sel);
-            com.google.android.material.datepicker.MaterialDatePicker<Long> picker2 =
-                    com.google.android.material.datepicker.MaterialDatePicker.Builder.datePicker()
-                            .setTitleText("选择对比终点")
-                            .build();
-            picker2.addOnPositiveButtonClickListener(sel2 -> {
-                selectedAfterDate = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(sel2);
-                generateAndShareBeforeAfter();
-            });
-            picker2.show(getParentFragmentManager(), "after_date");
-        });
-        picker.show(getParentFragmentManager(), "before_date");
-    }
-
-    private void generateAndShareBeforeAfter() {
-        new Thread(() -> {
-            android.graphics.Bitmap bitmap = com.cz.fitnessdiary.utils.ShareCardGenerator
-                    .generateBeforeAfterCard(requireContext(), selectedBeforeDate, selectedAfterDate);
-            requireActivity().runOnUiThread(() -> {
-                String dir = requireContext().getCacheDir().getAbsolutePath();
-                String path = dir + "/health_compare.png";
-                try {
-                    java.io.FileOutputStream out = new java.io.FileOutputStream(path);
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
-                    out.close();
-                } catch (Exception ignored) {}
-
-                android.content.Intent si = new android.content.Intent(android.content.Intent.ACTION_SEND);
-                si.setType("image/png");
-                si.putExtra(android.content.Intent.EXTRA_STREAM,
-                        androidx.core.content.FileProvider.getUriForFile(requireContext(),
-                                "com.cz.fitnessdiary.fileprovider", new java.io.File(path)));
-                si.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                startActivity(android.content.Intent.createChooser(si, "分享前后对比"));
-            });
-        }).start();
-    }
 
     private void generateAndShareWeekReport() {
         java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
@@ -974,6 +986,118 @@ public class ProfileFragment extends Fragment {
                     habitRate = habitDone * 100 / (habitTotal * 7);
                 }
 
+                // Steps avg & Target
+                int totalSteps = 0;
+                int stepDays = 0;
+                for (long d = weekStart; d < weekEnd; d += 24 * 3600 * 1000L) {
+                    StepRecord sr = db.stepRecordDao().getByDateSync(d);
+                    if (sr != null && sr.getSteps() > 0) {
+                        totalSteps += sr.getSteps();
+                        stepDays++;
+                    }
+                }
+                int stepsAvg = stepDays > 0 ? totalSteps / stepDays : 0;
+                android.content.SharedPreferences stepSp = requireContext().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+                int stepTarget = stepSp.getInt("step_target", 10000);
+
+                // Sleep avg
+                java.util.List<SleepRecord> sleepRecords = db.sleepRecordDao().getSleepRecordsByDateRangeSync(weekStart, weekEnd);
+                float totalSleep = 0f;
+                int sleepDays = 0;
+                float totalQuality = 0f;
+                int qualityDays = 0;
+                for (long d = weekStart; d < weekEnd; d += 24 * 3600 * 1000L) {
+                    float dayHrs = 0f;
+                    float dayQualitySum = 0f;
+                    int dayQualityCount = 0;
+                    if (sleepRecords != null) {
+                        for (SleepRecord sr : sleepRecords) {
+                            if (sr.getStartTime() >= d && sr.getStartTime() < d + 24 * 3600 * 1000L) {
+                                dayHrs += sr.getDuration() / 3600f;
+                                if (sr.getQuality() > 0) {
+                                    dayQualitySum += sr.getQuality();
+                                    dayQualityCount++;
+                                }
+                            }
+                        }
+                    }
+                    if (dayHrs > 0f) {
+                        totalSleep += dayHrs;
+                        sleepDays++;
+                    }
+                    if (dayQualityCount > 0) {
+                        totalQuality += (dayQualitySum / dayQualityCount);
+                        qualityDays++;
+                    }
+                }
+                float sleepHrsAvg = sleepDays > 0 ? totalSleep / sleepDays : 0f;
+                float sleepQualityAvg = qualityDays > 0 ? totalQuality / qualityDays : 0f;
+
+                // Active Burned Calories
+                int totalActiveCal = 0;
+                if (allLogs != null) {
+                    float weightVal = (user != null && user.getWeight() > 0) ? (float) user.getWeight() : 65f;
+                    for (DailyLog log : allLogs) {
+                        if (log.getDate() >= weekStart && log.getDate() < weekEnd && log.isCompleted()) {
+                            com.cz.fitnessdiary.database.entity.TrainingPlan plan = planMap.get(log.getPlanId());
+                            int duration = com.cz.fitnessdiary.utils.ExerciseMetTable.resolveDuration(
+                                    log.getDuration(),
+                                    plan != null ? plan.getDuration() : 0,
+                                    plan != null ? plan.getSets() : 0,
+                                    plan != null ? plan.getReps() : 0,
+                                    requireContext());
+                            String category = plan != null ? plan.getCategory() : "无";
+                            double met = com.cz.fitnessdiary.utils.ExerciseMetTable.getMetForExercise(plan != null ? plan.getName() : "", category);
+                            int burned = (int) (met * weightVal * (duration / 3600.0));
+                            totalActiveCal += burned;
+                        }
+                    }
+                }
+
+                // Bowel Movements
+                java.util.List<BowelMovement> bowels = db.bowelMovementDao().getByDateRangeSync(weekStart, weekEnd);
+                int bowelCount = 0;
+                int bowelAbnormalCount = 0;
+                if (bowels != null) {
+                    bowelCount = bowels.size();
+                    for (BowelMovement bm : bowels) {
+                        int type = bm.getBristolType();
+                        boolean abnormalType = (type == 1 || type == 2 || type == 5 || type == 6 || type == 7);
+                        boolean abnormalFeeling = "DIFFICULT".equals(bm.getProcessFeeling()) 
+                                || "INCOMPLETE".equals(bm.getProcessFeeling());
+                        if (abnormalType || abnormalFeeling) {
+                            bowelAbnormalCount++;
+                        }
+                    }
+                }
+
+                // Mood calculation
+                int mDays = 0;
+                float totalMoodScore = 0f;
+                java.util.Map<String, Integer> moodCounts = new java.util.HashMap<>();
+                for (long d = weekStart; d < weekEnd; d += 24 * 3600 * 1000L) {
+                    MoodRecord mr = db.moodRecordDao().getByDateSync(d);
+                    if (mr != null && mr.getMoodCode() != null) {
+                        String code = mr.getMoodCode();
+                        moodCounts.put(code, moodCounts.getOrDefault(code, 0) + 1);
+                        int score = 3;
+                        if ("HAPPY".equals(code)) score = 5;
+                        else if ("NEUTRAL".equals(code)) score = 4;
+                        else if ("SAD".equals(code) || "IRRITABLE".equals(code) || "ANXIOUS".equals(code)) score = 2;
+                        totalMoodScore += score;
+                        mDays++;
+                    }
+                }
+                float moodAvgScore = mDays > 0 ? totalMoodScore / mDays : 0f;
+                String primaryMood = null;
+                int maxCount = 0;
+                for (java.util.Map.Entry<String, java.lang.Integer> entry : moodCounts.entrySet()) {
+                    if (entry.getValue() > maxCount) {
+                        maxCount = entry.getValue();
+                        primaryMood = entry.getKey();
+                    }
+                }
+
                 ShareUtils.WeekSummary summary = new ShareUtils.WeekSummary();
                 summary.weekRange = weekRange;
                 summary.exerciseDays = exerciseDays;
@@ -983,7 +1107,20 @@ public class ProfileFragment extends Fragment {
                 summary.weightStart = wStart;
                 summary.weightEnd = wEnd;
                 summary.waterAvgMl = waterAvg;
+                summary.waterTarget = (user != null && user.getDailyWaterTarget() > 0) ? user.getDailyWaterTarget() : 2000;
                 summary.habitCompletionRate = Math.min(habitRate, 100);
+
+                summary.avgSteps = stepsAvg;
+                summary.stepTarget = stepTarget;
+                summary.avgSleepDuration = sleepHrsAvg;
+                summary.avgSleepQuality = sleepQualityAvg;
+                summary.totalActiveCalories = totalActiveCal;
+
+                summary.avgMoodScore = moodAvgScore;
+                summary.primaryMood = primaryMood;
+                summary.moodDays = mDays;
+                summary.bowelCount = bowelCount;
+                summary.bowelAbnormalCount = bowelAbnormalCount;
 
                 requireActivity().runOnUiThread(() -> ShareUtils.shareWeekReport(requireContext(), summary));
             } catch (Exception e) {
@@ -1065,8 +1202,6 @@ public class ProfileFragment extends Fragment {
         // 关于 App 点击事件
         binding.btnAbout.setOnClickListener(v -> showAboutFitnessDiaryDialog());
 
-        // 健康日报历史
-        binding.btnHealthBriefing.setOnClickListener(v -> showHealthBriefingHistory());
 
         // 其他经典旧 system 卡片 (周报、成就)
         binding.cardAchievements.setOnClickListener(v -> {
@@ -1911,71 +2046,6 @@ public class ProfileFragment extends Fragment {
                         + "• DeepSeek & Qwen 智能大模型助手内核\n\n"
                         + "致敬每一个今天依然在自律训练的你！")
                 .setPositiveButton("致敬", null)
-                .show();
-    }
-
-    private void showHealthBriefingHistory() {
-        SharedPreferences sp = requireContext().getSharedPreferences("daily_briefing_prefs", Context.MODE_PRIVATE);
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM/dd", java.util.Locale.getDefault());
-        long today = DateUtils.getTodayStartTimestamp();
-
-        LinearLayout container = new LinearLayout(requireContext());
-        container.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (12 * getResources().getDisplayMetrics().density);
-        container.setPadding(pad, pad, pad, 0);
-
-        int found = 0;
-        for (int d = 0; d < 7; d++) {
-            long dayTs = today - (long) d * 86400000L;
-            String key = "briefing_" + dayTs;
-            String json = sp.getString(key, null);
-            if (json == null) continue;
-            found++;
-            try {
-                org.json.JSONObject obj = new org.json.JSONObject(json);
-                String greeting = obj.optString("greeting", "");
-                String score = obj.optString("scoreComment", "");
-                String suggestion = obj.optString("suggestion", "");
-                String dateLabel = sdf.format(new java.util.Date(dayTs));
-                if (d == 0) dateLabel = "今天 " + dateLabel;
-                else if (d == 1) dateLabel = "昨天 " + dateLabel;
-
-                TextView tvDate = new TextView(requireContext());
-                tvDate.setText("📅 " + dateLabel);
-                tvDate.setTextSize(14);
-                tvDate.setTypeface(null, android.graphics.Typeface.BOLD);
-                tvDate.setTextColor(0xFF333333);
-                tvDate.setPadding(0, d == 0 ? 0 : pad, 0, 4);
-                container.addView(tvDate);
-
-                TextView tvContent = new TextView(requireContext());
-                tvContent.setText(greeting + "\n" + score + "\n💡 " + suggestion);
-                tvContent.setTextSize(13);
-                tvContent.setTextColor(0xFF666666);
-                tvContent.setPadding(0, 0, 0, 4);
-                container.addView(tvContent);
-
-                View divider = new View(requireContext());
-                divider.setLayoutParams(new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, 1));
-                divider.setBackgroundColor(0xFFE0E0E0);
-                container.addView(divider);
-            } catch (Exception ignored) {}
-        }
-
-        if (found == 0) {
-            TextView tvEmpty = new TextView(requireContext());
-            tvEmpty.setText("暂无健康日报记录\n\n打开首页可生成今日日报，\n生成后每天会缓存历史数据");
-            tvEmpty.setTextSize(14);
-            tvEmpty.setTextColor(0xFF888888);
-            tvEmpty.setPadding(pad, pad, pad, pad);
-            container.addView(tvEmpty);
-        }
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("📊 健康日报回顾")
-                .setView(container)
-                .setPositiveButton("关闭", null)
                 .show();
     }
 

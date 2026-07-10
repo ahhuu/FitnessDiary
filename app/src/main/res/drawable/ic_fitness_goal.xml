@@ -1,0 +1,43 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 底座地平线 -->
+    <path
+        android:pathData="M2,20 L22,20"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+
+    <!-- 左侧小山峰 -->
+    <path
+        android:pathData="M3,20 L8,12 L13,18"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- 主山峰 -->
+    <path
+        android:pathData="M9,20 L16,7 L21,17"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- 顶峰旗杆与小旗帜 -->
+    <path
+        android:pathData="M16,7 L16,3"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+
+    <path
+        android:pathData="M16,3 L20,4.5 L16,6 Z"
+        android:fillColor="#FF000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1"
+        android:strokeLineJoin="round" />
+</vector>

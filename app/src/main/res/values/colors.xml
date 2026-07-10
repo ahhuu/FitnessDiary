@@ -120,6 +120,10 @@
     <!-- 分割线色 -->
     <color name="divider">#E8E5DF</color>
 
+    <!-- 身体数据磨砂背景板半透明色 -->
+    <color name="panel_translucent_bg">#E6FFFFFF</color>
+    <color name="panel_translucent_stroke">#0D000000</color>
+
     <!-- Guide tooltip colors -->
     <color name="guide_tooltip_title">#3C3730</color>
     <color name="guide_tooltip_desc">#8A8276</color>

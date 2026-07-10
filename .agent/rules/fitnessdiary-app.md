@@ -26,7 +26,7 @@ Android 架构专家，协助开发 FitnessDiary 应用。
 | 数据库 Migration（版本号变更） | CLAUDE.md（版本号 + migrations） |
 | 新增功能模块（如步数、情绪） | CLAUDE.md（架构/新增文件） + README.md（核心功能） |
 | 新增第三方库/SDK | CLAUDE.md（Key libraries） |
-| 版本号升级 + 功能改动/修复 | CLAUDE.md（vX.X.X New Components）+ README.md（更新日志） |
+| 版本号升级 + 功能改动/修复 | README.md（更新日志）；若涉及架构变动则同步更新 CLAUDE.md |
 | minSdk / targetSdk 变更 | CLAUDE.md + AGENTS.md |
 | 仅修改方法实现细节（不改变接口和功能边界） | 无需更新
 

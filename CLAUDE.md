@@ -1,4 +1,4 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -35,17 +35,18 @@ API keys are loaded from `local.properties` into `BuildConfig`:
 
 `MainActivity` is the only Activity. It dynamically sets the nav graph start destination based on whether the user is registered (`WelcomeFragment` vs `MainHomeFragment`). 
 
-`MainHomeFragment` contains a customized bottom navigation bar hosting five core functional tabs:
-1. `CheckInFragment` (记录) — v2.3: 首页右上角健康评分环（五维度评分），健康日报卡片（可折叠），FAB 四功能区快捷入口。Daily checklist for steps, water, sleep, habits, weight, mood, etc.
-2. `PlanFragment` (日历历史) — v2.3: 月度日历，单元格显示训练标记，日期弹窗查看当日全维度摘要与训练详情。Monthly calendar view displaying workout logs and customizable color notes.
-3. `DietFragment` (饮食记录) — v2.3: 顶部能量状态横条（摄入 vs 消耗实时对比）。Nutrients tracking and meal log.
-4. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/Qwen AI assistants.
-5. `ProfileFragment` (我的) — User profile and achievement settings (v2.3: 数据周报更新).
+`MainHomeFragment` contains a customized bottom navigation bar (3D pill-style) hosting four core functional tabs:
+1. `CheckInFragment` (记录) — Home dashboard with health score ring (five-dimension breakdown), collapsible daily briefing card, and FAB quick-entry shortcut. Daily checklist for steps, water, sleep, habits, weight, mood, etc.
+2. `PlanFragment` (日历历史) — Monthly calendar with workout markers, dietary calories, and step counts per cell; date-picker bottom sheet for full daily summary across all dimensions.
+3. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/Qwen AI assistants; also serves as entry to AI smart plan creation, diet analysis, and progress assessment sub-flows.
+4. `ProfileFragment` (我的) — User profile, achievement center and level system, body data dashboard, fitness toolbox, content assets, and system settings.
 
-The original workout plan list manager and chart statistics are migrated to secondary pages:
-* `PlanManageFragment` (训练计划管理) — 三 Tab 视图（当前计划 / 探索计划库 / 个人计划），支持”基础/进阶/自定义”分类展示、官方多设备场景模板一键导入及分步式 AI 智能制定计划。
-* `PlanStatsFragment` (周/月数据统计) — v2.3: 更新训练数据统计报表。
-* `ExerciseLibraryFragment` (动作库) — Provides dual-pane interaction with muscle category sidebar and exercises grid list. Supports fuzzy searching, equipment-based filtering, detailed tutorials inside a BottomSheet, and adding custom exercises.
+Secondary pages accessible from home cards, toolbar actions, or navigation:
+* `DietFragment` (饮食记录) — Energy balance bar (intake vs burn), fat/carb/protein macro tracking, meal log with barcode scan and favorite-food chips.
+* `PlanManageFragment` (训练计划管理) — Three-tab view (current plan / explore library / personal plans), official multi-device templates, and step-by-step AI plan wizard.
+* `PlanStatsFragment` (周/月数据统计) — Training statistics reports with trend charts.
+* `ExerciseLibraryFragment` (动作库) — Dual-pane muscle category sidebar with exercise grid; fuzzy search, equipment filtering, tutorial bottomsheets, and custom exercise management.
+* `RecipeListFragment` (常用食谱) — Saved recipe management with one-tap batch food logging.
 
 The launcher intent can carry a `shortcut_id` for app shortcuts or reminder routing extras (`EXTRA_MODULE_TYPE`, `EXTRA_TARGET_ID`) that `routeToReminderTargetIfNeeded()` resolves to the correct fragment.
 
@@ -70,8 +71,9 @@ When adding new entities or columns:
 4. Bump the `version` in `@Database`
 5. Keep all old migrations in place — Room replays them sequentially on existing installs
 
-Current migration note:
+Current migration notes:
 - `MIGRATION_25_26` performs a one-time backfill of historical `food_record.fat` values from the matching `food_library.fat_per_100g` and `food_record.servings`, so the app does not need to rescan the full table on page open.
+- `MIGRATION_26_27` creates `recipe` and `favorite_food` tables, and adds `is_preset` / `sort_order` columns to `reminder_schedule`.
 
 ### Pre-filled Data
 
@@ -90,71 +92,9 @@ Three AI providers, all in `service/`:
 
 The `AiCallback.kt` interface unifies callbacks across providers.
 
-### v2.3 New Components
-
-**健康数据聚合层**：
-- `HealthAggregationRepository` — 只读聚合查询层，跨 11 个 DAO 查询生成 `DailyHealthSnapshot`
-- `HealthScoreCalculator.UserProfile` / `calculateBreakdown()` — 五维度评分引擎（训练 0-25 / 饮食 0-25 / 习惯 0-20 / 身体 0-15 / 坚持 0-15）
-- `DailyHealthSnapshot` / `HealthScoreBreakdown` / `WeeklyTrend` — 聚合数据模型
-
-**快捷录入**：
-- `QuickEntryBottomSheet` — 四功能区按钮快捷入口弹窗（智能助理/核心记录/身体指标/生活日常）
-- `QuickEntryViewModel` — 聚合 FoodRecordRepository、TrainingPlanRepository、HomeDashboardRepository 的录入逻辑
-
-**新手引导系统** (`ui/guide/`)：
-- `OnboardingOverlayFragment` — 全屏全局引导弹窗
-- `PageGuide` / `GuideStep` — 引导步骤数据模型
-- `TargetedGuideOverlay` — 半透明遮罩 + 高亮挖洞 + Tooltip 引导
-- `GuideStateManager` — SharedPreferences 管理引导完成状态
-
-**跨模块关联**：
-- `SportRecordDetailFragment` (v2.3) — 训练详情页底部"影响因素"卡片（前日睡眠、今日饮食）
-- `DietFragment` (v2.3) — 顶部"能量状态横条"（摄入 vs 消耗实时对比）；移除能量余额 Badge
-- `DateSummaryBottomSheet` (v2.3) — 日历日期弹窗展示全维度摘要 + 训练详情（组数/容量/时长）+ 备注 + 8 色选择器
-
-**目标体重** (v2.3)：
-- `WeightRecordDetailFragment` 新增目标体重显示与编辑，默认基于 BMI 健康范围 + 增肌/减脂目标自动计算，支持手动修改
-
-**报表更新** (v2.3)：
-- `PlanStatsFragment` — 日历报表页训练数据统计
-- `ReportBottomSheetFragment` / `ReportViewModel` — 个人中心数据周报
-
-### v2.4.2 New Components
-
-**等级系统重做** (`ProfileViewModel.java`)：
-- 三维加权积分公式：`(训练天数×1.5 + 饮食天数×1.0 + 已解锁成就×2.0) × (1.0 + activeRatio×0.3)`
-- 8 档等级（Lv.0~Lv.7），跨度从几十天到数年
-- 新增 `FoodRecordDao.getTotalDietDaysSync()` (归一化日期去重)、`DailyLogDao.getTotalWorkoutCountSync()`
-- 成就列表从 9 个扩展到 15 个，与 `AchievementCenterViewModel` 对齐
-
-**健康透视看板**：
-- `HealthInsightExplainDialog` — BottomSheetDialogFragment，从 `BodyDataDetailBottomSheet` 的健康透视看板区域点击进入
-- 布局 `dialog_health_insight_explain.xml` — 5 个 MaterialCardView：BMI(公式+分级表)、BMR(Mifflin-St Jeor)、TDEE(系数表)、饮食目标(热量/蛋白质/脂肪/碳水)、用户参数
-- 辅助 drawable：`bg_code_block.xml`(公式灰底)、`bg_highlight_row.xml`(数值高亮条)
-
-**每日目标独立存储**：
-- 步数/饮水/体重/运动时长目标均支持按日独立值 + 全局默认回退
-- 存储键格式：`{key}_{dateTs}`（如 `step_target_1719878400000`）
-- 读取优先级：当日值 → 全局默认 → 硬编码兜底
-
-**饮食评分动态化** (`HealthScoreCalculator.calcCalorieScoreByGoal()`)：
-- 增肌：盈余 OK（0.9~1.3 满分），亏空严罚
-- 减脂：赤字 OK（0.7~1.0 满分），超标严罚
-- 保持：对称评分（0.9~1.1 满分）
-
-**器械动作识别修复** (`ExerciseMetTable`)：
-- 新增 `EQUIPMENT_EXERCISE_NAMES` 集合（19 个动作），解决锤式弯举、阿诺德推举等无关键词器械动作被误判为自重
-
-**训练评分修复** (`HealthScoreCalculator.calcExerciseScore()`)：
-- `totalPlans == 0` → 自动 25 分（休息日）
-- `totalPlans` 数据源从 `daily_log` 改为 `training_plan` 按模式+星期过滤 (`HealthAggregationRepository.countScheduledPlans()`)
-
-**自定义计划筛选修复** (`CheckInViewModel`)：
-- 新增 `getCategoryFilterPrefix()`：自定义模式精确到 `"自定义-{计划名}-"` 前缀，不再匹配所有个人计划
-
 ### Background & Sensors
 
-- `ReminderReceiver` extends `BroadcastReceiver` — handles 6 custom actions (training reminder, record reminder, morning summary, evening reminder, inactivity nudge, weekly report) plus boot-completed to re-schedule alarms after reboot
+- `ReminderReceiver` extends `BroadcastReceiver` — handles 5 custom actions (training reminder, record reminder, morning summary, evening reminder, weekly report) plus boot-completed to re-schedule alarms after reboot
 - `ReminderManager` is a static utility that schedules/cancels alarms via `AlarmManager`, stores preferences in `SharedPreferences`
 - `SmartReminderHelper` provides "smart push" logic with activity-based timing
 - `HomeWidgetProvider` is a home screen app widget, updated via `ACTION_WIDGET_REFRESH` broadcast

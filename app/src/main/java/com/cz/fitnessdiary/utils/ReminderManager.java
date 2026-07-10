@@ -144,6 +144,10 @@ public class ReminderManager {
      * based on repeatDays. Creates one PendingIntent per day of the week.
      */
     public static void scheduleReminder(Context context, ReminderSchedule schedule) {
+        scheduleReminder(context, schedule, false);
+    }
+
+    public static void scheduleReminder(Context context, ReminderSchedule schedule, boolean showToastOnError) {
         if (schedule == null || !schedule.isEnabled()) return;
 
         int[] repeatDays = parseRepeatDays(schedule.getRepeatDays());
@@ -190,7 +194,14 @@ public class ReminderManager {
                     alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
                 }
             } catch (SecurityException e) {
-                Toast.makeText(context, "闹钟设置失败，请检查精确闹钟权限", Toast.LENGTH_LONG).show();
+                android.util.Log.e("ReminderManager", "Failed to schedule exact alarm: ", e);
+                if (showToastOnError) {
+                    new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                        try {
+                            Toast.makeText(context, "闹钟设置失败，请检查精确闹钟权限", Toast.LENGTH_LONG).show();
+                        } catch (Exception ignored) {}
+                    });
+                }
             }
         }
     }
@@ -204,7 +215,11 @@ public class ReminderManager {
         if (am == null) return;
         int requestCodeBase = (int) (schedule.getId() * 100);
         Intent baseIntent = new Intent(context, ReminderReceiver.class);
-        baseIntent.setAction(ACTION_RECORD_REMINDER);
+        if ("weekly_report".equals(schedule.getModuleType())) {
+            baseIntent.setAction(ACTION_WEEKLY_REPORT);
+        } else {
+            baseIntent.setAction(ACTION_RECORD_REMINDER);
+        }
         for (int i = 0; i < 7; i++) {
             PendingIntent pi = PendingIntent.getBroadcast(context, requestCodeBase + i, baseIntent,
                     PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
@@ -220,7 +235,11 @@ public class ReminderManager {
      */
     private static Intent buildReminderIntent(Context context, ReminderSchedule schedule) {
         Intent intent = new Intent(context, ReminderReceiver.class);
-        intent.setAction(ACTION_RECORD_REMINDER);
+        if ("weekly_report".equals(schedule.getModuleType())) {
+            intent.setAction(ACTION_WEEKLY_REPORT);
+        } else {
+            intent.setAction(ACTION_RECORD_REMINDER);
+        }
         intent.putExtra(EXTRA_SCHEDULE_ID, schedule.getId());
         intent.putExtra(EXTRA_MODULE_TYPE, schedule.getModuleType());
         intent.putExtra(EXTRA_TITLE, schedule.getTitle());
@@ -265,11 +284,13 @@ public class ReminderManager {
     // ────────────────────────────────────────────────
     // 智能推送：总开关
     // ────────────────────────────────────────────────
-
+    // ── 智能推送总开关（已废弃，直接根据子项开关各自状态控制） ──
+    @Deprecated
     public static boolean isSmartReminderEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_SMART_REMINDER_ENABLED, false);
+        return true;
     }
 
+    @Deprecated
     public static void setSmartReminderEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_SMART_REMINDER_ENABLED, enabled).apply();
         if (enabled) {
@@ -281,20 +302,15 @@ public class ReminderManager {
 
     /** 重启后 / 触发后重建所有启用的智能提醒 */
     public static void restoreSmartReminders(Context context) {
-        if (isMorningEnabled(context))    scheduleMorningSummary(context);
-        if (isEveningEnabled(context))    scheduleEveningReminder(context);
-        if (isInactivityEnabled(context)) scheduleInactivityNudge(context);
-        if (isWeeklyEnabled(context))     scheduleWeeklyReport(context);
+        // 已废弃旧版 SharedPreferences 独立调度，全部由数据库预设的 ReminderSchedule 集中管理恢复
     }
 
     /** 取消全部智能提醒 */
     public static void cancelSmartReminders(Context context) {
         cancelSmartAction(context, ACTION_MORNING_SUMMARY,  100);
         cancelSmartAction(context, ACTION_EVENING_REMINDER, 101);
-        cancelSmartAction(context, ACTION_INACTIVITY_NUDGE, 102);
         cancelSmartAction(context, ACTION_WEEKLY_REPORT,    103);
     }
-
     // ────────────────────────────────────────────────
     // 智能推送：早晨概要
     // ────────────────────────────────────────────────
@@ -302,12 +318,12 @@ public class ReminderManager {
     public static boolean isMorningEnabled(Context context) {
         return prefs(context).getBoolean(KEY_MORNING_ENABLED, true);
     }
-
     public static void setMorningEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_MORNING_ENABLED, enabled).apply();
-        if (isSmartReminderEnabled(context)) {
-            if (enabled) scheduleMorningSummary(context);
-            else cancelSmartAction(context, ACTION_MORNING_SUMMARY, 100);
+        if (enabled) {
+            scheduleMorningSummary(context);
+        } else {
+            cancelSmartAction(context, ACTION_MORNING_SUMMARY, 100);
         }
     }
 
@@ -324,11 +340,10 @@ public class ReminderManager {
                 .putInt(KEY_MORNING_HOUR, hour)
                 .putInt(KEY_MORNING_MINUTE, minute)
                 .apply();
-        if (isSmartReminderEnabled(context) && isMorningEnabled(context)) {
+        if (isMorningEnabled(context)) {
             scheduleMorningSummary(context);
         }
     }
-
     public static void scheduleMorningSummary(Context context) {
         scheduleSmartAction(context, ACTION_MORNING_SUMMARY, 100,
                 getMorningHour(context), getMorningMinute(context));
@@ -341,12 +356,12 @@ public class ReminderManager {
     public static boolean isEveningEnabled(Context context) {
         return prefs(context).getBoolean(KEY_EVENING_ENABLED, true);
     }
-
     public static void setEveningEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_EVENING_ENABLED, enabled).apply();
-        if (isSmartReminderEnabled(context)) {
-            if (enabled) scheduleEveningReminder(context);
-            else cancelSmartAction(context, ACTION_EVENING_REMINDER, 101);
+        if (enabled) {
+            scheduleEveningReminder(context);
+        } else {
+            cancelSmartAction(context, ACTION_EVENING_REMINDER, 101);
         }
     }
 
@@ -363,11 +378,10 @@ public class ReminderManager {
                 .putInt(KEY_EVENING_HOUR, hour)
                 .putInt(KEY_EVENING_MINUTE, minute)
                 .apply();
-        if (isSmartReminderEnabled(context) && isEveningEnabled(context)) {
+        if (isEveningEnabled(context)) {
             scheduleEveningReminder(context);
         }
     }
-
     public static void scheduleEveningReminder(Context context) {
         scheduleSmartAction(context, ACTION_EVENING_REMINDER, 101,
                 getEveningHour(context), getEveningMinute(context));
@@ -376,40 +390,34 @@ public class ReminderManager {
     // ────────────────────────────────────────────────
     // 智能推送：不活跃挽留
     // ────────────────────────────────────────────────
-
+    @Deprecated
     public static boolean isInactivityEnabled(Context context) {
-        return prefs(context).getBoolean(KEY_INACTIVITY_ENABLED, true);
+        return false;
     }
 
+    @Deprecated
     public static void setInactivityEnabled(Context context, boolean enabled) {
-        prefs(context).edit().putBoolean(KEY_INACTIVITY_ENABLED, enabled).apply();
-        if (isSmartReminderEnabled(context)) {
-            if (enabled) scheduleInactivityNudge(context);
-            else cancelSmartAction(context, ACTION_INACTIVITY_NUDGE, 102);
-        }
+        // 已废弃，不执行任何操作
     }
 
+    @Deprecated
     public static int getInactivityHour(Context context) {
-        return prefs(context).getInt(KEY_INACTIVITY_HOUR, 18);
+        return 18;
     }
 
+    @Deprecated
     public static int getInactivityMinute(Context context) {
-        return prefs(context).getInt(KEY_INACTIVITY_MINUTE, 0);
+        return 0;
     }
 
+    @Deprecated
     public static void setInactivityTime(Context context, int hour, int minute) {
-        prefs(context).edit()
-                .putInt(KEY_INACTIVITY_HOUR, hour)
-                .putInt(KEY_INACTIVITY_MINUTE, minute)
-                .apply();
-        if (isSmartReminderEnabled(context) && isInactivityEnabled(context)) {
-            scheduleInactivityNudge(context);
-        }
+        // 已废弃，不执行任何操作
     }
 
+    @Deprecated
     public static void scheduleInactivityNudge(Context context) {
-        scheduleSmartAction(context, ACTION_INACTIVITY_NUDGE, 102,
-                getInactivityHour(context), getInactivityMinute(context));
+        // 已废弃，不执行任何操作
     }
 
     // ────────────────────────────────────────────────
@@ -422,9 +430,10 @@ public class ReminderManager {
 
     public static void setWeeklyEnabled(Context context, boolean enabled) {
         prefs(context).edit().putBoolean(KEY_WEEKLY_ENABLED, enabled).apply();
-        if (isSmartReminderEnabled(context)) {
-            if (enabled) scheduleWeeklyReport(context);
-            else cancelSmartAction(context, ACTION_WEEKLY_REPORT, 103);
+        if (enabled) {
+            scheduleWeeklyReport(context);
+        } else {
+            cancelSmartAction(context, ACTION_WEEKLY_REPORT, 103);
         }
     }
 
@@ -446,7 +455,7 @@ public class ReminderManager {
                 .putInt(KEY_WEEKLY_HOUR, hour)
                 .putInt(KEY_WEEKLY_MINUTE, minute)
                 .apply();
-        if (isSmartReminderEnabled(context) && isWeeklyEnabled(context)) {
+        if (isWeeklyEnabled(context)) {
             scheduleWeeklyReport(context);
         }
     }
@@ -457,15 +466,13 @@ public class ReminderManager {
     }
 
     // ────────────────────────────────────────────────
-    // 智能推送：欢迎广播
+    // 智能推送：欢迎广播（已废弃）
     // ────────────────────────────────────────────────
 
+    @Deprecated
     public static void sendSmartReminderWelcomeNotification(Context context) {
-        Intent intent = new Intent(context, ReminderReceiver.class);
-        intent.setAction(ACTION_SMART_WELCOME);
-        context.sendBroadcast(intent);
+        // 已废弃，不发送欢迎通知
     }
-
     // ────────────────────────────────────────────────
     // 内部工具方法
     // ────────────────────────────────────────────────

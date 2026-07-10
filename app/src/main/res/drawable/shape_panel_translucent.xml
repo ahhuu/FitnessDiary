@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <!-- 高级半透明白底，呈现微磨砂玻璃质感 -->
-    <solid android:color="#E6FFFFFF" />
+    <!-- 高级半透明底色，响应系统深色模式呈现微磨砂玻璃质感 -->
+    <solid android:color="@color/panel_translucent_bg" />
     <corners android:radius="16dp" />
     <stroke
         android:width="1dp"
-        android:color="#0D000000" />
+        android:color="@color/panel_translucent_stroke" />
 </shape>

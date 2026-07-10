@@ -129,6 +129,85 @@ public class SleepRecordDetailFragment extends Fragment {
         });
 
         viewModel.getSelectedDateRecords().observe(getViewLifecycleOwner(), this::renderRecords);
+
+        // 绑定睡眠分析卡片控件
+        TextView tvAvgSleepDuration = view.findViewById(R.id.tv_avg_sleep_duration);
+        TextView tvSleepSufficientRatio = view.findViewById(R.id.tv_sleep_sufficient_ratio);
+        TextView tvLatestBedtime = view.findViewById(R.id.tv_latest_bedtime);
+        TextView tvSleepWarning = view.findViewById(R.id.tv_sleep_warning);
+        TextView tvSleepLocalAdvice = view.findViewById(R.id.tv_sleep_local_advice);
+        MaterialButton btnSleepAiDiagnosis = view.findViewById(R.id.btn_sleep_ai_diagnosis);
+
+        viewModel.getAvgSleepDuration().observe(getViewLifecycleOwner(), val -> {
+            if (tvAvgSleepDuration != null) tvAvgSleepDuration.setText(String.format(Locale.getDefault(), "%.1f h", val));
+        });
+        viewModel.getSufficientRatio().observe(getViewLifecycleOwner(), ratio -> {
+            if (tvSleepSufficientRatio != null) tvSleepSufficientRatio.setText(String.format(Locale.getDefault(), "%.1f%%", ratio));
+        });
+        viewModel.getLatestBedtime().observe(getViewLifecycleOwner(), time -> {
+            if (tvLatestBedtime != null) tvLatestBedtime.setText(time);
+        });
+        viewModel.getSleepWarning().observe(getViewLifecycleOwner(), warning -> {
+            if (tvSleepWarning != null) tvSleepWarning.setText("睡眠异常警告：" + warning);
+        });
+        viewModel.getSleepAdvice().observe(getViewLifecycleOwner(), advice -> {
+            if (tvSleepLocalAdvice != null) tvSleepLocalAdvice.setText(advice);
+        });
+
+        if (btnSleepAiDiagnosis != null) {
+            btnSleepAiDiagnosis.setOnClickListener(v -> {
+                double avgHours = viewModel.getAvgSleepDuration().getValue() != null ? viewModel.getAvgSleepDuration().getValue() : 0.0;
+                float suffRatio = viewModel.getSufficientRatio().getValue() != null ? viewModel.getSufficientRatio().getValue() : 0f;
+                String latestBedtimeStr = viewModel.getLatestBedtime().getValue() != null ? viewModel.getLatestBedtime().getValue() : "--";
+                String sleepWarningStr = viewModel.getSleepWarning().getValue() != null ? viewModel.getSleepWarning().getValue() : "作息规律健康 ✓";
+
+                String prompt = String.format(Locale.getDefault(),
+                        "用户近30天睡眠数据统计如下：\n" +
+                        "- 平均每日睡眠时长：%.1f 小时\n" +
+                        "- 睡眠充足达标率（每日在 6-9 小时之间）：%.1f%%\n" +
+                        "- 最晚入睡时间：%s\n" +
+                        "- 睡眠作息预警：%s\n\n" +
+                        "请扮演专业睡眠健康医学顾问，生成一份睡眠质量调理报告。包含：\n" +
+                        "1. 睡眠状态与作息规律评估；\n" +
+                        "2. 针对性睡眠环境与作息调整建议；\n" +
+                        "3. 睡前仪式与助眠改善动作。\n" +
+                        "回答要求结构清晰（Markdown格式展示），语气温柔、具亲和力，且控制在 350 字以内。",
+                        avgHours, suffRatio, latestBedtimeStr, sleepWarningStr);
+
+                btnSleepAiDiagnosis.setEnabled(false);
+                btnSleepAiDiagnosis.setText("✨ AI 睡眠质量诊断中...");
+
+                String systemInstruction = "你是 FitnessDiary 睡眠健康顾问，一名资深的睡眠医学专家。请提供专业、简明、排版优美、字数在 350 字以内的中文评估报告。";
+                com.cz.fitnessdiary.service.DeepSeekService.sendMessage(prompt, systemInstruction, false, null, new com.cz.fitnessdiary.service.AICallback() {
+                    @Override
+                    public void onSuccess(String response, String reasoning) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                btnSleepAiDiagnosis.setEnabled(true);
+                                btnSleepAiDiagnosis.setText("✨ 生成 AI 睡眠健康诊断报告");
+                                showReportDialog("✨ AI 睡眠健康评估报告", response);
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onPartialUpdate(String content, String reasoning) {}
+
+                    @Override
+                    public void onError(String error) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                btnSleepAiDiagnosis.setEnabled(true);
+                                btnSleepAiDiagnosis.setText("✨ 生成 AI 睡眠健康诊断报告");
+                                String localReport = generateLocalSleepReport(avgHours, suffRatio, latestBedtimeStr);
+                                showReportDialog("📊 睡眠健康调理方案 (本地智能引擎)", localReport);
+                            });
+                        }
+                    }
+                });
+            });
+        }
+
         viewModel.refreshStatsSeries();
     }
 
@@ -318,6 +397,57 @@ public class SleepRecordDetailFragment extends Fragment {
                     }
                 })
                 .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private String generateLocalSleepReport(double avgHours, float suffRatio, String latestBedtimeStr) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("### 🩺 睡眠状态与作息评估\n");
+        if (avgHours < 6.0) {
+            sb.append("近30天您的日均睡眠量为**").append(String.format(Locale.getDefault(), "%.1f 小时", avgHours)).append("**，明显低于健康的成年人睡眠标准。这极易导致日间疲劳和免疫力下降。\n\n");
+        } else if (suffRatio < 50.0f) {
+            sb.append("近30天您的睡眠达标率偏低（**").append(String.format(Locale.getDefault(), "%.1f%%", suffRatio)).append("**），表明您的作息质量波动剧烈，缺乏规律的生物钟节奏。\n\n");
+        } else {
+            sb.append("近30天您的睡眠质量表现**相当优异**，规律达标率高达 ").append(String.format(Locale.getDefault(), "%.1f%%", suffRatio)).append("。高规律睡眠能有效促进身体组织修复 and 能量代谢恢复。\n\n");
+        }
+
+        sb.append("### 🛌 睡眠环境与作息调整建议\n");
+        sb.append("- **光照重塑昼夜节律**：清晨起床后接受 15 分钟户外自然光照，抑制褪黑素分泌，拉大昼夜生物钟相位差。\n");
+        sb.append("- **卧室降温与降噪**：卧室温度维持在 18-22°C 左右最利于快速入眠，可使用防噪耳塞或遮光窗帘。\n");
+
+        sb.append("\n### 🧘 睡前仪式与助眠动作\n");
+        sb.append("- **睡前 30 分钟冥想**：平躺于床上，进行 5 分钟的深呼吸吸气 4 秒、屏气 7 秒、呼气 8 秒（4-7-8 呼吸法），降低中枢神经过度兴奋。\n");
+        sb.append("- **禁止蓝光刺激**：睡前 1 小时严格停用一切发光电子屏幕（如手机、电脑），避免蓝光阻碍褪黑素天然合成。");
+        return sb.toString();
+    }
+
+    private void showReportDialog(String title, String content) {
+        if (getContext() == null) return;
+        TextView tv = new TextView(getContext());
+        tv.setTextSize(14f);
+        tv.setPadding(48, 36, 48, 36);
+        tv.setLineSpacing(1.3f, 1.3f);
+        
+        int textColor = 0xFF212121;
+        try {
+            textColor = getResources().getColor(R.color.text_primary);
+        } catch (Exception ignored) {}
+        tv.setTextColor(textColor);
+
+        String formatted = content
+                .replace("\n", "<br/>")
+                .replaceAll("\\*\\*(.*?)\\*\\*", "<b>$1</b>")
+                .replaceAll("### (.*?)<br/>", "<b><font color='#673AB7'>$1</font></b><br/>");
+
+        tv.setText(android.text.Html.fromHtml(formatted, android.text.Html.FROM_HTML_MODE_LEGACY));
+
+        android.widget.ScrollView sv = new android.widget.ScrollView(getContext());
+        sv.addView(tv);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(title)
+                .setView(sv)
+                .setPositiveButton("我知道了", null)
                 .show();
     }
 }

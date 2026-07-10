@@ -28,6 +28,12 @@ public class BowelDetailViewModel extends AndroidViewModel {
     private final MutableLiveData<Integer> dailyCount = new MutableLiveData<>(0);
     private final MutableLiveData<Float> avgBristol = new MutableLiveData<>(0f);
     private final MutableLiveData<Integer> digestiveHealthScore = new MutableLiveData<>(0);
+    private final MutableLiveData<Float> constipationRatio = new MutableLiveData<>(0f);
+    private final MutableLiveData<Float> normalRatio = new MutableLiveData<>(100f);
+    private final MutableLiveData<Float> diarrheaRatio = new MutableLiveData<>(0f);
+    private final MutableLiveData<Float> avgDurationSeconds = new MutableLiveData<>(0f);
+    private final MutableLiveData<String> colorAlert = new MutableLiveData<>("正常 ✓");
+    private final MutableLiveData<String> localAdvice = new MutableLiveData<>("暂无充足数据分析");
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public BowelDetailViewModel(@NonNull Application application) {
@@ -124,8 +130,78 @@ public class BowelDetailViewModel extends AndroidViewModel {
                 avgBristol.postValue(0f);
                 digestiveHealthScore.postValue(0);
             }
+
+            // Calculate ratios, durations, warnings, advice
+            List<BowelMovement> list30 = repository.getByDateRangeSync(monthStart, monthEnd);
+            int durationCount = 0;
+            long durationSum = 0;
+            int constipationCount = 0;
+            int normalCount = 0;
+            int diarrheaCount = 0;
+            boolean hasDangerColor = false;
+
+            if (list30 != null && !list30.isEmpty()) {
+                for (BowelMovement bm : list30) {
+                    if (bm.getDurationSeconds() > 0) {
+                        durationCount++;
+                        durationSum += bm.getDurationSeconds();
+                    }
+                    int type = bm.getBristolType();
+                    if (type <= 2) {
+                        constipationCount++;
+                    } else if (type <= 5) {
+                        normalCount++;
+                    } else {
+                        diarrheaCount++;
+                    }
+                    String color = bm.getColor();
+                    if ("RED".equals(color) || "BLACK".equals(color) || "WHITE".equals(color)) {
+                        hasDangerColor = true;
+                    }
+                }
+            }
+
+            int totalCount = constipationCount + normalCount + diarrheaCount;
+            float constiRatio = 0f;
+            float normRatio = 100f;
+            float diarrRatio = 0f;
+            if (totalCount > 0) {
+                constiRatio = (constipationCount * 100f) / totalCount;
+                normRatio = (normalCount * 100f) / totalCount;
+                diarrRatio = (diarrheaCount * 100f) / totalCount;
+            }
+            constipationRatio.postValue(constiRatio);
+            normalRatio.postValue(normRatio);
+            diarrheaRatio.postValue(diarrRatio);
+
+            float avgDur = durationCount > 0 ? (float) durationSum / durationCount : 0f;
+            avgDurationSeconds.postValue(avgDur);
+
+            String colorAlertStr = hasDangerColor ? "⚠️ 注意：检测到红色/黑色/白色便便，存在消化道出血或胆道梗阻风险，若持续出现请及时就医！" : "正常 ✓";
+            colorAlert.postValue(colorAlertStr);
+
+            String advice = "✨ 胃肠小建议：";
+            if (totalCount == 0) {
+                advice += "暂无充足排便记录，多记录便便特征能获得更精准的健康调理建议哦！";
+            } else {
+                if (constiRatio > 30f) {
+                    advice += "您的便便偏干硬（便秘占比高）。建议每天多喝水（2L以上），增加膳食纤维摄入（多吃燕麦、火龙果、绿色蔬菜），并在清晨空腹喝一杯温水，促进肠道蠕动。";
+                } else if (diarrRatio > 30f) {
+                    advice += "您的排便偏稀软（腹泻占比高）。建议近期饮食以清淡、易消化为主，避免生冷辛辣。可适当补充益生菌，若腹泻严重或伴有发热请及时就医。";
+                } else {
+                    advice += "您的肠道非常健康！大部分便便呈现健康的香蕉状或正常形态。请保持良好的作息与均衡饮食！";
+                }
+            }
+            localAdvice.postValue(advice);
         });
     }
+
+    public LiveData<Float> getConstipationRatio() { return constipationRatio; }
+    public LiveData<Float> getNormalRatio() { return normalRatio; }
+    public LiveData<Float> getDiarrheaRatio() { return diarrheaRatio; }
+    public LiveData<Float> getAvgDurationSeconds() { return avgDurationSeconds; }
+    public LiveData<String> getColorAlert() { return colorAlert; }
+    public LiveData<String> getLocalAdvice() { return localAdvice; }
 
     private int computeDigestiveHealth(Map<Integer, Integer> bristolMap, List<BowelMovement> todayRecords) {
         int score = 70; // base score

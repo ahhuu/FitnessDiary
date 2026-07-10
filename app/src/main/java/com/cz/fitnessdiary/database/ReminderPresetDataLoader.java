@@ -12,15 +12,11 @@ import java.util.concurrent.Executors;
 public class ReminderPresetDataLoader {
 
     private static final String PREFS_NAME = "reminder_presets";
-    private static final String KEY_PRESETS_LOADED = "presets_loaded_v3";
+    private static final String KEY_PRESETS_LOADED = "presets_loaded_v4";
 
     private static final String[][] PRESETS = {
-            {"☀️ 健康简报推送", "morning_summary", "8", "0", "0,1,2,3,4,5,6", "0", "每日健康简报推送"},
-            {"🌙 晚间记录提醒", "evening_reminder", "20", "0", "0,1,2,3,4,5,6", "1", ""},
-            {"💧 饮水提醒", "water", "10", "0", "0,1,2,3,4,5,6", "2", ""},
-            {"💊 服药打卡提醒", "medication", "9", "0", "0,1,2,3,4,5,6", "3", ""},
-            {"🏃 训练提醒", "training", "19", "0", "0,1,2,3,4,5,6", "4", ""},
-            {"📊 健康周报", "weekly_report", "9", "0", "1", "5", ""},
+            {"🏃 训练提醒", "training", "19", "0", "0,1,2,3,4,5,6", "0", ""},
+            {"📊 健康周报", "weekly_report", "9", "0", "1", "1", ""},
     };
 
     public static void loadIfNeeded(Context context) {

@@ -61,4 +61,8 @@ public class WeightRecordRepository {
     public List<WeightRecord> getRecentRecordsSync(int limit) {
         return dao.getRecentRecordsSync(limit);
     }
+
+    public WeightRecord getOldestRecordSync() {
+        return dao.getOldestRecordSync();
+    }
 }

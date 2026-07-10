@@ -3,15 +3,42 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- 动作库图标: 人体 + 网格，区别于哑铃的计划管理图标 -->
-    <!-- 人体轮廓 -->
+    
+    <!-- 动作库图标: 翻开的动作指南手册，左侧为说明横线，右侧为优雅的健美运动小人 -->
+    
+    <!-- 左半页书边框 -->
     <path
-        android:fillColor="#000000"
-        android:pathData="M12,2C11.2,2,10.5,2.6,10.5,3.5S11.2,5,12,5s1.5-0.6,1.5-1.5S12.8,2,12,2zM10,6L9,22h2v-3h2v3h2L14,6H10zM11,10h2v2h-2V10zM11,13h2v2h-2V13z"/>
-    <!-- 网格线 (代表动作库) -->
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 11,5 C 7,3.5 3.5,4.8 2,5 L 2,19 C 3.5,18.8 7,17.5 11,19 Z" />
+        
+    <!-- 右半页书边框 -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#000000"
-        android:strokeWidth="1"
-        android:pathData="M16,5h3v3h-3zM16,9h3v3h-3zM16,13h3v3h-3zM5,9h3v3H5zM5,13h3v3H5z"/>
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 13,19 C 17,17.5 20.5,18.8 22,19 L 22,5 C 20.5,4.8 17,3.5 13,5 Z" />
+        
+    <!-- 左侧书页内容: 简要介绍文本骨架线 -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M 4.5,8.5 H 8.5 M 4.5,11.5 H 7.5 M 4.5,14.5 H 8.5" />
+        
+    <!-- 右侧书页内容: 简笔运动健美小人 (举起双臂) -->
+    <!-- 头 -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M 17.5,9 C 18.052,9 18.5,8.552 18.5,8 C 18.5,7.448 18.052,7 17.5,7 C 16.948,7 16.5,7.448 16.5,8 C 16.5,8.552 16.948,9 17.5,9 Z" />
+    <!-- 身体躯干与四肢线稿 -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 17.5,9 V 13.5 M 15,10.5 C 16,9.5 19,9.5 20,10.5 M 15.5,16.5 L 17.5,13.5 L 19.5,16.5" />
 </vector>

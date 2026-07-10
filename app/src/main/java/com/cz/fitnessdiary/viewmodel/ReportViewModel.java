@@ -73,6 +73,10 @@ public class ReportViewModel extends AndroidViewModel {
     private final MutableLiveData<List<WeightRecord>> weightHistory   = new MutableLiveData<>();
     /** 每日目标喝水量（ml）*/
     private final MutableLiveData<Integer> targetWater                = new MutableLiveData<>();
+    /** 每日目标步数 */
+    private final MutableLiveData<Integer> targetStep                 = new MutableLiveData<>();
+    /** 日均步数 */
+    private final MutableLiveData<Integer> avgSteps                   = new MutableLiveData<>();
 
     public ReportViewModel(@NonNull Application application) {
         super(application);
@@ -107,6 +111,8 @@ public class ReportViewModel extends AndroidViewModel {
     public LiveData<List<String>>  getXAxisLabels()         { return xAxisLabels; }
     public LiveData<List<WeightRecord>> getWeightHistory()  { return weightHistory; }
     public LiveData<Integer> getTargetWater()               { return targetWater; }
+    public LiveData<Integer> getTargetStep()                { return targetStep; }
+    public LiveData<Integer> getAvgSteps()                  { return avgSteps; }
 
     // -----------------------------------------------------------------------
     /**
@@ -220,31 +226,42 @@ public class ReportViewModel extends AndroidViewModel {
             List<SleepRecord> sleepRecords =
                     sleepRecordRepository.getSleepRecordsByDateRangeSync(startTime, endTime);
             List<Float> sleepList = new ArrayList<>();
+            float totalSleep = 0f;
+            int sleepDays = 0;
+            float totalQuality = 0f;
+            int qualityDays = 0;
+
             for (int i = 0; i < days; i++) {
                 Calendar dc = Calendar.getInstance();
                 dc.setTimeInMillis(startTime + (long) i * 86400000L);
                 long ds = getDayStart(dc), de = ds + 86400000L;
                 float hrs = 0f;
+                float dayQualitySum = 0f;
+                int dayQualityCount = 0;
                 if (sleepRecords != null) {
                     for (SleepRecord sr : sleepRecords) {
-                        if (sr.getStartTime() >= ds && sr.getStartTime() < de)
+                        if (sr.getStartTime() >= ds && sr.getStartTime() < de) {
                             hrs += sr.getDuration() / 3600f;
+                            if (sr.getQuality() > 0) {
+                                dayQualitySum += sr.getQuality();
+                                dayQualityCount++;
+                            }
+                        }
                     }
                 }
                 sleepList.add(hrs);
+                if (hrs > 0f) {
+                    totalSleep += hrs;
+                    sleepDays++;
+                }
+                if (dayQualityCount > 0) {
+                    totalQuality += (dayQualitySum / dayQualityCount);
+                    qualityDays++;
+                }
             }
             dailySleepList.postValue(sleepList);
-            float totalSleep = 0; int sleepDays = 0;
-            int totalQuality = 0;
-            if (sleepRecords != null && !sleepRecords.isEmpty()) {
-                for (SleepRecord sr : sleepRecords) {
-                    totalSleep += sr.getDuration() / 3600f;
-                    totalQuality += sr.getQuality();
-                }
-                sleepDays = sleepRecords.size();
-            }
             avgSleepDuration.postValue(sleepDays > 0 ? totalSleep / sleepDays : 0f);
-            avgSleepQuality.postValue(sleepDays > 0 ? (float) totalQuality / sleepDays : 0f);
+            avgSleepQuality.postValue(qualityDays > 0 ? totalQuality / qualityDays : 0f);
 
             // ====== 4. 体重数据 ======
             List<WeightRecord> wList = weightRepository.getRecentRecordsSync(30);
@@ -253,14 +270,22 @@ public class ReportViewModel extends AndroidViewModel {
 
             // ====== 5. 步数数据 ======
             List<Integer> stepList = new ArrayList<>();
+            int totalSteps = 0;
+            int stepDays = 0;
             for (int i = 0; i < days; i++) {
                 Calendar dc = Calendar.getInstance();
                 dc.setTimeInMillis(startTime + (long) i * 86400000L);
                 long ds = getDayStart(dc);
                 StepRecord sr = stepRepository.getByDateSync(ds);
-                stepList.add(sr != null ? sr.getSteps() : 0);
+                int steps = sr != null ? sr.getSteps() : 0;
+                stepList.add(steps);
+                if (steps > 0) {
+                    totalSteps += steps;
+                    stepDays++;
+                }
             }
             dailyStepList.postValue(stepList);
+            avgSteps.postValue(stepDays > 0 ? totalSteps / stepDays : 0);
 
             // ====== 6. 喝水数据 ======
             List<WaterRecord> wRecords =
@@ -291,7 +316,12 @@ public class ReportViewModel extends AndroidViewModel {
                     target = (int) (10 * curWeight + 6.25 * curHeight - 5 * user.getAge() + 5);
             }
             targetCalories.postValue(target);
-            targetWater.postValue(2000); // 默认 2000ml 目标
+            // 动态读取用户设置的每日步数目标和饮水目标
+            android.content.SharedPreferences stepSp = getApplication().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+            int stepTarget = stepSp.getInt("step_target", 10000);
+            targetStep.postValue(stepTarget);
+            int waterTarget = (user != null && user.getDailyWaterTarget() > 0) ? user.getDailyWaterTarget() : 2000;
+            targetWater.postValue(waterTarget);
 
             dietSuggestion.postValue(avgCal <= 0 ? "🥗 暂无饮食记录"
                     : avgCal > target ? "🥗 热量略超标，建议增加有氧或控制晚餐"
