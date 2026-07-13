@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.repository.DailyLogRepository;
@@ -28,12 +29,14 @@ public class CheckInViewModel extends AndroidViewModel {
 
     private DailyLogRepository dailyLogRepository;
     private com.cz.fitnessdiary.repository.TrainingPlanRepository trainingPlanRepository;
+    private com.cz.fitnessdiary.repository.ExtraExerciseLogRepository extraExerciseLogRepository;
     private SleepRecordRepository sleepRecordRepository;
     private UserRepository userRepository;
     private LiveData<List<DailyLog>> allLogs;
     private MutableLiveData<Integer> consecutiveDays = new MutableLiveData<>(0);
     private MutableLiveData<Long> selectedDate = new MutableLiveData<>(DateUtils.getTodayStartTimestamp());
     private LiveData<java.util.Set<Long>> recordedDates;
+    private androidx.lifecycle.MediatorLiveData<java.util.Set<Long>> recordedDatesMediator;
     private ExecutorService executorService;
 
     public CheckInViewModel(@NonNull Application application) {
@@ -41,21 +44,38 @@ public class CheckInViewModel extends AndroidViewModel {
         dailyLogRepository = new DailyLogRepository(application);
         sleepRecordRepository = new SleepRecordRepository(application);
         trainingPlanRepository = new com.cz.fitnessdiary.repository.TrainingPlanRepository(application);
+        extraExerciseLogRepository = new com.cz.fitnessdiary.repository.ExtraExerciseLogRepository(application);
         userRepository = new UserRepository(application);
         allLogs = dailyLogRepository.getAllLogs();
         executorService = Executors.newSingleThreadExecutor();
 
         // 初始化记录日期集合 (综合: 有任意运动记录的日期)
-        recordedDates = androidx.lifecycle.Transformations.switchMap(dailyLogRepository.getAllLogs(),
-                logs -> androidx.lifecycle.Transformations.map(trainingPlanRepository.getAllPlans(), allPlans -> {
-                    java.util.Set<Long> dates = new java.util.HashSet<>();
-                    if (logs != null) {
-                        for (DailyLog log : logs) {
-                            dates.add(DateUtils.getDayStartTimestamp(log.getDate()));
-                        }
-                    }
-                    return dates;
-                }));
+        recordedDatesMediator = new androidx.lifecycle.MediatorLiveData<>();
+        final java.util.List<DailyLog>[] latestLogs = new java.util.List[]{null};
+        final java.util.List<ExtraExerciseLog>[] latestExtraLogs = new java.util.List[]{null};
+        Runnable updateRecordedDates = () -> {
+            java.util.Set<Long> dates = new java.util.HashSet<>();
+            if (latestLogs[0] != null) {
+                for (DailyLog log : latestLogs[0]) {
+                    dates.add(DateUtils.getDayStartTimestamp(log.getDate()));
+                }
+            }
+            if (latestExtraLogs[0] != null) {
+                for (ExtraExerciseLog log : latestExtraLogs[0]) {
+                    dates.add(DateUtils.getDayStartTimestamp(log.getDate()));
+                }
+            }
+            recordedDatesMediator.setValue(dates);
+        };
+        recordedDatesMediator.addSource(dailyLogRepository.getAllLogs(), logs -> {
+            latestLogs[0] = logs;
+            updateRecordedDates.run();
+        });
+        recordedDatesMediator.addSource(extraExerciseLogRepository.getAllLogs(), logs -> {
+            latestExtraLogs[0] = logs;
+            updateRecordedDates.run();
+        });
+        recordedDates = recordedDatesMediator;
 
         // 计算连续打卡天数
         calculateConsecutiveDays();
@@ -185,10 +205,6 @@ public class CheckInViewModel extends AndroidViewModel {
             date = DateUtils.getTodayStartTimestamp();
         DailyLog log = new DailyLog(planId, date, false);
         // 从计划复制预设时长，确保后续统计页面能正确显示训练时长
-        com.cz.fitnessdiary.database.entity.TrainingPlan plan = trainingPlanRepository.getPlanById(planId);
-        if (plan != null && plan.getDuration() > 0) {
-            log.setDuration(plan.getDuration());
-        }
         dailyLogRepository.insert(log);
         calculateConsecutiveDays();
     }
@@ -279,16 +295,10 @@ public class CheckInViewModel extends AndroidViewModel {
                     DailyLog existing = logMap.get(plan.getPlanId());
                     if (existing == null) {
                         DailyLog newLog = new DailyLog(plan.getPlanId(), targetDate, true);
-                        if (plan.getDuration() > 0) {
-                            newLog.setDuration(plan.getDuration());
-                        }
                         dailyLogRepository.insertSync(newLog);
                         affected++;
                     } else if (!existing.isCompleted()) {
                         existing.setCompleted(true);
-                        if (plan.getDuration() > 0) {
-                            existing.setDuration(plan.getDuration());
-                        }
                         dailyLogRepository.updateSync(existing);
                         affected++;
                     }
@@ -320,6 +330,54 @@ public class CheckInViewModel extends AndroidViewModel {
         dailyLogRepository.updateCompletionStatus(logId, isCompleted);
         // 状态更新后重新计算全勤
         calculateConsecutiveDays();
+    }
+
+    public LiveData<List<ExtraExerciseLog>> getSelectedDateExtraLogs() {
+        return androidx.lifecycle.Transformations.switchMap(selectedDate, date -> {
+            long dayStart = DateUtils.getDayStartTimestamp(date);
+            long tomorrowStart = dayStart + 24 * 60 * 60 * 1000L;
+            return extraExerciseLogRepository.getLogsByDateRange(dayStart, tomorrowStart);
+        });
+    }
+
+    public void savePlanActual(int planId, long date, int sets, int reps, float weight, int duration) {
+        executorService.execute(() -> {
+            long dayStart = DateUtils.getDayStartTimestamp(date);
+            DailyLog existing = dailyLogRepository.getLogByPlanAndDate(planId, dayStart);
+            if (existing == null) {
+                existing = new DailyLog(planId, dayStart, true);
+                existing.setActualSets(sets);
+                existing.setActualReps(reps);
+                existing.setActualWeight(weight);
+                existing.setDuration(duration);
+                dailyLogRepository.insertSync(existing);
+            } else {
+                existing.setActualSets(sets);
+                existing.setActualReps(reps);
+                existing.setActualWeight(weight);
+                existing.setDuration(duration);
+                existing.setCompleted(true);
+                dailyLogRepository.updateSync(existing);
+            }
+            calculateConsecutiveDays();
+        });
+    }
+
+    public void saveExtraExercise(ExtraExerciseLog log) {
+        if (log == null) {
+            return;
+        }
+        if (log.getId() == 0) {
+            extraExerciseLogRepository.insert(log);
+        } else {
+            extraExerciseLogRepository.update(log);
+        }
+    }
+
+    public void deleteExtraExercise(ExtraExerciseLog log) {
+        if (log != null && log.getId() != 0) {
+            extraExerciseLogRepository.delete(log);
+        }
     }
 
     /**

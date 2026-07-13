@@ -1,6 +1,7 @@
 package com.cz.fitnessdiary.ui.adapter;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -13,20 +14,21 @@ import com.cz.fitnessdiary.databinding.ItemDailyLogBinding;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-/**
- * 每日打卡记录适配器
- * 结合训练计划和打卡记录显示
- */
+/** Displays scheduled exercises with their plan target and daily actual values. */
 public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHolder> {
 
     private List<TrainingPlan> planList = new ArrayList<>();
-    private Map<Integer, Boolean> completionMap = new HashMap<>();
-    private OnCheckChangeListener listener;
+    private final Map<Integer, Boolean> completionMap = new HashMap<>();
+    private final Map<Integer, DailyLog> logMap = new HashMap<>();
+    private final OnCheckChangeListener listener;
 
     public interface OnCheckChangeListener {
         void onCheckChanged(int planId, boolean isCompleted);
+
+        void onPlanClicked(TrainingPlan plan);
     }
 
     public DailyLogAdapter(OnCheckChangeListener listener) {
@@ -34,16 +36,15 @@ public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHo
     }
 
     public void setData(List<TrainingPlan> plans, List<DailyLog> logs) {
-        this.planList = plans;
-
-        // 创建完成状态映射
+        planList = plans == null ? new ArrayList<>() : plans;
         completionMap.clear();
+        logMap.clear();
         if (logs != null) {
             for (DailyLog log : logs) {
                 completionMap.put(log.getPlanId(), log.isCompleted());
+                logMap.put(log.getPlanId(), log);
             }
         }
-
         notifyDataSetChanged();
     }
 
@@ -77,8 +78,7 @@ public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHo
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
-        private ItemDailyLogBinding binding;
-        private android.os.CountDownTimer activeTimer;
+        private final ItemDailyLogBinding binding;
 
         ViewHolder(ItemDailyLogBinding binding) {
             super(binding.getRoot());
@@ -87,130 +87,66 @@ public class DailyLogAdapter extends RecyclerView.Adapter<DailyLogAdapter.ViewHo
 
         void bind(TrainingPlan plan) {
             binding.tvPlanName.setText(plan.getName());
-
-            // v1.2: 如果有预设时长，显示时长
-            if (plan.getDuration() > 0) {
-                int mins = plan.getDuration() / 60;
-                int secs = plan.getDuration() % 60;
-                String durationStr = String.format(java.util.Locale.getDefault(), "⏳ %02d:%02d", mins, secs);
-                binding.tvPlanDescription.setText(durationStr);
-                binding.tvPlanDescription.setVisibility(android.view.View.VISIBLE);
+            DailyLog dailyLog = logMap.get(plan.getPlanId());
+            boolean hasActual = dailyLog != null && (dailyLog.getActualSets() > 0
+                    || dailyLog.getActualReps() > 0
+                    || dailyLog.getActualWeight() > 0
+                    || dailyLog.getDuration() > 0);
+            String targetText = formatMetrics(plan.getSets(), plan.getReps(), plan.getWeight(), plan.getDuration());
+            if (hasActual) {
+                String actualText = formatMetrics(dailyLog.getActualSets(), dailyLog.getActualReps(),
+                        dailyLog.getActualWeight(), dailyLog.getDuration());
+                binding.tvPlanDescription.setText("目标 " + targetText + "\n实际 " + actualText);
+                binding.tvPlanDescription.setVisibility(View.VISIBLE);
+            } else if (!targetText.isEmpty()) {
+                binding.tvPlanDescription.setText("目标 " + targetText);
+                binding.tvPlanDescription.setVisibility(View.VISIBLE);
             } else {
-                binding.tvPlanDescription.setVisibility(android.view.View.GONE);
+                binding.tvPlanDescription.setVisibility(View.GONE);
             }
 
-            // 设置完成状态视觉效果
             boolean isCompleted = completionMap.getOrDefault(plan.getPlanId(), false);
             binding.checkbox.setChecked(isCompleted);
-            binding.checkbox.setEnabled(true); // 恢复手动勾选
-
-            // 监听勾选
+            binding.checkbox.setEnabled(true);
             binding.checkbox.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onCheckChanged(plan.getPlanId(), binding.checkbox.isChecked());
                 }
             });
-
-            // v1.2 反馈: 点击带计时的计划启动计时逻辑
             binding.getRoot().setOnClickListener(v -> {
-                if (plan.getDuration() > 0 && !isCompleted) {
-                    android.content.Context context = binding.getRoot().getContext();
-                    // 加载自定义布局
-                    android.view.View dialogView = android.view.LayoutInflater.from(context)
-                            .inflate(com.cz.fitnessdiary.R.layout.dialog_timer, null);
-
-                    android.widget.ImageView ivHourglass = dialogView
-                            .findViewById(com.cz.fitnessdiary.R.id.iv_hourglass);
-                    android.widget.TextView tvCountdown = dialogView
-                            .findViewById(com.cz.fitnessdiary.R.id.tv_countdown);
-                    android.widget.TextView tvTaskName = dialogView.findViewById(com.cz.fitnessdiary.R.id.tv_task_name);
-
-                    tvTaskName.setText(plan.getName());
-
-                    // 格式化初始时间
-                    int totalSeconds = plan.getDuration();
-                    String timePrompt;
-                    if (totalSeconds < 60) {
-                        timePrompt = "计划时长 " + totalSeconds + " 秒。是否现在开始计时？";
-                        tvCountdown.setText(String.format(java.util.Locale.getDefault(), "00:%02d", totalSeconds));
-                    } else {
-                        timePrompt = "计划时长 " + (totalSeconds / 60) + " 分钟。是否现在开始计时？";
-                        tvCountdown.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", totalSeconds / 60,
-                                totalSeconds % 60));
-                    }
-
-                    // 创建对话框
-                    androidx.appcompat.app.AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(
-                            context)
-                            .setTitle("开始训练")
-                            .setMessage(timePrompt)
-                            .setView(dialogView)
-                            .setCancelable(false)
-                            .setNegativeButton("取消退出", (d, which) -> d.dismiss())
-                            .setPositiveButton("直接打卡", (d, which) -> {
-                                binding.checkbox.setChecked(true);
-                                if (listener != null)
-                                    listener.onCheckChanged(plan.getPlanId(), true);
-                            })
-                            .setNeutralButton("开始计时", null) // 稍后获取并设置点击监听，防止自动关闭
-                            .create();
-
-                    // v2.0: 显式处理计时器清理，防止内存泄漏
-                    dialog.setOnDismissListener(d -> {
-                        if (activeTimer != null) {
-                            activeTimer.cancel();
-                            activeTimer = null;
-                        }
-                    });
-
-                    dialog.setOnShowListener(d -> {
-                        android.widget.Button startBtn = dialog
-                                .getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL);
-                        startBtn.setOnClickListener(btn -> {
-                            startBtn.setEnabled(false);
-                            // 设置沙漏旋转动画
-                            android.view.animation.RotateAnimation rotate = new android.view.animation.RotateAnimation(
-                                    0, 360,
-                                    android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
-                                    android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f);
-                            rotate.setDuration(2000);
-                            rotate.setRepeatCount(android.view.animation.Animation.INFINITE);
-                            ivHourglass.startAnimation(rotate);
-
-                            // 启动倒计时
-                            activeTimer = new android.os.CountDownTimer(totalSeconds * 1000L, 1000L) {
-                                @Override
-                                public void onTick(long millisUntilFinished) {
-                                    int remaining = (int) (millisUntilFinished / 1000);
-                                    tvCountdown.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d",
-                                            remaining / 60, remaining % 60));
-                                }
-
-                                @Override
-                                public void onFinish() {
-                                    ivHourglass.clearAnimation();
-                                    tvCountdown.setText("已完成!");
-                                    android.widget.Toast
-                                            .makeText(context, "计时结束！请手动勾选完成", android.widget.Toast.LENGTH_LONG).show();
-                                    // 延时关闭对话框，给用户反馈
-                                    new android.os.Handler(android.os.Looper.getMainLooper())
-                                            .postDelayed(dialog::dismiss, 1500);
-                                }
-                            };
-                            activeTimer.start();
-                        });
-                    });
-                    dialog.show();
+                if (listener != null) {
+                    listener.onPlanClicked(plan);
                 }
             });
 
-            // 完成后的半透明效果
             binding.getRoot().setAlpha(isCompleted ? 0.6f : 1.0f);
             int primaryColor = androidx.core.content.ContextCompat.getColor(binding.getRoot().getContext(),
                     com.cz.fitnessdiary.R.color.fitnessdiary_primary);
             binding.tvPlanName.setTextColor(isCompleted ? primaryColor
                     : androidx.core.content.ContextCompat.getColor(binding.getRoot().getContext(),
                             com.cz.fitnessdiary.R.color.text_primary));
+        }
+
+        private String formatMetrics(int sets, int reps, float weight, int duration) {
+            StringBuilder builder = new StringBuilder();
+            if (sets > 0 || reps > 0) {
+                builder.append(sets).append(" 组 × ").append(reps).append(" 次");
+            }
+            if (weight > 0) {
+                appendSeparator(builder);
+                builder.append(String.format(Locale.getDefault(), "%.1f kg", weight));
+            }
+            if (duration > 0) {
+                appendSeparator(builder);
+                builder.append(duration).append(" 秒");
+            }
+            return builder.toString();
+        }
+
+        private void appendSeparator(StringBuilder builder) {
+            if (builder.length() > 0) {
+                builder.append(" · ");
+            }
         }
     }
 }

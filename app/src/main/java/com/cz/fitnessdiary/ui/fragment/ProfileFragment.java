@@ -34,6 +34,8 @@ import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.dao.ReminderScheduleDao;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
+import com.cz.fitnessdiary.utils.TrainingRecordUtils;
 import com.cz.fitnessdiary.database.entity.ReminderSchedule;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.HabitItem;
@@ -781,7 +783,20 @@ public class ProfileFragment extends Fragment {
         new Thread(() -> {
             com.cz.fitnessdiary.database.AppDatabase db =
                     com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
-            int trainingDays = db.dailyLogDao().getTotalTrainingDays();
+            java.util.Set<Long> trainingDates = new java.util.HashSet<>();
+            java.util.List<DailyLog> trainingLogs = db.dailyLogDao().getAllLogsSync();
+            if (trainingLogs != null) {
+                for (DailyLog log : trainingLogs) {
+                    if (log.isCompleted()) trainingDates.add(DateUtils.getDayStartTimestamp(log.getDate()));
+                }
+            }
+            java.util.List<ExtraExerciseLog> extraLogs = db.extraExerciseLogDao().getAllLogsSync();
+            if (extraLogs != null) {
+                for (ExtraExerciseLog log : extraLogs) {
+                    if (log.isCompleted()) trainingDates.add(DateUtils.getDayStartTimestamp(log.getDate()));
+                }
+            }
+            int trainingDays = trainingDates.size();
             int dietDays = db.foodRecordDao().getTotalDietDaysSync();
             String level = viewModel.getUserLevel().getValue();
             if (level == null || level.isEmpty()) level = "Lv.0 初来乍到 🌱";
@@ -899,29 +914,16 @@ public class ProfileFragment extends Fragment {
                         + " - " + sdf.format(new java.util.Date(weekDates[6]));
 
                 // Exercise days
-                java.util.List<DailyLog> allLogs = db.dailyLogDao().getAllLogsSync();
-                java.util.List<com.cz.fitnessdiary.database.entity.TrainingPlan> allPlans = db.trainingPlanDao().getAllPlansList();
-                java.util.Map<Integer, com.cz.fitnessdiary.database.entity.TrainingPlan> planMap = new java.util.HashMap<>();
-                if (allPlans != null) {
-                    for (com.cz.fitnessdiary.database.entity.TrainingPlan p : allPlans) {
-                        planMap.put(p.getPlanId(), p);
-                    }
-                }
+                java.util.List<TrainingRecordUtils.Entry> trainingEntries =
+                        TrainingRecordUtils.getCompletedEntries(db, weekStart, weekEnd);
                 int exerciseDays = 0;
                 int totalDurationSec = 0;
-                if (allLogs != null) {
+                if (trainingEntries != null) {
                     java.util.Set<String> dates = new java.util.HashSet<>();
-                    for (DailyLog log : allLogs) {
-                        if (log.getDate() >= weekStart && log.getDate() < weekEnd && log.isCompleted()) {
-                            dates.add(DateUtils.formatDate(log.getDate()));
-                            com.cz.fitnessdiary.database.entity.TrainingPlan plan = planMap.get(log.getPlanId());
-                            totalDurationSec += com.cz.fitnessdiary.utils.ExerciseMetTable.resolveDuration(
-                                    log.getDuration(),
-                                    plan != null ? plan.getDuration() : 0,
-                                    plan != null ? plan.getSets() : 0,
-                                    plan != null ? plan.getReps() : 0,
-                                    requireContext());
-                        }
+                    for (TrainingRecordUtils.Entry entry : trainingEntries) {
+                        dates.add(DateUtils.formatDate(entry.date));
+                        totalDurationSec += com.cz.fitnessdiary.utils.ExerciseMetTable.resolveDuration(
+                                entry.duration, 0, entry.sets, entry.reps, requireContext());
                     }
                     exerciseDays = dates.size();
                 }
@@ -1039,19 +1041,15 @@ public class ProfileFragment extends Fragment {
 
                 // Active Burned Calories
                 int totalActiveCal = 0;
-                if (allLogs != null) {
+                if (trainingEntries != null) {
                     float weightVal = (user != null && user.getWeight() > 0) ? (float) user.getWeight() : 65f;
-                    for (DailyLog log : allLogs) {
-                        if (log.getDate() >= weekStart && log.getDate() < weekEnd && log.isCompleted()) {
-                            com.cz.fitnessdiary.database.entity.TrainingPlan plan = planMap.get(log.getPlanId());
+                    for (TrainingRecordUtils.Entry entry : trainingEntries) {
+                        if (true) {
                             int duration = com.cz.fitnessdiary.utils.ExerciseMetTable.resolveDuration(
-                                    log.getDuration(),
-                                    plan != null ? plan.getDuration() : 0,
-                                    plan != null ? plan.getSets() : 0,
-                                    plan != null ? plan.getReps() : 0,
+                                    entry.duration, 0, entry.sets, entry.reps,
                                     requireContext());
-                            String category = plan != null ? plan.getCategory() : "无";
-                            double met = com.cz.fitnessdiary.utils.ExerciseMetTable.getMetForExercise(plan != null ? plan.getName() : "", category);
+                            double met = com.cz.fitnessdiary.utils.ExerciseMetTable.getMetForExercise(
+                                    entry.name, entry.category);
                             int burned = (int) (met * weightVal * (duration / 3600.0));
                             totalActiveCal += burned;
                         }

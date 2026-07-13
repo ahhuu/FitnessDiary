@@ -23,6 +23,7 @@ import com.cz.fitnessdiary.model.DailyHealthSnapshot;
 import com.cz.fitnessdiary.repository.HealthAggregationRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ExerciseMetTable;
+import com.cz.fitnessdiary.utils.TrainingRecordUtils;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
@@ -118,10 +119,10 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
 
     private void loadTrainingDetails() {
         long dateEnd = dateTimestamp + 86400000L;
-        List<DailyLog> logs = database.dailyLogDao().getLogsByDateSync(dateTimestamp);
-        List<TrainingPlan> allPlans = database.trainingPlanDao().getAllPlansList();
+        List<TrainingRecordUtils.Entry> entries = TrainingRecordUtils.getCompletedEntries(
+                database, dateTimestamp, dateEnd);
 
-        if (logs == null || logs.isEmpty()) {
+        if (entries.isEmpty()) {
             return;
         }
 
@@ -140,36 +141,25 @@ public class DateSummaryBottomSheet extends BottomSheetDialogFragment {
 
         StringBuilder detailsHtml = new StringBuilder();
 
-        for (DailyLog log : logs) {
-            if (!log.isCompleted()) continue;
+        for (TrainingRecordUtils.Entry entry : entries) {
 
             // Find matching plan
-            TrainingPlan plan = null;
-            for (TrainingPlan p : allPlans) {
-                if (p.getPlanId() == log.getPlanId()) {
-                    plan = p;
-                    break;
-                }
-            }
-
-            if (plan == null) continue;
-
-            String name = plan.getName();
-            int sets = plan.getSets();
-            int reps = plan.getReps();
-            float weight = plan.getWeight();
+            String name = entry.name;
+            int sets = entry.sets;
+            int reps = entry.reps;
+            float weight = entry.weight;
             // 时长推算: 实际>预设>默认6分钟
             int logDuration = ExerciseMetTable.resolveDuration(
-                    log.getDuration(), plan.getDuration(), sets, reps, requireContext());
-            int volume = ExerciseMetTable.calculateVolume(name, sets, reps, weight, plan.getDuration(), userWeight);
-            String volumeUnit = ExerciseMetTable.getVolumeUnit(sets, reps, weight, plan.getDuration(), name);
+                    entry.duration, 0, sets, reps, requireContext());
+            int volume = ExerciseMetTable.calculateVolume(name, sets, reps, weight, logDuration, userWeight);
+            String volumeUnit = ExerciseMetTable.getVolumeUnit(sets, reps, weight, logDuration, name);
 
             totalVolume += volume;
             totalDurationSec += logDuration;
 
             // Calculate calories (使用已推算的logDuration)
-            int durSec = logDuration > 0 ? logDuration : ExerciseMetTable.resolveDuration(0, plan.getDuration(), sets, reps, requireContext());
-            double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
+            int durSec = logDuration;
+            double met = ExerciseMetTable.getMetForExercise(entry.name, entry.category);
             int cal = (int) (met * userWeight * (durSec / 3600.0));
             totalCalories += cal;
             totalWeightedMet += met * durSec;

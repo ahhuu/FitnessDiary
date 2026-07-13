@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.databinding.FragmentPlanBinding;
 import com.cz.fitnessdiary.utils.ExerciseMetTable;
@@ -67,6 +68,7 @@ public class PlanFragment extends Fragment {
     // 42天日历数据缓存
     private final List<Long> dates = new ArrayList<>();
     private final Map<Long, List<DailyLog>> dailyLogsMap = new HashMap<>();
+    private final Map<Long, List<ExtraExerciseLog>> extraLogsMap = new HashMap<>();
     private final Map<Integer, TrainingPlan> plansMap = new HashMap<>();
     private float userWeight = 70f;
     private final Map<Long, Integer> calDietMap = new HashMap<>();
@@ -93,6 +95,18 @@ public class PlanFragment extends Fragment {
 
         // 默认加载日历数据
         loadCalendarData();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (binding != null && currentCalendar != null) {
+            binding.getRoot().postDelayed(() -> {
+                if (isAdded() && binding != null) {
+                    loadCalendarData();
+                }
+            }, 250L);
+        }
     }
 
     private void setupHeaderActions() {
@@ -239,8 +253,10 @@ public class PlanFragment extends Fragment {
 
             // 3. 加载整月每日训练数据用于日历展示
             Map<Long, List<DailyLog>> tempLogsMap = new HashMap<>();
+            Map<Long, List<ExtraExerciseLog>> tempExtraLogsMap = new HashMap<>();
 
             List<DailyLog> logs = db.dailyLogDao().getAllLogsSync();
+            List<ExtraExerciseLog> extraLogs = db.extraExerciseLogDao().getLogsByDateRangeSync(startDate, endDate);
 
             for (Long day : tempDates) {
                 long dStart = day;
@@ -249,6 +265,13 @@ public class PlanFragment extends Fragment {
                 for (DailyLog log : logs) {
                     if (log.getDate() == dStart) {
                         tempLogsMap.computeIfAbsent(dStart, k -> new ArrayList<>()).add(log);
+                    }
+                }
+                if (extraLogs != null) {
+                    for (ExtraExerciseLog log : extraLogs) {
+                        if (log.getDate() == dStart && log.isCompleted()) {
+                            tempExtraLogsMap.computeIfAbsent(dStart, k -> new ArrayList<>()).add(log);
+                        }
                     }
                 }
             }
@@ -282,6 +305,7 @@ public class PlanFragment extends Fragment {
 
             final List<Long> finalDates = tempDates;
             final Map<Long, List<DailyLog>> finalLogsMap = tempLogsMap;
+            final Map<Long, List<ExtraExerciseLog>> finalExtraLogsMap = tempExtraLogsMap;
             final Map<Integer, TrainingPlan> finalPlansMap = tempPlansMap;
             final Map<Long, Integer> finalDietMap = tempDietMap;
             final Map<Long, Integer> finalStepMap = tempStepMap;
@@ -292,6 +316,8 @@ public class PlanFragment extends Fragment {
                     dates.addAll(finalDates);
                     dailyLogsMap.clear();
                     dailyLogsMap.putAll(finalLogsMap);
+                    extraLogsMap.clear();
+                    extraLogsMap.putAll(finalExtraLogsMap);
                     plansMap.clear();
                     plansMap.putAll(finalPlansMap);
                     calDietMap.clear();
@@ -536,15 +562,27 @@ public class PlanFragment extends Fragment {
             switch (config) {
                 case "volume":
                     List<DailyLog> vLogs = dailyLogsMap.get(cellTime);
-                    if (vLogs != null) {
+                    if (vLogs != null || extraLogsMap.get(cellTime) != null) {
                         int totalVolume = 0;
-                        for (DailyLog log : vLogs) {
+                        if (vLogs != null) for (DailyLog log : vLogs) {
                             if (log.isCompleted()) {
                                 TrainingPlan plan = plansMap.get(log.getPlanId());
                                 if (plan != null) {
+                                    int sets = log.getActualSets() > 0 ? log.getActualSets() : plan.getSets();
+                                    int reps = log.getActualReps() > 0 ? log.getActualReps() : plan.getReps();
+                                    float weight = log.getActualWeight() > 0 ? log.getActualWeight() : plan.getWeight();
+                                    int duration = log.getDuration() > 0 ? log.getDuration() : plan.getDuration();
                                     totalVolume += ExerciseMetTable.calculateVolume(
-                                            plan.getName(), plan.getSets(), plan.getReps(), plan.getWeight(), plan.getDuration(), userWeight);
+                                            plan.getName(), sets, reps, weight, duration, userWeight);
                                 }
+                            }
+                        }
+                        List<ExtraExerciseLog> vExtraLogs = extraLogsMap.get(cellTime);
+                        if (vExtraLogs != null) {
+                            for (ExtraExerciseLog log : vExtraLogs) {
+                                totalVolume += ExerciseMetTable.calculateVolume(
+                                        log.getName(), log.getSets(), log.getReps(), log.getWeight(),
+                                        log.getDuration(), userWeight);
                             }
                         }
                         if (totalVolume > 0) {
@@ -555,9 +593,9 @@ public class PlanFragment extends Fragment {
                     break;
                 case "workout":
                     List<DailyLog> logs = dailyLogsMap.get(cellTime);
-                    if (logs != null) {
+                    if (logs != null || extraLogsMap.get(cellTime) != null) {
                         List<String> categories = new ArrayList<>();
-                        for (DailyLog log : logs) {
+                        if (logs != null) for (DailyLog log : logs) {
                             if (log.isCompleted()) {
                                 TrainingPlan plan = plansMap.get(log.getPlanId());
                                 if (plan != null && plan.getCategory() != null) {
@@ -573,6 +611,18 @@ public class PlanFragment extends Fragment {
                                         categories.add(cat);
                                     }
                                 }
+                            }
+                        }
+                        List<ExtraExerciseLog> wExtraLogs = extraLogsMap.get(cellTime);
+                        if (wExtraLogs != null) {
+                            for (ExtraExerciseLog log : wExtraLogs) {
+                                String cat = log.getCategory();
+                                if (cat == null || cat.isEmpty()) cat = "其他";
+                                if (cat.contains("-")) {
+                                    String[] parts = cat.split("-");
+                                    cat = parts[parts.length - 1];
+                                }
+                                if (!categories.contains(cat)) categories.add(cat);
                             }
                         }
                         StringBuilder sb = new StringBuilder();

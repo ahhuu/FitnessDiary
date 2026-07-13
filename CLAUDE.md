@@ -23,7 +23,7 @@ Unit tests live in `app/src/test`, Room migration instrumentation tests live in
 - **Architecture:** MVVM (ViewModel + Repository + Room DAO)
 - **UI:** ViewBinding, Material Design 3, Navigation Component (single-activity)
 - **Min/Target SDK:** 26 / 34, `applicationId: com.cz.fitnessdiary`
-- **Current app release:** 2.6.0 (`versionCode 14`)
+- **Current app release:** 2.6.1 (`versionCode 15`)
 - **Key libraries:** Room 2.6.1, MPAndroidChart, Glide, OkHttp 4.12, Gson, ZXing (barcode), Lottie, DashScope SDK (Qwen AI)
 - **Cloud account/social (beta):** CloudBase email-code authentication + PostgreSQL REST/RPC; optional and disabled safely when the environment id is absent
 
@@ -42,7 +42,7 @@ Optional CloudBase setup uses `cloudbase.env-id`. Do not put PostgreSQL password
 
 `MainHomeFragment` contains a customized bottom navigation bar (3D pill-style) hosting four core functional tabs:
 1. `CheckInFragment` (记录) — Home dashboard with health score ring (five-dimension breakdown), collapsible daily briefing card, and FAB quick-entry shortcut. Daily checklist for steps, water, sleep, habits, weight, mood, etc.
-2. `PlanFragment` (日历历史) — Monthly calendar with workout markers, dietary calories, and step counts per cell; date-picker bottom sheet for full daily summary across all dimensions.
+2. `PlanFragment` (日历历史) — Monthly calendar with workout markers, dietary calories, and step counts per cell; date-picker bottom sheet for full daily summary across all dimensions. Training details separate plan targets from actual daily values and support date-scoped extra exercises.
 3. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/Qwen AI assistants; also serves as entry to AI smart plan creation, diet analysis, and progress assessment sub-flows.
 4. `ProfileFragment` (我的) — User profile, achievement center and level system, body data dashboard, fitness toolbox, content assets, and system settings.
 
@@ -61,8 +61,8 @@ The launcher intent can carry a `shortcut_id` for app shortcuts or reminder rout
 Entity (@Entity table) → DAO (@Dao interface) → Repository (plain class) → ViewModel (AndroidViewModel)
 ```
 
-- **24 Room entities** in `database/entity/`, **24 DAOs** in `database/dao/`, plus local/domain repositories including the non-Room `AccountRepository` and `SocialRepository`
-- `AppDatabase` is a Room singleton (DCL pattern), current version **29**
+- **25 Room entities** in `database/entity/`, **25 DAOs** in `database/dao/`, plus local/domain repositories including the non-Room `AccountRepository` and `SocialRepository`
+- `AppDatabase` is a Room singleton (DCL pattern), current version **30**
 - Repository classes extend `AndroidViewModel` pattern — they take `Application` in constructor to get the DB instance
 - All DB operations run on `Executors.newSingleThreadExecutor()` — not on the main thread but also not via Room's built-in async support
 - **No reactive patterns** (LiveData only at the ViewModel→View boundary); Repository methods return plain lists/objects
@@ -81,6 +81,7 @@ Current migration notes:
 - `MIGRATION_26_27` creates `recipe` and `favorite_food` tables, and adds `is_preset` / `sort_order` columns to `reminder_schedule`.
 - `MIGRATION_27_28` adds the first nullable cloud-account binding field and `cloud_bound_at` to the local `user` table. No health record table is uploaded or assigned a cloud owner.
 - `MIGRATION_28_29` rebuilds the local `user` table to use `cloud_user_id`, preserving the binding and all local profile values. The earlier migration column remains only as an on-device schema compatibility detail.
+- `MIGRATION_29_30` adds actual per-day training values to `daily_log` and creates `extra_exercise_log` for date-scoped actions that are not long-term plans.
 
 ### CloudBase Account & Social Beta
 

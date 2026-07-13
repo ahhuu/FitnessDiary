@@ -77,6 +77,9 @@ public interface DailyLogDao {
     @Query("SELECT * FROM daily_log WHERE date >= :startDate AND date < :endDate ORDER BY date DESC")
     LiveData<List<DailyLog>> getLogsByDateRange(long startDate, long endDate);
 
+    @Query("SELECT * FROM daily_log WHERE date >= :startDate AND date < :endDate ORDER BY date DESC")
+    List<DailyLog> getLogsByDateRangeSync(long startDate, long endDate);
+
     /**
      * 获取所有有打卡记录的时间戳列表 (用于日历高亮)
      */

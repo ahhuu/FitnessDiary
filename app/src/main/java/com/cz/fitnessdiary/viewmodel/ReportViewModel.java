@@ -7,7 +7,9 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.database.entity.StepRecord;
@@ -142,6 +144,8 @@ public class ReportViewModel extends AndroidViewModel {
 
             // ====== 1. 训练数据 ======
             List<DailyLog> allLogs = dailyLogRepository.getAllLogsSync();
+            List<ExtraExerciseLog> extraLogs = AppDatabase.getInstance(getApplication())
+                    .extraExerciseLogDao().getAllLogsSync();
             int trainingDaysCnt = 0, workoutsCnt = 0;
             List<String> activeDates = new ArrayList<>();
             List<Integer> dailyTrainList = new ArrayList<>();
@@ -171,6 +175,11 @@ public class ReportViewModel extends AndroidViewModel {
                         if (log.getDate() >= ds && log.getDate() < de && log.isCompleted()) cnt++;
                     }
                 }
+                if (extraLogs != null) {
+                    for (ExtraExerciseLog log : extraLogs) {
+                        if (log.getDate() >= ds && log.getDate() < de && log.isCompleted()) cnt++;
+                    }
+                }
                 dailyTrainList.add(cnt);
             }
             // 重新正确累计（上面循环有问题，单独做一次）
@@ -181,6 +190,18 @@ public class ReportViewModel extends AndroidViewModel {
                         workoutsCnt++;
                         String ds2 = DateUtils.formatDate(log.getDate());
                         if (!activeDates.contains(ds2)) { activeDates.add(ds2); trainingDaysCnt++; }
+                    }
+                }
+            }
+            if (extraLogs != null) {
+                for (ExtraExerciseLog log : extraLogs) {
+                    if (log.getDate() >= startTime && log.getDate() < endTime && log.isCompleted()) {
+                        workoutsCnt++;
+                        String ds2 = DateUtils.formatDate(log.getDate());
+                        if (!activeDates.contains(ds2)) {
+                            activeDates.add(ds2);
+                            trainingDaysCnt++;
+                        }
                     }
                 }
             }

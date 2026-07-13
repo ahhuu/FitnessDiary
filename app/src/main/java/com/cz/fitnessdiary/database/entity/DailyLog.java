@@ -26,6 +26,15 @@ public class DailyLog {
     @ColumnInfo(name = "is_completed")
     private boolean isCompleted; // 是否完成
 
+    @ColumnInfo(name = "actual_sets", defaultValue = "0")
+    private int actualSets;
+
+    @ColumnInfo(name = "actual_reps", defaultValue = "0")
+    private int actualReps;
+
+    @ColumnInfo(name = "actual_weight", defaultValue = "0")
+    private float actualWeight;
+
     @ColumnInfo(name = "duration", defaultValue = "0")
     private int duration; // 实际完成时长 (单位：秒)
 
@@ -35,6 +44,9 @@ public class DailyLog {
         this.date = date;
         this.isCompleted = isCompleted;
         this.duration = 0;
+        this.actualSets = 0;
+        this.actualReps = 0;
+        this.actualWeight = 0;
     }
 
     // Getter 和 Setter 方法
@@ -76,5 +88,29 @@ public class DailyLog {
 
     public void setDuration(int duration) {
         this.duration = duration;
+    }
+
+    public int getActualSets() {
+        return actualSets;
+    }
+
+    public void setActualSets(int actualSets) {
+        this.actualSets = actualSets;
+    }
+
+    public int getActualReps() {
+        return actualReps;
+    }
+
+    public void setActualReps(int actualReps) {
+        this.actualReps = actualReps;
+    }
+
+    public float getActualWeight() {
+        return actualWeight;
+    }
+
+    public void setActualWeight(float actualWeight) {
+        this.actualWeight = actualWeight;
     }
 }

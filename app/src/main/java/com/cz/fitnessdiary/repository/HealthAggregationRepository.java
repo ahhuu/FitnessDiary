@@ -5,6 +5,7 @@ import android.app.Application;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.BowelMovement;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
 import com.cz.fitnessdiary.database.entity.MedicationRecord;
 import com.cz.fitnessdiary.database.entity.MoodRecord;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
@@ -19,6 +20,7 @@ import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.utils.HealthScoreCalculator;
+import com.cz.fitnessdiary.utils.TrainingRecordUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -187,37 +189,29 @@ public class HealthAggregationRepository {
                     user.getGender(), user.getWeight(), user.getHeight(), user.getAge());
 
             // Exercise calories from completed training plan durations
-            if (user.getWeight() > 0 && s.completedPlans > 0) {
-                List<DailyLog> dailyLogs = db.dailyLogDao().getLogsByDateSync(dateTs);
-                List<TrainingPlan> plansForCal = db.trainingPlanDao().getAllPlansList();
-                Map<Integer, TrainingPlan> planMap = new HashMap<>();
-                if (plansForCal != null) {
-                    for (TrainingPlan p : plansForCal) planMap.put(p.getPlanId(), p);
+            if (user.getWeight() > 0) {
+                List<TrainingRecordUtils.Entry> entries = TrainingRecordUtils.getCompletedEntries(
+                        db, dateTs, dayEnd);
+                int totalCal = 0;
+                double totalWeightedMet = 0;
+                int totalDurSec = 0;
+                for (TrainingRecordUtils.Entry entry : entries) {
+                    int dur = ExerciseMetTable.resolveDuration(
+                            entry.duration, 0, entry.sets, entry.reps, application);
+                    double met = ExerciseMetTable.getMetForExercise(entry.name, entry.category);
+                    totalCal += (int) (met * user.getWeight() * (dur / 3600.0));
+                    totalWeightedMet += met * dur;
+                    totalDurSec += dur;
                 }
-                if (dailyLogs != null) {
-                    int totalCal = 0;
-                    double totalWeightedMet = 0;
-                    int totalDurSec = 0;
-                    for (DailyLog log : dailyLogs) {
-                        if (!log.isCompleted()) continue;
-                        TrainingPlan plan = planMap.get(log.getPlanId());
-                        if (plan == null) continue;
-                        int dur = log.getDuration() > 0 ? log.getDuration() :
-                            (plan.getDuration() > 0 ? plan.getDuration() : 360);
-                        double met = ExerciseMetTable.getMetForExercise(plan.getName(), plan.getCategory());
-                        totalCal += (int) (met * user.getWeight() * (dur / 3600.0));
-                        totalWeightedMet += met * dur;
-                        totalDurSec += dur;
-                    }
                     // 如果用户设了当天训练总时长，按加权平均MET重算运动消耗（与日历弹窗口径一致）
-                    android.content.SharedPreferences sp = application.getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
-                    int targetMin = sp.getInt("target_minutes_" + dateTs, 0);
-                    if (targetMin > 0 && totalDurSec > 0) {
-                        double avgMet = totalWeightedMet / totalDurSec;
-                        totalCal = (int) (avgMet * user.getWeight() * (targetMin / 60.0));
-                    }
-                    s.exerciseCalories = totalCal;
+                android.content.SharedPreferences sp = application.getSharedPreferences(
+                        "fitness_diary_prefs", android.content.Context.MODE_PRIVATE);
+                int targetMin = sp.getInt("target_minutes_" + dateTs, 0);
+                if (targetMin > 0 && totalDurSec > 0) {
+                    double avgMet = totalWeightedMet / totalDurSec;
+                    totalCal = (int) (avgMet * user.getWeight() * (targetMin / 60.0));
                 }
+                s.exerciseCalories = totalCal;
             }
         }
 
@@ -228,6 +222,18 @@ public class HealthAggregationRepository {
             long de = ds + 86400000L;
             boolean active = false;
             if (db.dailyLogDao().getTodayCompletedCountSync(ds) > 0) active = true;
+            if (!active) {
+                List<ExtraExerciseLog> extras = db.extraExerciseLogDao()
+                        .getLogsByDateRangeSync(ds, de);
+                if (extras != null) {
+                    for (ExtraExerciseLog extra : extras) {
+                        if (extra.isCompleted()) {
+                            active = true;
+                            break;
+                        }
+                    }
+                }
+            }
             if (!active) { Integer kcal = db.foodRecordDao().getTotalCaloriesByDateRangeSync(ds, de); if (kcal != null && kcal > 0) active = true; }
             if (!active) { List<SleepRecord> sl = db.sleepRecordDao().getSleepRecordsByDateRangeSync(ds, de); if (sl != null && !sl.isEmpty()) active = true; }
             if (!active) { if (db.waterRecordDao().getTodayTotalSync(ds, de) > 0) active = true; }
@@ -330,12 +336,20 @@ public class HealthAggregationRepository {
      */
     private List<Long> getCheckedDateTimestamps() {
         List<DailyLog> allLogs = db.dailyLogDao().getAllLogsSync();
-        if (allLogs == null || allLogs.isEmpty()) {
-            return Collections.emptyList();
-        }
         Set<Long> uniqueDates = new HashSet<>();
-        for (DailyLog log : allLogs) {
-            uniqueDates.add(DateUtils.getDayStartTimestamp(log.getDate()));
+        if (allLogs != null) {
+            for (DailyLog log : allLogs) {
+                if (log.isCompleted()) uniqueDates.add(DateUtils.getDayStartTimestamp(log.getDate()));
+            }
+        }
+        List<ExtraExerciseLog> extraLogs = db.extraExerciseLogDao().getAllLogsSync();
+        if (extraLogs != null) {
+            for (ExtraExerciseLog log : extraLogs) {
+                if (log.isCompleted()) uniqueDates.add(DateUtils.getDayStartTimestamp(log.getDate()));
+            }
+        }
+        if (uniqueDates.isEmpty()) {
+            return Collections.emptyList();
         }
         List<Long> sorted = new ArrayList<>(uniqueDates);
         Collections.sort(sorted, Collections.reverseOrder());

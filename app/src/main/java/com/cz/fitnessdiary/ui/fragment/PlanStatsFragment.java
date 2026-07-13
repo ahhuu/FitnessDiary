@@ -11,7 +11,9 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.cz.fitnessdiary.R;
+import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.databinding.FragmentPlanStatsBinding;
@@ -20,6 +22,7 @@ import com.cz.fitnessdiary.repository.TrainingPlanRepository;
 import com.cz.fitnessdiary.repository.WeightRecordRepository;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ExerciseMetTable;
+import com.cz.fitnessdiary.utils.TrainingRecordUtils;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
@@ -192,6 +195,8 @@ public class PlanStatsFragment extends Fragment {
 
             List<DailyLog>     allLogs  = logRepo.getAllLogsSync();
             List<TrainingPlan> allPlans = planRepo.getAllPlansSync();
+            AppDatabase database = AppDatabase.getInstance(requireContext());
+            List<ExtraExerciseLog> allExtraLogs = database.extraExerciseLogDao().getAllLogsSync();
 
             Map<Integer, TrainingPlan> planMap = new HashMap<>();
             if (allPlans != null) {
@@ -199,13 +204,8 @@ public class PlanStatsFragment extends Fragment {
             }
 
             // 期间完成日志
-            List<DailyLog> periodLogs = new ArrayList<>();
-            if (allLogs != null) {
-                for (DailyLog log : allLogs) {
-                    if (log.getDate() >= startTime && log.getDate() < endTime && log.isCompleted())
-                        periodLogs.add(log);
-                }
-            }
+            List<TrainingRecordUtils.Entry> periodEntries = TrainingRecordUtils.getCompletedEntries(
+                    database, startTime, endTime);
 
             // —— 大数字 ——
             Set<String> allDateSet = new HashSet<>();
@@ -214,9 +214,14 @@ public class PlanStatsFragment extends Fragment {
                     if (log.isCompleted()) allDateSet.add(DateUtils.formatDate(log.getDate()));
                 }
             }
+            if (allExtraLogs != null) {
+                for (ExtraExerciseLog log : allExtraLogs) {
+                    if (log.isCompleted()) allDateSet.add(DateUtils.formatDate(log.getDate()));
+                }
+            }
             final int totalDays   = allDateSet.size();
-            final int periodCount = periodLogs.size();
-            final int streak      = calcMaxStreak(allLogs);
+            final int periodCount = periodEntries.size();
+            final int streak      = calcMaxStreak(allLogs, allExtraLogs);
 
             // —— 每日次数柱状图 ——
             SimpleDateFormat sdf = new SimpleDateFormat("M/d", Locale.getDefault());
@@ -227,8 +232,8 @@ public class PlanStatsFragment extends Fragment {
                 cal.setTimeInMillis(startTime + (long) i * 24 * 3600 * 1000L);
                 long ds = dayStart(cal), de = ds + 86400000L;
                 int cnt = 0;
-                for (DailyLog log : periodLogs)
-                    if (log.getDate() >= ds && log.getDate() < de) cnt++;
+                for (TrainingRecordUtils.Entry entry : periodEntries)
+                    if (entry.date >= ds && entry.date < de) cnt++;
                 xLabels[i] = sdf.format(cal.getTime());
                 barEntries.add(new BarEntry(i, cnt));
             }
@@ -240,14 +245,10 @@ public class PlanStatsFragment extends Fragment {
                 cal.setTimeInMillis(startTime + (long) i * 24 * 3600 * 1000L);
                 long ds = dayStart(cal), de = ds + 86400000L;
                 int sec = 0;
-                for (DailyLog log : periodLogs) {
-                    if (log.getDate() >= ds && log.getDate() < de) {
-                        TrainingPlan plan = planMap.get(log.getPlanId());
+                for (TrainingRecordUtils.Entry entry : periodEntries) {
+                    if (entry.date >= ds && entry.date < de) {
                         sec += ExerciseMetTable.resolveDuration(
-                                log.getDuration(),
-                                plan != null ? plan.getDuration() : 0,
-                                plan != null ? plan.getSets() : 0,
-                                plan != null ? plan.getReps() : 0,
+                                entry.duration, 0, entry.sets, entry.reps,
                                 requireContext());
                     }
                 }
@@ -277,16 +278,14 @@ public class PlanStatsFragment extends Fragment {
 
             // —— 训练分类饼图（仅按部位分组，去掉进阶/自定义等前缀）——
             Map<String, Integer> catMap = new HashMap<>();
-            for (DailyLog log : periodLogs) {
-                TrainingPlan plan = planMap.get(log.getPlanId());
-                String rawCat = (plan != null && plan.getCategory() != null
-                        && !plan.getCategory().isEmpty())
-                        ? plan.getCategory() : "其他";
+            for (TrainingRecordUtils.Entry entry : periodEntries) {
+                String rawCat = entry.category != null && !entry.category.isEmpty()
+                        ? entry.category : "other";
                 // 提取部位关键词（取最后一个 '-' 后的内容并规范化）
                 String bodyPart = extractBodyPart(rawCat);
                 // 如果分类提取失败，从动作名称推断部位
-                if ("其他".equals(bodyPart) && plan != null && plan.getName() != null) {
-                    bodyPart = extractBodyPart(plan.getName());
+                if (entry.category == null || entry.category.isEmpty()) {
+                    bodyPart = extractBodyPart(entry.name);
                 }
                 catMap.put(bodyPart, catMap.getOrDefault(bodyPart, 0) + 1);
             }
@@ -295,16 +294,16 @@ public class PlanStatsFragment extends Fragment {
                 pieEntries.add(new PieEntry(entry.getValue(), entry.getKey()));
 
             // —— Top3 ——
-            Map<Integer, Integer> cntMap = new HashMap<>();
-            for (DailyLog log : periodLogs)
-                cntMap.put(log.getPlanId(), cntMap.getOrDefault(log.getPlanId(), 0) + 1);
-            List<Map.Entry<Integer, Integer>> sorted = new ArrayList<>(cntMap.entrySet());
+            Map<String, Integer> cntMap = new HashMap<>();
+            for (TrainingRecordUtils.Entry entry : periodEntries)
+                cntMap.put(entry.name, cntMap.getOrDefault(entry.name, 0) + 1);
+            List<Map.Entry<String, Integer>> sorted = new ArrayList<>(cntMap.entrySet());
             sorted.sort((a, b) -> b.getValue() - a.getValue());
-            final String t1n = sorted.size() > 0 ? planName(planMap, sorted.get(0).getKey()) : null;
+            final String t1n = sorted.size() > 0 ? sorted.get(0).getKey() : null;
             final int    t1c = sorted.size() > 0 ? sorted.get(0).getValue() : 0;
-            final String t2n = sorted.size() > 1 ? planName(planMap, sorted.get(1).getKey()) : null;
+            final String t2n = sorted.size() > 1 ? sorted.get(1).getKey() : null;
             final int    t2c = sorted.size() > 1 ? sorted.get(1).getValue() : 0;
-            final String t3n = sorted.size() > 2 ? planName(planMap, sorted.get(2).getKey()) : null;
+            final String t3n = sorted.size() > 2 ? sorted.get(2).getKey() : null;
             final int    t3c = sorted.size() > 2 ? sorted.get(2).getValue() : 0;
 
             // —— 更新 UI ——
@@ -442,10 +441,17 @@ public class PlanStatsFragment extends Fragment {
     }
 
     // -----------------------------------------------------------------------
-    private int calcMaxStreak(List<DailyLog> logs) {
-        if (logs == null || logs.isEmpty()) return 0;
+    private int calcMaxStreak(List<DailyLog> logs, List<ExtraExerciseLog> extraLogs) {
+        if ((logs == null || logs.isEmpty()) && (extraLogs == null || extraLogs.isEmpty())) return 0;
         Set<String> ds = new HashSet<>();
-        for (DailyLog log : logs) if (log.isCompleted()) ds.add(DateUtils.formatDate(log.getDate()));
+        if (logs != null) {
+            for (DailyLog log : logs) if (log.isCompleted()) ds.add(DateUtils.formatDate(log.getDate()));
+        }
+        if (extraLogs != null) {
+            for (ExtraExerciseLog log : extraLogs) {
+                if (log.isCompleted()) ds.add(DateUtils.formatDate(log.getDate()));
+            }
+        }
         List<String> sorted = new ArrayList<>(ds);
         Collections.sort(sorted);
         int max = 1, cur = 1;

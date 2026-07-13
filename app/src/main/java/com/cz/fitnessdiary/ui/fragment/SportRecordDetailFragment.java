@@ -20,8 +20,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExerciseLibrary;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
 import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.ui.adapter.DailyLogAdapter;
+import com.cz.fitnessdiary.ui.adapter.ExtraExerciseLogAdapter;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
 import com.google.android.material.button.MaterialButton;
@@ -48,6 +51,7 @@ import java.util.concurrent.Executors;
 import com.google.android.material.card.MaterialCardView;
 import com.cz.fitnessdiary.model.DailyHealthSnapshot;
 import com.cz.fitnessdiary.repository.HealthAggregationRepository;
+import com.cz.fitnessdiary.repository.ExerciseLibraryRepository;
 
 public class SportRecordDetailFragment extends Fragment {
 
@@ -55,6 +59,7 @@ public class SportRecordDetailFragment extends Fragment {
     private DailyLogAdapter adapter;
     private final List<TrainingPlan> plans = new ArrayList<>();
     private final List<DailyLog> logs = new ArrayList<>();
+    private final List<ExtraExerciseLog> extraLogs = new ArrayList<>();
     private java.util.Set<Long> cachedSportRecordedDates = new java.util.HashSet<>();
 
     private HealthAggregationRepository healthRepo;
@@ -75,6 +80,9 @@ public class SportRecordDetailFragment extends Fragment {
     private TextView tvDailyAvg;
     private LinearLayout weekCalendar;
     private RecyclerView rvTodayLogs;
+    private RecyclerView rvExtraExercises;
+    private TextView tvNoExtraExercises;
+    private ExtraExerciseLogAdapter extraAdapter;
     private MaterialButton btnQuickCheckinAll;
     private EditText etTargetDuration;
     private MaterialButton btnSaveTarget;
@@ -137,26 +145,84 @@ public class SportRecordDetailFragment extends Fragment {
         tvDailyAvg = view.findViewById(R.id.tv_daily_avg);
         weekCalendar = view.findViewById(R.id.week_calendar);
         rvTodayLogs = view.findViewById(R.id.rv_today_logs);
+        rvExtraExercises = view.findViewById(R.id.rv_extra_exercises);
+        tvNoExtraExercises = view.findViewById(R.id.tv_no_extra_exercises);
+        MaterialButton btnAddExtraExercise = view.findViewById(R.id.btn_add_extra_exercise);
 
-        adapter = new DailyLogAdapter((planId, isCompleted) -> {
-            DailyLog existing = null;
-            for (DailyLog log : logs) {
-                if (log.getPlanId() == planId) {
-                    existing = log;
-                    break;
+        adapter = new DailyLogAdapter(new DailyLogAdapter.OnCheckChangeListener() {
+            @Override
+            public void onCheckChanged(int planId, boolean isCompleted) {
+                DailyLog existing = null;
+                for (DailyLog log : logs) {
+                    if (log.getPlanId() == planId) {
+                        existing = log;
+                        break;
+                    }
+                }
+                if (existing != null) {
+                    checkInViewModel.updateCompletionStatus(existing.getLogId(), isCompleted);
+                } else {
+                    checkInViewModel.checkInSelectedDate(planId);
+                    if (!isCompleted) {
+                        Toast.makeText(getContext(), "已新增记录，可继续勾选完成", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
-            if (existing != null) {
-                checkInViewModel.updateCompletionStatus(existing.getLogId(), isCompleted);
-            } else {
-                checkInViewModel.checkInSelectedDate(planId);
-                if (!isCompleted) {
-                    Toast.makeText(getContext(), "已新增记录，可继续勾选完成", Toast.LENGTH_SHORT).show();
-                }
+            @Override
+            public void onPlanClicked(TrainingPlan plan) {
+                DailyLog existing = findLog(plan.getPlanId());
+                DailyExerciseEditorBottomSheet.newForPlan(plan, existing, selectedDate)
+                        .show(getParentFragmentManager(), "DAILY_PLAN_EDITOR");
             }
         });
         rvTodayLogs.setLayoutManager(new LinearLayoutManager(getContext()));
         rvTodayLogs.setAdapter(adapter);
+
+        extraAdapter = new ExtraExerciseLogAdapter(new ExtraExerciseLogAdapter.Listener() {
+            @Override
+            public void onEdit(ExtraExerciseLog log) {
+                DailyExerciseEditorBottomSheet.newForExtra(log, selectedDate)
+                        .show(getParentFragmentManager(), "DAILY_EXTRA_EDITOR");
+            }
+
+            @Override
+            public void onDelete(ExtraExerciseLog log) {
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("删除额外动作")
+                        .setMessage("确定删除今天的“" + log.getName() + "”记录吗？")
+                        .setNegativeButton("取消", null)
+                        .setPositiveButton("删除", (dialog, which) -> checkInViewModel.deleteExtraExercise(log))
+                        .show();
+            }
+        });
+        rvExtraExercises.setLayoutManager(new LinearLayoutManager(getContext()));
+        rvExtraExercises.setNestedScrollingEnabled(false);
+        rvExtraExercises.setAdapter(extraAdapter);
+
+        btnAddExtraExercise.setOnClickListener(v -> {
+            AddTodayExerciseBottomSheet picker = AddTodayExerciseBottomSheet.newInstance(selectedDate);
+            picker.setOnExerciseSelectedListener((name, bodyPart, category, libraryId, saveToLibrary) -> {
+                if (saveToLibrary) {
+                    saveManualExerciseToLibrary(name, bodyPart, category);
+                }
+                DailyExerciseEditorBottomSheet.newForExtraDraft(selectedDate, name, bodyPart, category, libraryId)
+                        .show(getParentFragmentManager(), "DAILY_EXTRA_EDITOR");
+            });
+            picker.show(getParentFragmentManager(), "ADD_TODAY_EXERCISE");
+        });
+
+        getParentFragmentManager().setFragmentResultListener(
+                DailyExerciseEditorBottomSheet.RESULT_PLAN_SAVED, getViewLifecycleOwner(), (key, result) ->
+                        checkInViewModel.savePlanActual(result.getInt("plan_id"), result.getLong("date"),
+                                result.getInt("sets"), result.getInt("reps"), result.getFloat("weight"),
+                                result.getInt("duration")));
+        getParentFragmentManager().setFragmentResultListener(
+                DailyExerciseEditorBottomSheet.RESULT_EXTRA_SAVED, getViewLifecycleOwner(), (key, result) -> {
+                    java.io.Serializable value = result.getSerializable("log");
+                    if (value instanceof ExtraExerciseLog) {
+                        checkInViewModel.saveExtraExercise((ExtraExerciseLog) value);
+                    }
+                });
 
         // Initialize health aggregation repository for influencing factors
         healthRepo = new HealthAggregationRepository(requireActivity().getApplication());
@@ -206,6 +272,27 @@ public class SportRecordDetailFragment extends Fragment {
         observeViewModel();
         refreshWeekCalendar();
         loadFactors();
+    }
+
+    private DailyLog findLog(int planId) {
+        for (DailyLog log : logs) {
+            if (log.getPlanId() == planId) {
+                return log;
+            }
+        }
+        return null;
+    }
+
+    private void saveManualExerciseToLibrary(String name, String bodyPart, String category) {
+        android.content.Context appContext = requireContext().getApplicationContext();
+        new Thread(() -> {
+            ExerciseLibraryRepository repository = new ExerciseLibraryRepository(appContext);
+            if (repository.getExerciseByName(name) == null) {
+                ExerciseLibrary exercise = new ExerciseLibrary(name, bodyPart, "基础", "", 2,
+                        "其他", category);
+                repository.insert(exercise);
+            }
+        }).start();
     }
 
     private void showDatePicker() {
@@ -290,6 +377,14 @@ public class SportRecordDetailFragment extends Fragment {
             updateQuickCheckinButtonState();
         });
 
+        checkInViewModel.getSelectedDateExtraLogs().observe(getViewLifecycleOwner(), l -> {
+            extraLogs.clear();
+            if (l != null) {
+                extraLogs.addAll(l);
+            }
+            updateExtraAdapter();
+        });
+
         checkInViewModel.getConsecutiveDays().observe(getViewLifecycleOwner(), days -> {
             int value = days == null ? 0 : days;
             tvConsecutiveDays.setText("已连续坚持 " + value + " 天");
@@ -343,6 +438,16 @@ public class SportRecordDetailFragment extends Fragment {
         boolean hasPlans = !plans.isEmpty();
         rvTodayLogs.setVisibility(hasPlans ? View.VISIBLE : View.GONE);
         tvNoLogs.setVisibility(hasPlans ? View.GONE : View.VISIBLE);
+    }
+
+    private void updateExtraAdapter() {
+        if (extraAdapter == null) {
+            return;
+        }
+        extraAdapter.setData(extraLogs);
+        boolean hasExtras = !extraLogs.isEmpty();
+        rvExtraExercises.setVisibility(hasExtras ? View.VISIBLE : View.GONE);
+        tvNoExtraExercises.setVisibility(hasExtras ? View.GONE : View.VISIBLE);
     }
 
     private void refreshWeekCalendar() {

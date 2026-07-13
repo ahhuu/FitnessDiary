@@ -37,6 +37,7 @@ import com.cz.fitnessdiary.ui.adapter.EditCardsAdapter;
 import com.cz.fitnessdiary.utils.DateUtils;
 import com.cz.fitnessdiary.utils.ErrorHandler;
 import com.cz.fitnessdiary.utils.ExerciseMetTable;
+import com.cz.fitnessdiary.utils.TrainingRecordUtils;
 import com.cz.fitnessdiary.utils.RestTimerManager;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.cz.fitnessdiary.viewmodel.CheckInViewModel;
@@ -1968,11 +1969,16 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
             logsSnapshot = new ArrayList<>(currentLogs);
         }
 
+        Long selectedDate = checkInViewModel.getSelectedDate().getValue();
+        final long viewDate = selectedDate != null ? selectedDate
+                : com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+        final android.content.Context appContext = requireContext().getApplicationContext();
+
         new Thread(() -> {
             int totalCal = 0;
             java.util.HashSet<Integer> donePlanIds = new java.util.HashSet<>();
             float weightKg = 70f;
-            if (!plansSnapshot.isEmpty()) {
+                if (false) {
                 for (DailyLog log : logsSnapshot) {
                     if (log.isCompleted()) donePlanIds.add(log.getPlanId());
                 }
@@ -2004,13 +2010,30 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
                 }
             }
             // Step calories — 使用选中日期而非总是今天
-            Long selectedDate = checkInViewModel.getSelectedDate().getValue();
-            long viewDate = selectedDate != null ? selectedDate
-                    : com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+            com.cz.fitnessdiary.database.AppDatabase db =
+                    com.cz.fitnessdiary.database.AppDatabase.getInstance(appContext);
+            com.cz.fitnessdiary.database.entity.WeightRecord latestW = db.weightRecordDao().getLatestRecordSync();
+            if (latestW != null && latestW.getWeight() > 0) {
+                weightKg = latestW.getWeight();
+            } else {
+                com.cz.fitnessdiary.database.entity.User user = db.userDao().getUserSync();
+                if (user != null && user.getWeight() > 0) weightKg = user.getWeight();
+            }
+            java.util.List<TrainingRecordUtils.Entry> entries = TrainingRecordUtils.getCompletedEntries(
+                    db, viewDate, viewDate + 86400000L);
+            totalCal = 0;
+            double totalWeightedMet = 0;
+            int totalDurationSec = 0;
+            for (TrainingRecordUtils.Entry entry : entries) {
+                int durationSec = ExerciseMetTable.resolveDuration(
+                        entry.duration, 0, entry.sets, entry.reps, appContext);
+                double met = ExerciseMetTable.getMetForExercise(entry.name, entry.category);
+                totalCal += (int) (met * weightKg * (durationSec / 3600.0));
+                totalWeightedMet += met * durationSec;
+                totalDurationSec += durationSec;
+            }
             com.cz.fitnessdiary.database.entity.StepRecord step = null;
             try {
-                com.cz.fitnessdiary.database.AppDatabase db =
-                        com.cz.fitnessdiary.database.AppDatabase.getInstance(requireContext());
                 step = db.stepRecordDao().getByDateSync(viewDate);
             } catch (Exception ignored) {}
             int stepCal = 0;
@@ -2024,10 +2047,10 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
             // 如果用户设了当天训练总时长，按加权平均MET重算运动消耗（与日历弹窗口径一致）
             int targetMin = requireContext().getSharedPreferences("fitness_diary_prefs", android.content.Context.MODE_PRIVATE)
                     .getInt("target_minutes_" + viewDate, 0);
-            if (targetMin > 0 && workoutCal > 0) {
+            if (targetMin > 0 && totalDurationSec > 0) {
                 // 重新计算累计时长，用于加权平均
-                double totalDurHoursForWeighted = 0;
-                double totalWeightedMet = 0;
+                double totalDurHoursForWeighted = totalDurationSec / 3600.0;
+                // totalWeightedMet already includes planned and extra exercises.
                 for (TrainingPlan plan : plansSnapshot) {
                     if (!donePlanIds.contains(plan.getPlanId())) continue;
                     int durSec = 0;

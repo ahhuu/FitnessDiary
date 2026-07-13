@@ -10,6 +10,7 @@ import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.cz.fitnessdiary.database.dao.DailyLogDao;
+import com.cz.fitnessdiary.database.dao.ExtraExerciseLogDao;
 import com.cz.fitnessdiary.database.dao.ExerciseLibraryDao;
 import com.cz.fitnessdiary.database.dao.FoodLibraryDao;
 import com.cz.fitnessdiary.database.dao.FoodRecordDao;
@@ -18,6 +19,7 @@ import com.cz.fitnessdiary.database.dao.UserDao;
 import com.cz.fitnessdiary.database.dao.ChatMessageDao;
 import com.cz.fitnessdiary.database.entity.ChatMessageEntity;
 import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
 import com.cz.fitnessdiary.database.entity.ExerciseLibrary;
 import com.cz.fitnessdiary.database.entity.FoodLibrary;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
@@ -69,7 +71,7 @@ import java.util.concurrent.Executors;
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
         HabitRecord.class, BodyMeasurement.class, BowelMovement.class,
         MenstrualCycle.class, StepRecord.class, MoodRecord.class,
-        Recipe.class, FavoriteFood.class }, version = 29, exportSchema = true)
+        Recipe.class, FavoriteFood.class, ExtraExerciseLog.class }, version = 30, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -126,6 +128,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract RecipeDao recipeDao();
 
     public abstract FavoriteFoodDao favoriteFoodDao();
+
+    public abstract ExtraExerciseLogDao extraExerciseLogDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -614,6 +618,30 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_29_30 = new Migration(29, 30) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE daily_log ADD COLUMN actual_sets INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE daily_log ADD COLUMN actual_reps INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE daily_log ADD COLUMN actual_weight REAL NOT NULL DEFAULT 0");
+            database.execSQL("CREATE TABLE IF NOT EXISTS extra_exercise_log (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "date INTEGER NOT NULL, " +
+                    "name TEXT NOT NULL, " +
+                    "body_part TEXT, " +
+                    "category TEXT, " +
+                    "library_id INTEGER NOT NULL DEFAULT 0, " +
+                    "sets INTEGER NOT NULL DEFAULT 0, " +
+                    "reps INTEGER NOT NULL DEFAULT 0, " +
+                    "weight REAL NOT NULL DEFAULT 0, " +
+                    "duration INTEGER NOT NULL DEFAULT 0, " +
+                    "is_completed INTEGER NOT NULL DEFAULT 0, " +
+                    "created_at INTEGER NOT NULL)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_extra_exercise_log_date " +
+                    "ON extra_exercise_log (date)");
+        }
+    };
+
     /**
      * 获取数据库实例（单例模式）
      */
@@ -631,7 +659,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
                                     MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-                                    MIGRATION_28_29)
+                                    MIGRATION_28_29, MIGRATION_29_30)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。

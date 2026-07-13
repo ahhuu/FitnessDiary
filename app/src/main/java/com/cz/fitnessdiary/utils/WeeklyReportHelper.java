@@ -5,7 +5,6 @@ import android.content.Context;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.BodyMeasurement;
 import com.cz.fitnessdiary.database.entity.BowelMovement;
-import com.cz.fitnessdiary.database.entity.DailyLog;
 import com.cz.fitnessdiary.database.entity.FoodRecord;
 import com.cz.fitnessdiary.database.entity.SleepRecord;
 import com.cz.fitnessdiary.database.entity.User;
@@ -27,15 +26,14 @@ public class WeeklyReportHelper {
         AppDatabase db = AppDatabase.getInstance(context);
 
         // Training
-        List<DailyLog> logs = db.dailyLogDao().getAllLogsSync();
+        List<TrainingRecordUtils.Entry> entries = TrainingRecordUtils.getCompletedEntries(
+                db, weekStart, weekEnd);
         int trainingDays = 0;
-        int totalWorkouts = 0;
-        for (DailyLog log : logs) {
-            if (log.getDate() >= weekStart && log.getDate() < weekEnd) {
-                if (log.isCompleted()) totalWorkouts++;
-                if (log.isCompleted()) trainingDays = countDistinctDays(logs, weekStart, weekEnd);
-            }
+        java.util.Set<Long> trainingDates = new java.util.HashSet<>();
+        for (TrainingRecordUtils.Entry entry : entries) {
+            trainingDates.add(DateUtils.getDayStartTimestamp(entry.date));
         }
+        trainingDays = trainingDates.size();
 
         // Diet
         List<FoodRecord> foods = db.foodRecordDao().getAllFoodRecordsSync();
@@ -89,13 +87,14 @@ public class WeeklyReportHelper {
         }
 
         // Training
-        List<DailyLog> logs = db.dailyLogDao().getAllLogsSync();
-        int trainingDays = 0, totalWorkouts = 0;
-        for (DailyLog log : logs) {
-            if (log.getDate() >= weekStart && log.getDate() < weekEnd) {
-                if (log.isCompleted()) { totalWorkouts++; trainingDays++; }
-            }
+        List<TrainingRecordUtils.Entry> entries = TrainingRecordUtils.getCompletedEntries(
+                db, weekStart, weekEnd);
+        java.util.Set<Long> trainingDates = new java.util.HashSet<>();
+        for (TrainingRecordUtils.Entry entry : entries) {
+            trainingDates.add(DateUtils.getDayStartTimestamp(entry.date));
         }
+        int trainingDays = trainingDates.size();
+        int totalWorkouts = entries.size();
         sb.append("本周训练：").append(trainingDays).append("天，完成").append(totalWorkouts).append("项\n");
 
         // Diet
@@ -161,13 +160,4 @@ public class WeeklyReportHelper {
         return cal.getTimeInMillis();
     }
 
-    private static int countDistinctDays(List<DailyLog> logs, long start, long end) {
-        java.util.Set<Long> days = new java.util.HashSet<>();
-        for (DailyLog log : logs) {
-            if (log.getDate() >= start && log.getDate() < end && log.isCompleted()) {
-                days.add(log.getDate());
-            }
-        }
-        return days.size();
-    }
 }
