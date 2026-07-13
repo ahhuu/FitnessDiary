@@ -152,4 +152,49 @@
         android:name="com.cz.fitnessdiary.ui.fragment.RecipeListFragment"
         android:label="我的常用食谱" />
 
+    <fragment
+        android:id="@+id/accountFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.AccountFragment"
+        android:label="账号与朋友" />
+
+    <fragment
+        android:id="@+id/emailVerificationFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.EmailVerificationFragment"
+        android:label="验证邮箱">
+        <argument
+            android:name="email"
+            android:defaultValue=""
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/friendsHomeFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.FriendsHomeFragment"
+        android:label="朋友" />
+
+    <fragment
+        android:id="@+id/socialFeedFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.SocialFeedFragment"
+        android:label="朋友动态" />
+
+    <fragment
+        android:id="@+id/friendListFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.FriendListFragment"
+        android:label="我的好友" />
+
+    <fragment
+        android:id="@+id/friendRequestsFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.FriendRequestsFragment"
+        android:label="好友申请" />
+
+    <fragment
+        android:id="@+id/addFriendFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.AddFriendFragment"
+        android:label="添加好友" />
+
+    <fragment
+        android:id="@+id/createPostFragment"
+        android:name="com.cz.fitnessdiary.ui.fragment.CreatePostFragment"
+        android:label="发布动态" />
+
 </navigation>

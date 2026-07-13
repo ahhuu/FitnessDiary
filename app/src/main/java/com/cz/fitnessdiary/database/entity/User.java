@@ -52,6 +52,13 @@ public class User {
     @ColumnInfo(name = "avatar_uri")
     private String avatarUri; // 头像 URI（用于图库选择的图片）
 
+    /** CloudBase account UUID bound to this device-local profile. */
+    @ColumnInfo(name = "cloud_user_id")
+    private String cloudUserId;
+
+    @ColumnInfo(name = "cloud_bound_at")
+    private Long cloudBoundAt;
+
     // 构造函数（Room 使用此构造函数）
     public User(String name, float height, float weight, boolean isRegistered) {
         this.name = name;
@@ -197,6 +204,22 @@ public class User {
 
     public void setAvatarUri(String avatarUri) {
         this.avatarUri = avatarUri;
+    }
+
+    public String getCloudUserId() {
+        return cloudUserId;
+    }
+
+    public void setCloudUserId(String cloudUserId) {
+        this.cloudUserId = cloudUserId;
+    }
+
+    public Long getCloudBoundAt() {
+        return cloudBoundAt;
+    }
+
+    public void setCloudBoundAt(Long cloudBoundAt) {
+        this.cloudBoundAt = cloudBoundAt;
     }
 
     // === 2.1 新增字段 (Plan 8) ===

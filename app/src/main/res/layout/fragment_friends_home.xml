@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@android:color/transparent"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title="朋友" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="48dp"
+            android:clipToPadding="false">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="一起变得更好"
+                android:textColor="@color/text_primary"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.02" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="只分享你主动确认的健康摘要，原始健康数据仍留在本机。"
+                android:textColor="@color/text_secondary"
+                android:textSize="15sp"
+                android:lineSpacingExtra="4dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/divider"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="24dp">
+
+                        <FrameLayout
+                            android:layout_width="56dp"
+                            android:layout_height="56dp">
+                            
+                            <TextView
+                                android:id="@+id/tv_my_avatar_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_circle_light_primary"
+                                android:gravity="center"
+                                android:text="我"
+                                android:textColor="@color/text_primary"
+                                android:textSize="22sp"
+                                android:textStyle="bold" />
+                                
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/iv_my_avatar"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="centerCrop"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
+                                android:visibility="gone" />
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="16dp"
+                            android:orientation="vertical">
+                            
+                            <TextView
+                                android:id="@+id/tv_my_nickname"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="我的资料"
+                                android:textColor="@color/text_primary"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+                                
+                            <TextView
+                                android:id="@+id/tv_my_bio"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="未设置简介"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_edit_profile"
+                            style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="编辑"
+                            app:icon="@drawable/ic_edit"
+                            android:textColor="@color/text_secondary"
+                            app:iconTint="@color/text_secondary" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider"
+                        android:layout_marginBottom="24dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="我的好友码"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tv_friend_code"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="加载中…"
+                        android:textColor="@color/text_primary"
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="horizontal"
+                        android:weightSum="2">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_copy_code"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            android:enabled="false"
+                            android:text="复制"
+                            app:cornerRadius="16dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_share_code"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:enabled="false"
+                            android:text="分享"
+                            app:cornerRadius="16dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_feed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/plan_blue_container">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="朋友动态"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="看看伙伴们最近的打卡与成就"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_friends"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/divider"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="20dp">
+
+                        <ImageView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/ic_group"
+                            app:tint="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="我的好友"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_requests"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/divider"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="20dp">
+
+                        <ImageView
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:src="@drawable/ic_notifications"
+                            app:tint="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="好友申请"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btn_add_friend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:text="添加好友"
+        app:icon="@drawable/ic_add"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/text_primary" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

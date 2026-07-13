@@ -11,8 +11,8 @@ android {
         applicationId "com.cz.fitnessdiary"
         minSdk 26
         targetSdk 34
-        versionCode 13
-        versionName "2.5.2"
+        versionCode 14
+        versionName "2.6.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -30,20 +30,31 @@ android {
         buildConfigField "String", "GEMINI_API_KEY", "\"${properties.getProperty('gemini.api.key', '')}\""
         buildConfigField "String", "DEEPSEEK_API_KEY", "\"${properties.getProperty('deepseek.api.key', '')}\""
         buildConfigField "String", "QWEN_API_KEY", "\"${properties.getProperty('qwen.api.key', '')}\""
+        buildConfigField "String", "CLOUDBASE_ENV_ID", "\"${properties.getProperty('cloudbase.env-id', '')}\""
     }
 
     signingConfigs {
         release {
-            storeFile rootProject.file('fitnessdiary.jks')
-            storePassword 'fitness2025'
-            keyAlias 'fitnessdiary'
-            keyPassword 'fitness2025'
+            Properties signingProperties = new Properties()
+            File signingPropertiesFile = rootProject.file('local.properties')
+            if (signingPropertiesFile.exists()) {
+                signingProperties.load(signingPropertiesFile.newDataInputStream())
+            }
+            String storePath = signingProperties.getProperty('signing.store.file', '')
+            if (!storePath.isEmpty()) {
+                storeFile rootProject.file(storePath)
+                storePassword signingProperties.getProperty('signing.store.password', '')
+                keyAlias signingProperties.getProperty('signing.key.alias', '')
+                keyPassword signingProperties.getProperty('signing.key.password', '')
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
@@ -72,6 +83,10 @@ android {
         viewBinding true
         buildConfig true
     }
+
+    sourceSets {
+        androidTest.assets.srcDir "$projectDir/schemas"
+    }
 }
 
 dependencies {
@@ -94,6 +109,8 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
+    androidTestImplementation 'androidx.room:room-testing:2.6.1'
+
     
     // Navigation Component
     implementation 'androidx.navigation:navigation-fragment:2.7.6'

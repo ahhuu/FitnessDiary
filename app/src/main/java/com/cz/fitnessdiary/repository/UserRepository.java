@@ -55,4 +55,30 @@ public class UserRepository {
             HomeWidgetProvider.requestRefresh(context);
         });
     }
+
+    public void bindCloudAccount(String cloudUserId, long boundAt, OperationCallback callback) {
+        executorService.execute(() -> {
+            User localUser = userDao.getUserSync();
+            if (localUser == null) {
+                callback.onComplete(false);
+                return;
+            }
+            callback.onComplete(userDao.bindCloudAccount(localUser.getUid(), cloudUserId, boundAt) == 1);
+        });
+    }
+
+    public void unbindCloudAccount(String cloudUserId, OperationCallback callback) {
+        executorService.execute(() -> {
+            User localUser = userDao.getUserSync();
+            if (localUser == null) {
+                callback.onComplete(false);
+                return;
+            }
+            callback.onComplete(userDao.unbindCloudAccount(localUser.getUid(), cloudUserId) == 1);
+        });
+    }
+
+    public interface OperationCallback {
+        void onComplete(boolean success);
+    }
 }

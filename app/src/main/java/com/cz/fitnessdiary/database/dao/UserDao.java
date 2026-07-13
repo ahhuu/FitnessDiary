@@ -46,4 +46,11 @@ public interface UserDao {
      */
     @Query("SELECT COUNT(*) FROM user WHERE is_registered = 1")
     int getRegisteredUserCount();
+
+    @Query("UPDATE user SET cloud_user_id = :cloudUserId, cloud_bound_at = :boundAt WHERE uid = :uid")
+    int bindCloudAccount(int uid, String cloudUserId, long boundAt);
+
+    @Query("UPDATE user SET cloud_user_id = NULL, cloud_bound_at = NULL " +
+            "WHERE uid = :uid AND cloud_user_id = :cloudUserId")
+    int unbindCloudAccount(int uid, String cloudUserId);
 }

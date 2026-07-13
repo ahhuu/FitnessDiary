@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" android:background="@color/background" app:navigationIcon="@drawable/ic_arrow_back" app:title="账号与朋友" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+            <TextView android:id="@+id/tv_heading" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="登录后，与朋友一起坚持" android:textColor="@color/text_primary" android:textSize="27sp" android:textStyle="bold" />
+            <TextView android:id="@+id/tv_subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="基础记录无需登录；朋友与动态需要邮箱验证码登录。" android:textColor="@color/text_secondary" />
+            <com.google.android.material.textfield.TextInputLayout android:id="@+id/email_layout" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:hint="邮箱" app:endIconMode="clear_text">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/et_email" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textEmailAddress" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_submit" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="20dp" android:text="获取邮箱验证码" />
+            <LinearLayout android:id="@+id/logged_in_panel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:orientation="vertical" android:visibility="gone">
+                <TextView android:id="@+id/tv_account_email" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btn_open_friends" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="20dp" android:text="进入朋友空间" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btn_logout" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp" android:text="退出云端账号" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btn_delete_account" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="48dp" android:text="注销云端账号" android:textColor="@color/error" />
+            </LinearLayout>
+            <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

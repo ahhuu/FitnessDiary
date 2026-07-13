@@ -1,4 +1,4 @@
-﻿# CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -14,7 +14,8 @@ gradlew.bat installDebug
 ./gradlew installDebug
 ```
 
-No test suite exists yet (no `app/src/test` or `app/src/androidTest` directories).
+Unit tests live in `app/src/test`, Room migration instrumentation tests live in
+`app/src/androidTest`, and CloudBase SQL contract checks live in `cloudbase-api/tests`.
 
 ## Tech Stack & Constraints
 
@@ -22,12 +23,16 @@ No test suite exists yet (no `app/src/test` or `app/src/androidTest` directories
 - **Architecture:** MVVM (ViewModel + Repository + Room DAO)
 - **UI:** ViewBinding, Material Design 3, Navigation Component (single-activity)
 - **Min/Target SDK:** 26 / 34, `applicationId: com.cz.fitnessdiary`
+- **Current app release:** 2.6.0 (`versionCode 14`)
 - **Key libraries:** Room 2.6.1, MPAndroidChart, Glide, OkHttp 4.12, Gson, ZXing (barcode), Lottie, DashScope SDK (Qwen AI)
+- **Cloud account/social (beta):** CloudBase email-code authentication + PostgreSQL REST/RPC; optional and disabled safely when the environment id is absent
 
 API keys are loaded from `local.properties` into `BuildConfig`:
 - `gemini.api.key` → `GEMINI_API_KEY`
 - `deepseek.api.key` → `DEEPSEEK_API_KEY`
 - `qwen.api.key` → `QWEN_API_KEY`
+
+Optional CloudBase setup uses `cloudbase.env-id`. Do not put PostgreSQL passwords, CloudBase management keys, or service credentials in the Android project. Release signing values are also local-only (`signing.store.*`, `signing.key.*`).
 
 ## Architecture
 
@@ -56,8 +61,8 @@ The launcher intent can carry a `shortcut_id` for app shortcuts or reminder rout
 Entity (@Entity table) → DAO (@Dao interface) → Repository (plain class) → ViewModel (AndroidViewModel)
 ```
 
-- **24 entities** in `database/entity/`, **24 DAOs** in `database/dao/`, **24 repositories** in `repository/` (includes `HealthAggregationRepository` added in v2.3, `Recipe`/`FavoriteFood` added in v2.4)
-- `AppDatabase` is a Room singleton (DCL pattern), current version **27**
+- **24 Room entities** in `database/entity/`, **24 DAOs** in `database/dao/`, plus local/domain repositories including the non-Room `AccountRepository` and `SocialRepository`
+- `AppDatabase` is a Room singleton (DCL pattern), current version **29**
 - Repository classes extend `AndroidViewModel` pattern — they take `Application` in constructor to get the DB instance
 - All DB operations run on `Executors.newSingleThreadExecutor()` — not on the main thread but also not via Room's built-in async support
 - **No reactive patterns** (LiveData only at the ViewModel→View boundary); Repository methods return plain lists/objects
@@ -74,6 +79,17 @@ When adding new entities or columns:
 Current migration notes:
 - `MIGRATION_25_26` performs a one-time backfill of historical `food_record.fat` values from the matching `food_library.fat_per_100g` and `food_record.servings`, so the app does not need to rescan the full table on page open.
 - `MIGRATION_26_27` creates `recipe` and `favorite_food` tables, and adds `is_preset` / `sort_order` columns to `reminder_schedule`.
+- `MIGRATION_27_28` adds the first nullable cloud-account binding field and `cloud_bound_at` to the local `user` table. No health record table is uploaded or assigned a cloud owner.
+- `MIGRATION_28_29` rebuilds the local `user` table to use `cloud_user_id`, preserving the binding and all local profile values. The earlier migration column remains only as an on-device schema compatibility detail.
+
+### CloudBase Account & Social Beta
+
+- `FitnessDiaryApplication` initializes only local CloudBase HTTP helpers; missing `cloudbase.env-id` never blocks local features.
+- `AccountRepository` owns CloudBase email-code authentication and local profile binding. `User.isRegistered` remains the local onboarding flag and must not be treated as cloud login state.
+- `SocialRepository` calls CloudBase PostgreSQL REST/RPC through `CloudApiClient`; Fragments must not directly issue cloud requests or attach tokens.
+- The schema, indexes, RLS policies and `SECURITY DEFINER` RPC functions live in `cloudbase-api/src/main/resources/db/migration/V1__create_social_schema.sql`. Each RPC must authenticate with `auth.uid()` internally; public table reads must remain disabled.
+- Only explicitly confirmed `workoutMinutes`, `checkInDays`, `steps`, or `achievement` summaries may be uploaded. Weight, diet details, menstrual records, notes, and other raw health data remain local.
+- Social image posting and avatar upload are intentionally disabled until a separate secure object-storage flow is reviewed. Existing nullable image columns are reserved for future use.
 
 ### Pre-filled Data
 

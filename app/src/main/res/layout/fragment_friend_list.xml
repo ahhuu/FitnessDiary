@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" android:background="@color/background" app:navigationIcon="@drawable/ic_arrow_back" app:title="我的好友" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/recycler" android:layout_width="match_parent"
+                android:layout_height="match_parent" android:clipToPadding="false" android:padding="16dp" />
+            <LinearLayout android:id="@+id/empty_state" android:layout_width="match_parent" android:layout_height="match_parent"
+                android:gravity="center" android:orientation="vertical" android:padding="32dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="还没有好友"
+                    android:textColor="@color/text_primary" android:textSize="20sp" android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                    android:gravity="center" android:text="通过好友码添加，一起记录每一次进步" android:textColor="@color/text_secondary" />
+            </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

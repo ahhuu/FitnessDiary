@@ -46,6 +46,9 @@ import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.cz.fitnessdiary.database.entity.WaterRecord;
 import com.cz.fitnessdiary.databinding.FragmentProfileBinding;
+import com.cz.fitnessdiary.model.AccountUser;
+import com.cz.fitnessdiary.repository.AccountRepository;
+import com.cz.fitnessdiary.config.CloudApiConfig;
 import com.cz.fitnessdiary.ui.MainActivity;
 import com.cz.fitnessdiary.ui.guide.GuideStateManager;
 import com.cz.fitnessdiary.service.DailyBriefingService;
@@ -223,6 +226,7 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        updateCloudAccountSummary();
         if (achievementCenterViewModel != null) {
             achievementCenterViewModel.refreshAll();
         }
@@ -1137,6 +1141,9 @@ public class ProfileFragment extends Fragment {
         // 点击整个头像卡片 - 修改昵称、头像、性别、年龄及生日
         binding.layoutProfileHeaderClick.setOnClickListener(v -> showEditProfileHeaderDialog());
 
+        binding.cardAccountFriends.setOnClickListener(v ->
+                Navigation.findNavController(v).navigate(R.id.accountFragment));
+
         // 点击头像本身也触发编辑
         binding.ivAvatar.setOnClickListener(v -> showEditProfileHeaderDialog());
 
@@ -1224,6 +1231,22 @@ public class ProfileFragment extends Fragment {
 
         // 意见反馈
         binding.btnFeedback.setOnClickListener(v -> sendFeedback());
+    }
+
+    private void updateCloudAccountSummary() {
+        if (binding == null) return;
+        if (!CloudApiConfig.isConfigured()) {
+            binding.tvCloudAccountStatus.setText("云服务未配置 · 本地功能不受影响");
+            return;
+        }
+        AccountUser account = new AccountRepository(requireContext()).getCurrentAccount();
+        if (account == null) {
+            binding.tvCloudAccountStatus.setText("未登录 · 本地功能不受影响");
+        } else if (!account.isEmailVerified()) {
+            binding.tvCloudAccountStatus.setText("邮箱待验证 · 朋友功能暂不可用");
+        } else {
+            binding.tvCloudAccountStatus.setText("已登录 · 查看好友与动态");
+        }
     }
 
     /**

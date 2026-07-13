@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"
+        android:background="@color/background" app:navigationIcon="@drawable/ic_arrow_back" app:title="发布动态" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+            <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="分享此刻的想法" app:counterEnabled="true" app:counterMaxLength="500">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/et_content" android:layout_width="match_parent"
+                    android:layout_height="140dp" android:gravity="top|start" android:inputType="textCapSentences|textMultiLine" android:maxLength="500" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="26dp"
+                android:text="选择要公开的摘要" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp"
+                android:text="以下内容不会自动上传，勾选后才会随动态发布。" android:textColor="@color/text_secondary" />
+            
+            <com.google.android.material.chip.ChipGroup android:id="@+id/chip_group" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" app:chipSpacingHorizontal="8dp" app:chipSpacingVertical="8dp">
+                <com.google.android.material.chip.Chip android:id="@+id/chip_training" style="@style/Widget.MaterialComponents.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checkable="true" android:text="完成今日训练" />
+                <com.google.android.material.chip.Chip android:id="@+id/chip_steps" style="@style/Widget.MaterialComponents.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checkable="true" android:text="完成今日步数目标" />
+                <com.google.android.material.chip.Chip android:id="@+id/chip_streak" style="@style/Widget.MaterialComponents.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:checkable="true" android:text="保持连续打卡" />
+            </com.google.android.material.chip.ChipGroup>
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="24dp" app:cardCornerRadius="18dp" app:cardElevation="0dp" app:cardBackgroundColor="@color/fitnessdiary_surface_variant">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp"
+                    android:text="隐私提示：体重、饮食明细、经期和私人备注不会包含在动态中。" android:textColor="@color/text_secondary" />
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_publish" android:layout_width="match_parent"
+                android:layout_height="56dp" android:layout_marginTop="26dp" android:text="确认并发布" />
+            <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

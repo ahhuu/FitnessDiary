@@ -69,7 +69,7 @@ import java.util.concurrent.Executors;
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
         HabitRecord.class, BodyMeasurement.class, BowelMovement.class,
         MenstrualCycle.class, StepRecord.class, MoodRecord.class,
-        Recipe.class, FavoriteFood.class }, version = 27, exportSchema = true)
+        Recipe.class, FavoriteFood.class }, version = 29, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -576,6 +576,44 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_27_28 = new Migration(27, 28) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE user ADD COLUMN leancloud_user_id TEXT");
+            database.execSQL("ALTER TABLE user ADD COLUMN cloud_bound_at INTEGER");
+        }
+    };
+
+    /**
+     * Provider-neutral cloud-account binding. Rebuild the table instead of
+             * leaving the v28 legacy cloud-binding column behind: Room validates that migrated
+     * tables have exactly the entity's columns, and SQLite on minSdk 26 cannot
+     * safely drop or rename a column in place.
+     */
+    public static final Migration MIGRATION_28_29 = new Migration(28, 29) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS user_new (" +
+                    "uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "name TEXT, height REAL NOT NULL, weight REAL NOT NULL, " +
+                    "is_registered INTEGER NOT NULL, gender INTEGER NOT NULL, " +
+                    "goal_type INTEGER NOT NULL, activity_level REAL NOT NULL, " +
+                    "daily_calorie_target INTEGER NOT NULL, age INTEGER NOT NULL, " +
+                    "nickname TEXT DEFAULT '健身达人', goal TEXT DEFAULT '减脂', " +
+                    "avatar_uri TEXT, cloud_user_id TEXT, cloud_bound_at INTEGER, " +
+                    "target_protein INTEGER NOT NULL, target_carbs INTEGER NOT NULL, " +
+                    "target_fat INTEGER NOT NULL, daily_water_target INTEGER NOT NULL DEFAULT 2000)");
+            database.execSQL("INSERT INTO user_new (uid, name, height, weight, is_registered, gender, " +
+                    "goal_type, activity_level, daily_calorie_target, age, nickname, goal, avatar_uri, " +
+                    "cloud_user_id, cloud_bound_at, target_protein, target_carbs, target_fat, daily_water_target) " +
+                    "SELECT uid, name, height, weight, is_registered, gender, goal_type, activity_level, " +
+                    "daily_calorie_target, age, nickname, goal, avatar_uri, leancloud_user_id, cloud_bound_at, " +
+                    "target_protein, target_carbs, target_fat, daily_water_target FROM user");
+            database.execSQL("DROP TABLE user");
+            database.execSQL("ALTER TABLE user_new RENAME TO user");
+        }
+    };
+
     /**
      * 获取数据库实例（单例模式）
      */
@@ -592,7 +630,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
-                                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)
+                                    MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
+                                    MIGRATION_28_29)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。

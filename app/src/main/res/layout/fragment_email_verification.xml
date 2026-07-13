@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" android:background="@color/background" app:navigationIcon="@drawable/ic_arrow_back" app:title="邮箱验证码" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:padding="28dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="输入验证码" android:textColor="@color/text_primary" android:textSize="26sp" android:textStyle="bold" />
+        <TextView android:id="@+id/tv_email" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center" android:textColor="@color/text_secondary" android:textSize="15sp" />
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:hint="6 位验证码">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/et_code" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:maxLength="6" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_verify_code" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="20dp" android:text="验证并登录" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_resend" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="48dp" android:text="重新发送验证码" />
+        <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

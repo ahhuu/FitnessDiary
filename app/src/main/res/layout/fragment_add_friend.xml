@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" android:background="@color/background" app:navigationIcon="@drawable/ic_arrow_back" app:title="添加好友" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="输入好友码"
+                android:textColor="@color/text_primary" android:textSize="26sp" android:textStyle="bold" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                android:text="为保护邮箱隐私，只能通过好友码找到对方。" android:textColor="@color/text_secondary" />
+            <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="24dp" android:hint="6–12 位好友码" app:endIconMode="clear_text">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/et_friend_code"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textCapCharacters" android:maxLength="12" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_search" android:layout_width="match_parent"
+                android:layout_height="56dp" android:layout_marginTop="14dp" android:text="查找" />
+            <com.google.android.material.card.MaterialCardView android:id="@+id/result_card" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="24dp" android:visibility="gone"
+                app:cardCornerRadius="22dp" app:cardElevation="0dp" app:strokeColor="@color/divider" app:strokeWidth="1dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:padding="20dp">
+                    <TextView android:id="@+id/tv_avatar" android:layout_width="52dp" android:layout_height="52dp" android:background="@drawable/bg_circle_light_primary" android:gravity="center" android:text="友" android:textStyle="bold" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="14dp" android:orientation="vertical">
+                        <TextView android:id="@+id/tv_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_primary" android:textSize="17sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/tv_bio" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="@color/text_secondary" />
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btn_send_request" android:layout_width="wrap_content" android:layout_height="48dp" android:text="添加" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.progressindicator.CircularProgressIndicator android:id="@+id/progress" android:layout_width="48dp" android:layout_height="48dp" android:layout_gravity="center_horizontal" android:layout_marginTop="24dp" android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
