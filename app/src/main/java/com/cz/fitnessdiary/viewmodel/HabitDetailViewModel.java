@@ -125,10 +125,12 @@ public class HabitDetailViewModel extends AndroidViewModel {
     }
 
     public void addHabitItem(String name, String description) {
-        int sort = repository.getAllItemsSync().size();
-        HabitItem item = new HabitItem(name, false, true, sort, "MANUAL");
-        item.setDescription(description);
-        repository.insertItem(item);
-        refreshStats();
+        executor.execute(() -> {
+            int sort = repository.getAllItemsSync().size();
+            HabitItem item = new HabitItem(name, false, true, sort, "MANUAL");
+            item.setDescription(description);
+            repository.insertItem(item);
+            refreshStats();
+        });
     }
 }

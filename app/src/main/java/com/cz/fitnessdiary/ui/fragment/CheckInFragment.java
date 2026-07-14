@@ -552,9 +552,9 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
         homeDashboardViewModel.getSelectedDateLatestWeight().observe(getViewLifecycleOwner(), r -> {
             if (r != null) {
                 setTextIfExists(R.id.tv_weight_value,
-                        UnitUtils.formatWeight(r.getWeight(), requireContext()));
+                        UnitUtils.formatWeight(r.getWeight(), "kg"));
                 setTextIfExists(R.id.tv_weight_unit,
-                        UnitUtils.getWeightUnitSymbol(requireContext()));
+                        UnitUtils.getWeightUnitSymbol("kg"));
                 setTextIfExists(R.id.tv_weight_update, getSelectedDateUpdateText(r.getTimestamp()));
                 setTextIfExists(R.id.tv_weight_summary, "已记录当日体重");
                 // Compute detailed weight analysis (delta + BMI + 7-day trend)
@@ -574,7 +574,7 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
                             analysis.append("稳定");
                         } else {
                             String arrow = (r.getWeight() - prevRecord.getWeight()) < 0 ? "↓" : "↑";
-                            analysis.append(arrow).append(UnitUtils.formatWeight(deltaAbs, context)).append(weightUnitSymbol);
+                            analysis.append(arrow).append(UnitUtils.formatWeight(deltaAbs, "kg")).append(weightUnitSymbol);
                         }
                     }
                     // BMI
@@ -598,7 +598,7 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
                             analysis.append("周平稳");
                         } else {
                             analysis.append("周").append(trend < 0 ? "↓" : "↑")
-                                    .append(UnitUtils.formatWeight(Math.abs(trend), context)).append(weightUnitSymbol);
+                                    .append(UnitUtils.formatWeight(Math.abs(trend), "kg")).append(weightUnitSymbol);
                         }
                     }
                     final String text = analysis.length() > 0 ? analysis.toString() : "已记录当日体重";
@@ -619,15 +619,15 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
                             if (isAdded() && binding != null) {
                                 if (latest != null) {
                                     setTextIfExists(R.id.tv_weight_value,
-                                            UnitUtils.formatWeight(latest.getWeight(), requireContext()));
+                                            UnitUtils.formatWeight(latest.getWeight(), "kg"));
                                     setTextIfExists(R.id.tv_weight_unit,
-                                            UnitUtils.getWeightUnitSymbol(requireContext()));
+                                            UnitUtils.getWeightUnitSymbol("kg"));
                                     setTextIfExists(R.id.tv_weight_update, getUpdateText(latest.getTimestamp()));
                                     setTextIfExists(R.id.tv_weight_summary, "最近一次记录");
                                 } else {
                                     setTextIfExists(R.id.tv_weight_value, "--");
                                     setTextIfExists(R.id.tv_weight_unit,
-                                            UnitUtils.getWeightUnitSymbol(requireContext()));
+                                            UnitUtils.getWeightUnitSymbol("kg"));
                                     setTextIfExists(R.id.tv_weight_update, "暂无更新");
                                     setTextIfExists(R.id.tv_weight_summary, "点击查看体重明细");
                                 }
@@ -1882,8 +1882,14 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
     }
 
     private String getUpdateText(long ts) {
-        long d = (System.currentTimeMillis() - ts) / (24L * 60L * 60L * 1000L);
-        return d <= 0 ? "今日更新" : d + " 天前更新";
+        long todayStart = com.cz.fitnessdiary.utils.DateUtils.getTodayStartTimestamp();
+        long recordDayStart = com.cz.fitnessdiary.utils.DateUtils.getDayStartTimestamp(ts);
+        long diff = todayStart - recordDayStart;
+        if (diff <= 0) {
+            return "今日更新";
+        }
+        long days = diff / (24L * 60L * 60L * 1000L);
+        return days + " 天前更新";
     }
 
     private String getSelectedDateUpdateText(long recordTs) {

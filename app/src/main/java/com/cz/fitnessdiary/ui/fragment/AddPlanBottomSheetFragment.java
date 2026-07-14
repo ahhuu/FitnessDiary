@@ -142,8 +142,13 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
             binding.etPlanDescription.setText(existingPlan.getDescription());
             binding.etSets.setText(String.valueOf(existingPlan.getSets()));
             binding.etReps.setText(String.valueOf(existingPlan.getReps()));
-            binding.etWeight.setText(String.valueOf(existingPlan.getWeight()));
+            float displayWeight = com.cz.fitnessdiary.utils.UnitUtils.convertWeight(existingPlan.getWeight(), com.cz.fitnessdiary.utils.UnitUtils.getWeightUnit(requireContext()));
+            binding.etWeight.setText(displayWeight > 0 ? String.format(java.util.Locale.getDefault(), "%.1f", displayWeight).replace(".0", "") : "0");
+        }
+        
+        binding.tilWeight.setHint("负重(" + com.cz.fitnessdiary.utils.UnitUtils.getWeightUnitSymbol(requireContext()) + ") - 哑铃单只/杠铃单边/器械配重");
 
+        if (existingPlan != null) {
             // 显示时去掉前缀，保留最后一段（部位名）
             // e.g. "基础-胸"→"胸", "自定义-我的计划-胸"→"胸"
             String displayCat = existingPlan.getCategory();
@@ -364,7 +369,8 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
         try {
             int sets = setsStr.isEmpty() ? 0 : Integer.parseInt(setsStr);
             int reps = repsStr.isEmpty() ? 0 : Integer.parseInt(repsStr);
-            float weight = parseFloat(weightStr);
+            float displayWeight = parseFloat(weightStr);
+            float weight = com.cz.fitnessdiary.utils.UnitUtils.convertToKg(displayWeight, requireContext());
             int duration = durationStr.isEmpty() ? 0 : Integer.parseInt(durationStr);
 
             // 获取排期

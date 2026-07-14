@@ -18,7 +18,7 @@ public class UnitUtils {
     private static final String DEFAULT_ENERGY_UNIT = "kcal";
 
     // ── 换算常量 ──
-    private static final float KG_TO_JIN = 2f;
+    private static final float KG_TO_LBS = 2.20462f;
     private static final float KCAL_TO_KJ = 4.184f;
 
     // ── 读取用户偏好 ──
@@ -46,8 +46,17 @@ public class UnitUtils {
     // ── 数值换算 ──
 
     public static float convertWeight(float kg, String targetUnit) {
-        if ("jin".equals(targetUnit)) return kg * KG_TO_JIN;
+        if ("lbs".equals(targetUnit) || "jin".equals(targetUnit)) return kg * KG_TO_LBS;
         return kg;
+    }
+
+    public static float convertToKg(float value, String currentUnit) {
+        if ("lbs".equals(currentUnit) || "jin".equals(currentUnit)) return value / KG_TO_LBS;
+        return value;
+    }
+
+    public static float convertToKg(float value, Context context) {
+        return convertToKg(value, getWeightUnit(context));
     }
 
     public static float convertEnergy(float kcal, String targetUnit) {
@@ -58,8 +67,8 @@ public class UnitUtils {
     // ── 格式化显示 ──
 
     public static String formatWeight(float kg, String targetUnit) {
-        if ("jin".equals(targetUnit)) {
-            return String.format(Locale.getDefault(), "%.1f", kg * KG_TO_JIN);
+        if ("lbs".equals(targetUnit) || "jin".equals(targetUnit)) {
+            return String.format(Locale.getDefault(), "%.1f", kg * KG_TO_LBS);
         }
         return String.format(Locale.getDefault(), "%.1f", kg);
     }
@@ -82,8 +91,8 @@ public class UnitUtils {
     // ── 单位符号 ──
 
     public static String getWeightUnitSymbol(String unit) {
-        if ("jin".equals(unit)) return "斤";
-        return "千克";
+        if ("lbs".equals(unit) || "jin".equals(unit)) return "lbs";
+        return "kg";
     }
 
     public static String getWeightUnitSymbol(Context context) {
@@ -100,8 +109,14 @@ public class UnitUtils {
     }
 
     public static String getWeightUnitDisplay(String unit) {
-        if ("jin".equals(unit)) return "斤";
+        if ("lbs".equals(unit) || "jin".equals(unit)) return "磅(lbs)";
         return "千克(kg)";
+    }
+
+    public static String getWeightUnitDisplayChinese(Context context) {
+        String unit = getWeightUnit(context);
+        if ("lbs".equals(unit) || "jin".equals(unit)) return "磅";
+        return "公斤";
     }
 
     public static String getEnergyUnitDisplay(String unit) {

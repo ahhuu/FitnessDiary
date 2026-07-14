@@ -190,7 +190,7 @@ public class ProfileFragment extends Fragment {
         observeViewModel();
         setupClickListeners();
 
-        binding.tvUnitSummary.setText(UnitUtils.getWeightUnitSymbol(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+        binding.tvUnitSummary.setText(UnitUtils.getWeightUnitDisplayChinese(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
     }
 
     /**
@@ -376,13 +376,13 @@ public class ProfileFragment extends Fragment {
                 .setTitle("🌓 显示与单位设置")
                 .setItems(settings, (dialog, which) -> {
                     if (which == 0) {
-                        String[] weights = {"千克 (kg)", "斤"};
+                        String[] weights = {"千克 (kg)", "磅 (lbs)"};
                         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("选择重量单位")
                                 .setItems(weights, (d, w) -> {
-                                    String unit = (w == 0) ? "kg" : "jin";
+                                    String unit = (w == 0) ? "kg" : "lbs";
                                     UnitUtils.setWeightUnit(requireContext(), unit);
-                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitSymbol(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitDisplayChinese(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
                                     Toast.makeText(getContext(), "重量单位已切换为 " + UnitUtils.getWeightUnitDisplay(unit), Toast.LENGTH_SHORT).show();
                                 })
                                 .show();
@@ -393,7 +393,7 @@ public class ProfileFragment extends Fragment {
                                 .setItems(calories, (d, c) -> {
                                     String unit = (c == 0) ? "kcal" : "kj";
                                     UnitUtils.setEnergyUnit(requireContext(), unit);
-                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitSymbol(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitDisplayChinese(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
                                     Toast.makeText(getContext(), "热量单位已切换为 " + UnitUtils.getEnergyUnitDisplay(unit), Toast.LENGTH_SHORT).show();
                                 })
                                 .show();
@@ -1221,6 +1221,9 @@ public class ProfileFragment extends Fragment {
         // 清除缓存
         binding.btnClearCache.setOnClickListener(v -> showClearCacheDialog());
 
+        // 检查更新
+        binding.btnCheckUpdate.setOnClickListener(v -> com.cz.fitnessdiary.utils.UpdateManager.checkUpdate(requireContext(), true));
+
         // 新手引导回顾
         binding.btnReplayGuide.setOnClickListener(v -> replayOnboarding());
 
@@ -1650,12 +1653,12 @@ public class ProfileFragment extends Fragment {
         android.widget.TextView tvSuggestedWeight = view.findViewById(R.id.tv_suggested_weight);
 
         tvHeightValue.setText(String.valueOf(height) + ".0");
-        tvWeightValue.setText(UnitUtils.formatWeight((float) weight, requireContext()));
+        tvWeightValue.setText(UnitUtils.formatWeight((float) weight, "kg"));
 
         // 计算建议体重范围 (BMI 18.5 ~ 24.0)
         double minWeight = 18.5 * heightM * heightM;
         double maxWeight = 24.0 * heightM * heightM;
-        tvSuggestedWeight.setText(UnitUtils.formatWeight((float) minWeight, requireContext()) + " ~ " + UnitUtils.formatWeight((float) maxWeight, requireContext()) + " " + UnitUtils.getWeightUnitSymbol(requireContext()));
+        tvSuggestedWeight.setText(UnitUtils.formatWeight((float) minWeight, "kg") + " ~ " + UnitUtils.formatWeight((float) maxWeight, "kg") + " " + UnitUtils.getWeightUnitSymbol("kg"));
 
         dialog.show();
     }

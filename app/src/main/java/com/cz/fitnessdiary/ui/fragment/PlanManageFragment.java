@@ -818,8 +818,9 @@ public class PlanManageFragment extends Fragment {
                         EditText et = new EditText(requireContext());
                         et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                                 | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                        et.setText(plan.getWeight() > 0 ? String.valueOf((int) plan.getWeight()) : "");
-                        et.setHint("kg");
+                        float displayWeight = com.cz.fitnessdiary.utils.UnitUtils.convertWeight(plan.getWeight(), com.cz.fitnessdiary.utils.UnitUtils.getWeightUnit(requireContext()));
+                        et.setText(displayWeight > 0 ? String.format(java.util.Locale.getDefault(), "%.1f", displayWeight).replace(".0", "") : "");
+                        et.setHint(com.cz.fitnessdiary.utils.UnitUtils.getWeightUnitSymbol(requireContext()));
                         et.setTextSize(14);
                         et.setWidth((int) (80 * getResources().getDisplayMetrics().density));
                         et.setGravity(android.view.Gravity.CENTER);
@@ -838,8 +839,9 @@ public class PlanManageFragment extends Fragment {
                                         String s = weightInputs.get(i).getText().toString().trim();
                                         float newWeight = 0f;
                                         try { newWeight = Float.parseFloat(s); } catch (NumberFormatException ignored) {}
-                                        if (newWeight != finalPlans.get(i).getWeight()) {
-                                            finalPlans.get(i).setWeight(newWeight);
+                                        float kgWeight = com.cz.fitnessdiary.utils.UnitUtils.convertToKg(newWeight, requireContext());
+                                        if (Math.abs(kgWeight - finalPlans.get(i).getWeight()) > 0.05f) {
+                                            finalPlans.get(i).setWeight(kgWeight);
                                             viewModel.updatePlan(finalPlans.get(i));
                                         }
                                     }

@@ -137,6 +137,7 @@
                     android:layout_height="1dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_weight"
                     style="@style/Widget.App.TextInputLayout.Outlined.Plan"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

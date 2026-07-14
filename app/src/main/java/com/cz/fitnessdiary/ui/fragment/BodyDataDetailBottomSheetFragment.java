@@ -194,12 +194,12 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
                     tvValHeight.setText(String.format(Locale.getDefault(), "%.1f 厘米", currentUser.getHeight()));
 
                     // 填充体重
-                    tvValWeight.setText(UnitUtils.formatWeight(currentUser.getWeight(), requireContext()) + " " + UnitUtils.getWeightUnitSymbol(requireContext()));
+                    tvValWeight.setText(UnitUtils.formatWeight(currentUser.getWeight(), "kg") + " " + UnitUtils.getWeightUnitSymbol("kg"));
 
                     // 目标体重 (与首页打卡/WeightRecordDetailFragment 强同步)
                     SharedPreferences scorePrefs = requireContext().getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
                     float targetW = scorePrefs.getFloat("target_weight_kg", currentUser.getWeight() > 0 ? currentUser.getWeight() * 0.9f : 60f);
-                    tvValTargetWeight.setText(UnitUtils.formatWeight(targetW, requireContext()) + " " + UnitUtils.getWeightUnitSymbol(requireContext()));
+                    tvValTargetWeight.setText(UnitUtils.formatWeight(targetW, "kg") + " " + UnitUtils.getWeightUnitSymbol("kg"));
 
                     // 体脂率与连线数据
                     tvValBodyFat.setText(values.get("体脂率").replace(" %", "%"));
@@ -253,7 +253,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
         tvValHeight.setOnClickListener(v -> showBaseInfoDialog());
 
         // 体重卡片点击 - 录入当前体重
-        tvValWeight.setOnClickListener(v -> showInputDialog("记录体重", "当前体重 (" + UnitUtils.getWeightUnitSymbol(requireContext()) + ")", val -> {
+        tvValWeight.setOnClickListener(v -> showInputDialog("记录体重", "当前体重 (" + UnitUtils.getWeightUnitSymbol("kg") + ")", val -> {
             new Thread(() -> {
                 currentUser.setWeight(val);
                 db.userDao().update(currentUser);
@@ -265,7 +265,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
         }));
 
         // 目标体重点击 - 设置目标体重
-        tvValTargetWeight.setOnClickListener(v -> showInputDialog("目标体重", "设定目标体重 (" + UnitUtils.getWeightUnitSymbol(requireContext()) + ")", val -> {
+        tvValTargetWeight.setOnClickListener(v -> showInputDialog("目标体重", "设定目标体重 (" + UnitUtils.getWeightUnitSymbol("kg") + ")", val -> {
             SharedPreferences scorePrefs = requireContext().getSharedPreferences("health_score_prefs", Context.MODE_PRIVATE);
             scorePrefs.edit().putFloat("target_weight_kg", val).apply();
             loadBaseUserData();

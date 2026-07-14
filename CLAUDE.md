@@ -23,7 +23,7 @@ Unit tests live in `app/src/test`, Room migration instrumentation tests live in
 - **Architecture:** MVVM (ViewModel + Repository + Room DAO)
 - **UI:** ViewBinding, Material Design 3, Navigation Component (single-activity)
 - **Min/Target SDK:** 26 / 34, `applicationId: com.cz.fitnessdiary`
-- **Current app release:** 2.6.1 (`versionCode 15`)
+- **Current app release:** 2.6.2 (`versionCode 16`)
 - **Key libraries:** Room 2.6.1, MPAndroidChart, Glide, OkHttp 4.12, Gson, ZXing (barcode), Lottie, DashScope SDK (Qwen AI)
 - **Cloud account/social (beta):** CloudBase email-code authentication + PostgreSQL REST/RPC; optional and disabled safely when the environment id is absent
 
@@ -44,7 +44,7 @@ Optional CloudBase setup uses `cloudbase.env-id`. Do not put PostgreSQL password
 1. `CheckInFragment` (记录) — Home dashboard with health score ring (five-dimension breakdown), collapsible daily briefing card, and FAB quick-entry shortcut. Daily checklist for steps, water, sleep, habits, weight, mood, etc.
 2. `PlanFragment` (日历历史) — Monthly calendar with workout markers, dietary calories, and step counts per cell; date-picker bottom sheet for full daily summary across all dimensions. Training details separate plan targets from actual daily values and support date-scoped extra exercises.
 3. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/Qwen AI assistants; also serves as entry to AI smart plan creation, diet analysis, and progress assessment sub-flows.
-4. `ProfileFragment` (我的) — User profile, achievement center and level system, body data dashboard, fitness toolbox, content assets, and system settings.
+4. `ProfileFragment` (我的) — User profile, achievement center and level system, body data dashboard, fitness toolbox, content assets, and system settings (including Pgyer auto-update check).
 
 Secondary pages accessible from home cards, toolbar actions, or navigation:
 * `DietFragment` (饮食记录) — Energy balance bar (intake vs burn), fat/carb/protein macro tracking, meal log with barcode scan and favorite-food chips.
@@ -109,8 +109,9 @@ Three AI providers, all in `service/`:
 
 The `AiCallback.kt` interface unifies callbacks across providers.
 
-### Background & Sensors
+### Background, Utilities & Sensors
 
+- `UpdateManager` — Handles app auto-update checking using Pgyer API. Fetches latest version silently on boot or manually via Profile settings, showing a MaterialAlertDialog for direct browser download if newer version exists.
 - `ReminderReceiver` extends `BroadcastReceiver` — handles 5 custom actions (training reminder, record reminder, morning summary, evening reminder, weekly report) plus boot-completed to re-schedule alarms after reboot
 - `ReminderManager` is a static utility that schedules/cancels alarms via `AlarmManager`, stores preferences in `SharedPreferences`
 - `SmartReminderHelper` provides "smart push" logic with activity-based timing

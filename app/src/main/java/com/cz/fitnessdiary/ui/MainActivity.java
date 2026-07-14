@@ -28,6 +28,7 @@ import com.cz.fitnessdiary.database.ReminderPresetDataLoader;
 import com.cz.fitnessdiary.databinding.ActivityMainBinding;
 import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.utils.UnitUtils;
+import com.cz.fitnessdiary.utils.UpdateManager;
 
 import java.util.concurrent.Executors;
 
@@ -57,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
         captureReminderRoute(getIntent());
         if (getIntent() != null) pendingShortcutId = getIntent().getStringExtra("shortcut_id");
         setupDynamicNavigation();
+
+        // 静默检查更新
+        UpdateManager.checkUpdate(this, false);
 
         Executors.newSingleThreadExecutor().execute(() -> {
             FoodLibraryDataLoader.loadIfNeeded(getApplicationContext());
