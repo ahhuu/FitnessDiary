@@ -124,10 +124,14 @@ public class RestTimerManager {
         }
         if (vibrator != null && vibrator.hasVibrator()) {
             long[] pattern = {0, 200, 200, 200, 200, 400};
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
-            } else {
-                vibrator.vibrate(pattern, -1);
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
+                } else {
+                    vibrator.vibrate(pattern, -1);
+                }
+            } catch (SecurityException e) {
+                // Ignore missing vibration permission on some OEM roms
             }
         }
     }

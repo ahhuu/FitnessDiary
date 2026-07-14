@@ -1,19 +1,23 @@
 package com.cz.fitnessdiary.utils;
 
-import android.icu.text.Transliterator;
+import android.os.Build;
+import androidx.annotation.RequiresApi;
 
 /**
- * Pinyin search utility using Android's built-in ICU Transliterator (API 26+).
+ * Pinyin search utility using Android's built-in ICU Transliterator (API 29+).
+ * Safely degrades on API 26-28.
  */
 public class PinyinUtils {
 
-    private static Transliterator pinyinTransliterator;
+    // Use Object to prevent Class verification errors on API < 29
+    private static Object pinyinTransliterator;
 
-    private static Transliterator getTransliterator() {
+    @RequiresApi(api = Build.VERSION_CODES.Q)
+    private static android.icu.text.Transliterator getTransliterator() {
         if (pinyinTransliterator == null) {
-            pinyinTransliterator = Transliterator.getInstance("Han-Latin/Names; Latin-Ascii; Lower");
+            pinyinTransliterator = android.icu.text.Transliterator.getInstance("Han-Latin/Names; Latin-Ascii; Lower");
         }
-        return pinyinTransliterator;
+        return (android.icu.text.Transliterator) pinyinTransliterator;
     }
 
     private PinyinUtils() {
@@ -34,15 +38,18 @@ public class PinyinUtils {
         if (lowerName.contains(q))
             return true;
 
-        // 2. Full pinyin match (e.g. "jirou" matches "鸡肉")
-        String fullPinyin = toPinyin(lowerName);
-        if (fullPinyin.contains(q))
-            return true;
+        // On API < 29, transliterator is not available, so we just fall back to direct match
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // 2. Full pinyin match (e.g. "jirou" matches "鸡肉")
+            String fullPinyin = toPinyin(lowerName);
+            if (fullPinyin.contains(q))
+                return true;
 
-        // 3. Pinyin initials match (e.g. "jr" matches "鸡肉")
-        String initials = toPinyinInitials(lowerName);
-        if (initials.contains(q))
-            return true;
+            // 3. Pinyin initials match (e.g. "jr" matches "鸡肉")
+            String initials = toPinyinInitials(lowerName);
+            if (initials.contains(q))
+                return true;
+        }
 
         return false;
     }
@@ -50,6 +57,7 @@ public class PinyinUtils {
     /**
      * Convert Chinese text to pinyin with tone numbers removed.
      */
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     private static String toPinyin(String text) {
         try {
             return getTransliterator().transliterate(text).replaceAll("[^a-z]", "");
@@ -61,6 +69,7 @@ public class PinyinUtils {
     /**
      * Get pinyin initials only (first letter of each character's pinyin).
      */
+    @RequiresApi(api = Build.VERSION_CODES.Q)
     private static String toPinyinInitials(String text) {
         try {
             String pinyin = getTransliterator().transliterate(text);

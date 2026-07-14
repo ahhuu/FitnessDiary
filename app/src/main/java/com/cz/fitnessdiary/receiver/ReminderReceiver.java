@@ -13,6 +13,9 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import android.Manifest;
+import android.content.pm.PackageManager;
 
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.model.DailyHealthSnapshot;
@@ -139,7 +142,7 @@ public class ReminderReceiver extends BroadcastReceiver {
         try {
             NotificationManagerCompat compatManager = NotificationManagerCompat.from(context);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (compatManager.areNotificationsEnabled()) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
                     compatManager.notify(notifyId, builder.build());
                 } else {
                     Log.e(TAG, "Notification permission not granted");
@@ -147,6 +150,8 @@ public class ReminderReceiver extends BroadcastReceiver {
             } else {
                 compatManager.notify(notifyId, builder.build());
             }
+        } catch (SecurityException e) {
+            Log.e(TAG, "SecurityException showing notification: " + e.getMessage());
         } catch (Exception e) {
             Log.e(TAG, "Error showing notification: " + e.getMessage());
         }
