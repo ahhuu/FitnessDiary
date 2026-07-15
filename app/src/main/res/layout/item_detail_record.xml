@@ -38,7 +38,7 @@
                     android:layout_height="24dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_add"
-                    android:tint="@color/fitnessdiary_primary" />
+                    app:tint="@color/fitnessdiary_primary" />
             </com.google.android.material.card.MaterialCardView>
         </FrameLayout>
 

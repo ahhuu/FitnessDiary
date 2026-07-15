@@ -1,87 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
-    android:gravity="center_vertical"
-    android:orientation="horizontal">
+    app:cardBackgroundColor="@color/card_background"
+    app:cardCornerRadius="12dp"
+    app:strokeColor="@color/diet_stroke"
+    app:strokeWidth="1dp">
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <EditText
-            android:id="@+id/et_item_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="食物名"
-            android:inputType="text"
-            android:minHeight="40dp"
-            android:padding="8dp"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp" />
+        android:orientation="vertical"
+        android:padding="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <EditText
-                android:id="@+id/et_item_calories"
+                android:id="@+id/et_item_name"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="千卡"
-                android:inputType="number"
-                android:minHeight="40dp"
-                android:padding="8dp"
-                android:textSize="12sp" />
+                android:hint="食物名称"
+                android:inputType="text"
+                android:minHeight="48dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="8dp"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btn_delete_item"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="删除食物"
+                android:src="@android:drawable/ic_delete"
+                app:tint="@color/error" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <EditText
-                android:id="@+id/et_item_protein"
+                android:id="@+id/et_item_amount"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="蛋白"
+                android:hint="克数"
                 android:inputType="numberDecimal"
-                android:minHeight="40dp"
-                android:padding="8dp"
-                android:textSize="12sp" />
+                android:minHeight="48dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:textSize="14sp" />
 
-            <EditText
-                android:id="@+id/et_item_carbs"
-                android:layout_width="0dp"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="碳水"
-                android:inputType="numberDecimal"
-                android:minHeight="40dp"
-                android:padding="8dp"
-                android:textSize="12sp" />
+                android:layout_marginStart="4dp"
+                android:text="克"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
 
-            <EditText
-                android:id="@+id/et_item_fat"
+            <TextView
+                android:id="@+id/tv_item_ai_flag"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="脂肪"
-                android:inputType="numberDecimal"
-                android:minHeight="40dp"
-                android:padding="8dp"
-                android:textSize="12sp" />
+                android:gravity="end"
+                android:text="来自本地食物库"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_item_nutrition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="热量"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/tv_item_calories"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="蛋白质"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/tv_item_protein"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="碳水"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/tv_item_carbs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="脂肪"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/tv_item_fat"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-
-    <ImageButton
-        android:id="@+id/btn_delete_item"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="6dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="删除"
-        android:src="@android:drawable/ic_delete"
-        android:tint="@color/error" />
-
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>

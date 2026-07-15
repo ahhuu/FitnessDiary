@@ -3,116 +3,139 @@ package com.cz.fitnessdiary.service
 import com.cz.fitnessdiary.BuildConfig
 import com.cz.fitnessdiary.database.entity.ChatMessageEntity
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.google.gson.JsonArray
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
+import com.google.gson.JsonObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 
-/**
- * DeepSeek AI 服务 - 标准 OpenAI 接口实现
- * 已升级至 DeepSeek-V4 系列：deepseek-v4-pro (深度推理) 与 deepseek-v4-flash (极速)
- * 适配 2026 年官方模型退休节点，提升时效与响应表现。
- */
+/** Direct DeepSeek client for a private, single-user APK. */
 object DeepSeekService {
+    private const val API_URL = "https://api.deepseek.com/chat/completions"
     private val client = OkHttpClient.Builder()
-        .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
         .build()
     private val gson = Gson()
     private val scope = CoroutineScope(Dispatchers.IO)
-    private const val API_URL = "https://api.deepseek.com/chat/completions"
 
-    /**
-     * 发送消息（带对话历史）
-     * @param message 当前用户消息
-     * @param systemInstruction 系统指令
-     * @param thinking 是否使用 DeepSeek-V4-Pro 推理模型
-     * @param history 历史消息列表（已按时间排序, 最旧在前）
-     * @param callback 回调接口
-     */
     @JvmStatic
-    @JvmOverloads
+    fun sendMessage(message: String, systemInstruction: String?, callback: AICallback) {
+        sendMessage(message, systemInstruction, false, null, callback)
+    }
+
+    @JvmStatic
     fun sendMessage(
         message: String,
-        systemInstruction: String? = null,
-        thinking: Boolean = false,
-        history: List<ChatMessageEntity>? = null,
+        systemInstruction: String?,
+        thinking: Boolean,
+        history: List<ChatMessageEntity>?,
+        callback: AICallback
+    ) {
+        sendMessageWithPolicy(
+            message,
+            systemInstruction,
+            thinking,
+            history,
+            if (thinking) AiRequestPolicy.DEEP_THINKING_MAX_COMPLETION_TOKENS
+            else AiRequestPolicy.ADVICE_MAX_COMPLETION_TOKENS,
+            false,
+            callback
+        )
+    }
+
+    @JvmStatic
+    fun sendMessageWithPolicy(
+        message: String,
+        systemInstruction: String?,
+        thinking: Boolean,
+        history: List<ChatMessageEntity>?,
+        maxCompletionTokens: Int,
+        structuredJson: Boolean,
         callback: AICallback
     ) {
         scope.launch {
+            if (BuildConfig.DEEPSEEK_API_KEY.isBlank()) {
+                withContext(Dispatchers.Main) {
+                    callback.onError("未配置 DeepSeek 本地密钥，请检查 local.properties")
+                }
+                return@launch
+            }
             try {
-                // 升级为最新的 V4 API，防止 2026年7月 旧版 API 彻底退休下线
-                val modelName = if (thinking) "deepseek-v4-pro" else "deepseek-v4-flash"
-                val finalSystemPrompt = systemInstruction ?: "你是健身日记（FitnessDiary）应用的 AI 助手，身份是一位专业的健身教练和营养师。" +
-                        "在回答食物营养价值时，请务必以 ### [食物名] 开头，并明确列出 [热量]、[蛋白质]、[碳水] 等数值（以每100g为标准）。" +
-                        "请始终使用中文回答。"
-
-                val messagesArray = JsonArray().apply {
-                    // 1. 系统指令
-                    add(JsonObject().apply {
-                        addProperty("role", "system")
-                        addProperty("content", finalSystemPrompt)
+                val messages = JsonArray()
+                messages.add(JsonObject().apply {
+                    addProperty("role", "system")
+                    addProperty("content", systemInstruction ?: DEFAULT_SYSTEM_PROMPT)
+                })
+                history?.takeLast(AiRequestPolicy.CHAT_MAX_HISTORY_MESSAGES)?.forEach { item ->
+                    messages.add(JsonObject().apply {
+                        addProperty("role", if (item.isUser) "user" else "assistant")
+                        addProperty("content", item.content?.take(700) ?: "")
                     })
-                    // 2. 历史对话（仅内容摘要，减少 token）
-                    history?.forEach { msg ->
-                        add(JsonObject().apply {
-                            addProperty("role", if (msg.isUser) "user" else "assistant")
-                            addProperty("content", msg.content ?: "")
+                }
+                messages.add(JsonObject().apply {
+                    addProperty("role", "user")
+                    addProperty("content", message.take(AiRequestPolicy.CHAT_MAX_HISTORY_CHARS))
+                })
+
+                val requestJson = JsonObject().apply {
+                    addProperty("model", if (thinking) "deepseek-v4-pro" else "deepseek-v4-flash")
+                    add("messages", messages)
+                    addProperty("max_completion_tokens", maxCompletionTokens)
+                    addProperty("stream", false)
+                    if (thinking) {
+                        add("thinking", JsonObject().apply { addProperty("type", "enabled") })
+                    }
+                    if (structuredJson) {
+                        add("response_format", JsonObject().apply {
+                            addProperty("type", "json_object")
                         })
                     }
-                    // 3. 当前用户消息
-                    add(JsonObject().apply {
-                        addProperty("role", "user")
-                        addProperty("content", message)
-                    })
                 }
-
-                val jsonRequest = JsonObject().apply {
-                    addProperty("model", modelName)
-                    add("messages", messagesArray)
-                    addProperty("stream", false)
-                }
-
-                val body = gson.toJson(jsonRequest).toRequestBody("application/json".toMediaType())
                 val request = Request.Builder()
                     .url(API_URL)
-                    .addHeader("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
-                    .post(body)
+                    .header("Authorization", "Bearer ${BuildConfig.DEEPSEEK_API_KEY}")
+                    .header("Content-Type", "application/json")
+                    .post(gson.toJson(requestJson).toRequestBody("application/json".toMediaType()))
                     .build()
 
                 client.newCall(request).execute().use { response ->
+                    val responseText = response.body?.string().orEmpty()
                     if (!response.isSuccessful) {
-                        val errorBody = response.body?.string()
-                        android.util.Log.e("DeepSeekService", "API Error: ${response.code} $errorBody")
                         withContext(Dispatchers.Main) {
-                            callback.onError("DeepSeek 错误: ${response.code} ${response.message}")
+                            callback.onError("DeepSeek 请求失败（HTTP ${response.code}）")
                         }
                         return@launch
                     }
-
-                    val responseBody = response.body?.string() ?: ""
-                    val jsonResponse = gson.fromJson(responseBody, JsonObject::class.java)
-                    val choice = jsonResponse.getAsJsonArray("choices")?.get(0)?.asJsonObject
-                    val messageObj = choice?.getAsJsonObject("message")
-
-                    val content = messageObj?.get("content")?.asString ?: ""
-                    val reasoning = messageObj?.get("reasoning_content")?.asString
-
-                    withContext(Dispatchers.Main) {
-                        callback.onSuccess(content, reasoning)
-                    }
+                    val root = gson.fromJson(responseText, JsonObject::class.java)
+                    val choice = root.getAsJsonArray("choices")?.get(0)?.asJsonObject
+                    val messageObject = choice?.getAsJsonObject("message")
+                    val content = messageObject?.get("content")?.asString.orEmpty()
+                    val reasoning = messageObject?.get("reasoning_content")?.asString
+                    val usage = root.getAsJsonObject("usage")
+                    AiUsageStore.record(
+                        "DeepSeek",
+                        usage?.get("prompt_tokens")?.asInt ?: 0,
+                        usage?.get("completion_tokens")?.asInt ?: 0,
+                        usage?.get("prompt_cache_hit_tokens")?.asInt ?: 0
+                    )
+                    withContext(Dispatchers.Main) { callback.onSuccess(content, reasoning) }
                 }
-            } catch (e: Exception) {
+            } catch (error: Exception) {
                 withContext(Dispatchers.Main) {
-                    callback.onError("DeepSeek 连接失败: ${e.message}")
+                    callback.onError("DeepSeek 连接失败，请稍后重试")
                 }
             }
         }
     }
+
+    private const val DEFAULT_SYSTEM_PROMPT =
+        "你是 FitnessDiary 的中文健身与营养助手，请简洁、准确地回答。"
 }

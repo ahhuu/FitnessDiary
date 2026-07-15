@@ -19,6 +19,10 @@ summaries. Local health records remain in Room. All app operations use the
 Images are intentionally disabled in the current Android client. The nullable
 image column remains reserved for a future, separately reviewed upload flow.
 
+The current personal build calls AI providers directly from the private APK.
+Provider credentials are configured only in the developer's ignored
+`local.properties`; no AI quota or membership data is stored in this schema.
+
 ## Verification
 
 Run the static SQL contract checks against a disposable CloudBase PostgreSQL

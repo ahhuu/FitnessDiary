@@ -322,28 +322,20 @@
                         android:textColor="@color/text_hint"
                         android:textSize="15sp" />
 
-                    <!-- 扫码 -->
-                    <ImageButton
-                        android:id="@+id/btn_barcode_scan"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_camera"
-                        app:tint="@color/diet_primary"
-                        android:layout_marginEnd="8dp"
-                        android:padding="4dp"
-                        android:contentDescription="扫码" />
-
-                    <!-- AI相机/画廊 -->
-                    <ImageButton
-                        android:id="@+id/btn_food_scan"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_gallery"
-                        app:tint="@color/diet_primary"
-                        android:padding="4dp"
-                        android:contentDescription="AI识食" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_ai_food_record"
+                        style="@style/Widget.App.Button.Outlined.Diet"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:minHeight="48dp"
+                        android:text="AI记录饮食"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        app:cornerRadius="20dp"
+                        app:icon="@android:drawable/ic_menu_camera"
+                        app:iconPadding="4dp"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/diet_primary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

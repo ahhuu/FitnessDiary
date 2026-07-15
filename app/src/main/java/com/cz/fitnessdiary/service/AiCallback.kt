@@ -2,7 +2,7 @@ package com.cz.fitnessdiary.service
 
 /**
  * AI 服务通用回调接口
- * 用于 Qwen、DeepSeek 等多个 AI 服务的统一回调
+ * 用于 MiMo、DeepSeek 等多个 AI 服务的统一回调
  */
 interface AICallback {
     /**

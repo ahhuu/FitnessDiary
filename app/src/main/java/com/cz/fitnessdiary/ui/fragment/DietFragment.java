@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Build;
 import androidx.core.content.FileProvider;
 import com.cz.fitnessdiary.model.FoodScanFlowState;
+import com.cz.fitnessdiary.model.ImageFoodItemDraft;
 import com.cz.fitnessdiary.model.ImageMealDraft;
 import java.io.File;
 import java.io.InputStream;
@@ -44,6 +45,10 @@ import com.cz.fitnessdiary.utils.PinyinUtils;
 import com.cz.fitnessdiary.model.DailyHealthSnapshot;
 import com.cz.fitnessdiary.repository.HealthAggregationRepository;
 import com.cz.fitnessdiary.service.OpenFoodFactsService;
+import com.cz.fitnessdiary.service.AiDietTextAnalyzer;
+import com.cz.fitnessdiary.service.DietLibraryTextMatcher;
+import com.cz.fitnessdiary.service.FoodImageQuotaStore;
+import com.cz.fitnessdiary.viewmodel.AiRecordDraftViewModel;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.CompositeDateValidator;
 import com.google.android.material.datepicker.DateValidatorPointBackward;
@@ -79,6 +84,7 @@ public class DietFragment extends Fragment {
 
     private FragmentDietBinding binding;
     private DietViewModel viewModel;
+    private AiRecordDraftViewModel aiDraftViewModel;
     private RecipeViewModel recipeViewModel;
     private ExecutorService executorService;
     private ExecutorService imageExecutorService;
@@ -88,6 +94,9 @@ public class DietFragment extends Fragment {
     private Uri photoUri;
     private Uri lastImageUri;
     private Bitmap lastScanBitmap;
+    private ImageMealDraft pendingLibraryDraftForAi;
+    private String pendingAiRequestText = "";
+    private boolean pendingAiRequestForce;
 
     private final androidx.activity.result.ActivityResultLauncher<Uri> cameraLauncher = registerForActivityResult(
             new androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
@@ -118,6 +127,7 @@ public class DietFragment extends Fragment {
             });
 
     private OpenFoodFactsService openFoodFactsService;
+    private FoodImageQuotaStore foodImageQuotaStore;
 
     private final androidx.activity.result.ActivityResultLauncher<com.journeyapps.barcodescanner.ScanOptions> barcodeLauncher = registerForActivityResult(
             new com.journeyapps.barcodescanner.ScanContract(),
@@ -130,14 +140,10 @@ public class DietFragment extends Fragment {
                     openFoodFactsService.lookupByBarcode(barcode, new OpenFoodFactsService.LookupCallback() {
                         @Override
                         public void onSuccess(OpenFoodFactsService.FoodResult food) {
-                            requireActivity().runOnUiThread(() -> {
-                                FoodLibrary scannedFood = new FoodLibrary(
-                                        food.name, (int) food.caloriesPer100g,
-                                        (float) food.proteinPer100g, (float) food.carbsPer100g,
-                                        food.servingUnit, food.weightPerUnit,
-                                        FoodCategoryUtils.CAT_OTHER);
-                                showSmartAddFoodDialog(0, scannedFood);
-                            });
+                            if (!isAdded()) {
+                                return;
+                            }
+                            requireActivity().runOnUiThread(() -> showBarcodeDraft(food));
                         }
 
                         @Override
@@ -174,10 +180,13 @@ public class DietFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(requireActivity()).get(DietViewModel.class);
+        aiDraftViewModel = new ViewModelProvider(requireActivity()).get(AiRecordDraftViewModel.class);
         recipeViewModel = new ViewModelProvider(this).get(RecipeViewModel.class);
         openFoodFactsService = new OpenFoodFactsService();
+        foodImageQuotaStore = new FoodImageQuotaStore(requireContext());
 
         setupFoodImageResultListener();
+        setupAiDietEntryResultListener();
         setupViews();
         setupFoodScanFlowView();
         observeViewModel();
@@ -192,8 +201,7 @@ public class DietFragment extends Fragment {
 
         // 设置搜索卡片点击
         binding.cardFoodWiki.setOnClickListener(v -> showFoodWikiDialog());
-        binding.btnBarcodeScan.setOnClickListener(v -> launchBarcodeScanner());
-        binding.btnFoodScan.setOnClickListener(v -> showImageSourcePicker());
+        binding.btnAiFoodRecord.setOnClickListener(v -> showAiDietEntry());
 
 
 
@@ -844,10 +852,22 @@ public class DietFragment extends Fragment {
                         if (raw instanceof ImageMealDraft) {
                             boolean syncLibrary = bundle.getBoolean(FoodImageConfirmBottomSheet.RESULT_SYNC_LIBRARY, false);
                             viewModel.saveImageMealDraft((ImageMealDraft) raw, syncLibrary);
-                            Toast.makeText(requireContext(), "已记录整餐", Toast.LENGTH_SHORT).show();
+                            aiDraftViewModel.clearDietDraft();
+                            Toast.makeText(requireContext(), "饮食已保存", Toast.LENGTH_SHORT).show();
                         }
                     } else if (FoodImageConfirmBottomSheet.ACTION_RETRY.equals(action)) {
                         retryAnalyzeLastImage();
+                    } else if (FoodImageConfirmBottomSheet.ACTION_SUPPLEMENT_AI.equals(action)) {
+                        Object rawDraft = bundle.getSerializable(FoodImageConfirmBottomSheet.RESULT_DRAFT);
+                        if (rawDraft instanceof ImageMealDraft) {
+                            pendingLibraryDraftForAi = (ImageMealDraft) rawDraft;
+                        }
+                        analyzeDietWithAi(bundle.getString(
+                                FoodImageConfirmBottomSheet.RESULT_UNMATCHED_TEXT, ""), false);
+                    } else if (FoodImageConfirmBottomSheet.ACTION_AI_RECOGNIZE.equals(action)) {
+                        pendingLibraryDraftForAi = null;
+                        analyzeDietWithAi(bundle.getString(
+                                FoodImageConfirmBottomSheet.RESULT_UNMATCHED_TEXT, ""), true);
                     }
                 });
     }
@@ -868,8 +888,227 @@ public class DietFragment extends Fragment {
         });
     }
 
+    private void setupAiDietEntryResultListener() {
+        getChildFragmentManager().setFragmentResultListener(
+                AiDietEntryBottomSheet.REQUEST_KEY,
+                getViewLifecycleOwner(),
+                (requestKey, bundle) -> {
+                    String type = bundle.getString(AiDietEntryBottomSheet.RESULT_TYPE, "");
+                    if (AiDietEntryBottomSheet.TYPE_IMAGE.equals(type)) {
+                        ensureFoodImageAccess();
+                    } else if (AiDietEntryBottomSheet.TYPE_BARCODE.equals(type)) {
+                        launchBarcodeScanner();
+                    } else if (AiDietEntryBottomSheet.TYPE_TEXT.equals(type)) {
+                        analyzeDietText(bundle.getString(AiDietEntryBottomSheet.RESULT_TEXT, ""));
+                    }
+                });
+    }
+
+    private void showAiDietEntry() {
+        if (getChildFragmentManager().findFragmentByTag(AiDietEntryBottomSheet.TAG) != null) {
+            return;
+        }
+        new AiDietEntryBottomSheet().show(getChildFragmentManager(), AiDietEntryBottomSheet.TAG);
+    }
+
+    private void analyzeDietText(String text) {
+        String normalized = text == null ? "" : text.trim();
+        if (normalized.isEmpty()) {
+            return;
+        }
+        ImageMealDraft cached = aiDraftViewModel.getCachedDietDraft(normalized);
+        if (cached != null && pendingLibraryDraftForAi == null) {
+            cached.setSuggestion("已复用上次饮食整理结果，请确认后保存");
+            showFoodConfirmSheet(cached);
+            return;
+        }
+
+        binding.btnAiFoodRecord.setEnabled(false);
+        Toast.makeText(requireContext(), "正在查询本地饮食库…", Toast.LENGTH_SHORT).show();
+        imageExecutorService.execute(() -> {
+            ImageMealDraft libraryDraft = null;
+            try {
+                libraryDraft = DietLibraryTextMatcher.match(normalized, viewModel.getAllFoodsSync());
+            } catch (Exception ignored) {
+                // A local database failure should not prevent the explicit AI fallback.
+            }
+            final ImageMealDraft matchedDraft = libraryDraft;
+            if (!isAdded()) {
+                return;
+            }
+            requireActivity().runOnUiThread(() -> {
+                if (matchedDraft != null && matchedDraft.getItems() != null
+                        && !matchedDraft.getItems().isEmpty()) {
+                    binding.btnAiFoodRecord.setEnabled(true);
+                    aiDraftViewModel.cacheDietDraft(normalized, matchedDraft);
+                    showFoodConfirmSheet(matchedDraft);
+                } else {
+                    Toast.makeText(requireContext(), "饮食库未找到匹配项，正在估算…", Toast.LENGTH_SHORT).show();
+                    analyzeDietWithAi(normalized);
+                }
+            });
+        });
+    }
+
+    /** Runs the explicit AI action from the confirmation sheet with visible retry feedback. */
+    private void analyzeDietWithAi(String text, boolean forceAi) {
+        String normalized = text == null ? "" : text.trim();
+        if (normalized.isEmpty()) {
+            showAiRecognitionError("没有可识别的文字，请返回修改餐名或食物名称。", false);
+            return;
+        }
+        pendingAiRequestText = normalized;
+        pendingAiRequestForce = forceAi;
+
+        ImageMealDraft cached = forceAi ? null : aiDraftViewModel.getCachedDietDraft(normalized);
+        if (cached != null && pendingLibraryDraftForAi == null) {
+            cached.setSuggestion("已复用上次 AI 整理结果，请确认后保存");
+            showFoodConfirmSheet(cached);
+            return;
+        }
+
+        binding.btnAiFoodRecord.setEnabled(false);
+        Toast.makeText(requireContext(), "正在用 AI 整理饮食信息…", Toast.LENGTH_SHORT).show();
+        AiDietTextAnalyzer.analyze(normalized, new AiDietTextAnalyzer.Callback() {
+            @Override
+            public void onSuccess(ImageMealDraft draft) {
+                if (!isAdded() || binding == null) {
+                    return;
+                }
+                draft.setSourceType(ImageMealDraft.SOURCE_TEXT);
+                draft.setOriginalText(normalized);
+                markAiItems(draft);
+                if (!forceAi) {
+                    draft = mergePendingLibraryDraft(draft);
+                } else {
+                    pendingLibraryDraftForAi = null;
+                }
+                draft.setSuggestion(forceAi
+                        ? "来源：AI 识别。请确认食物名称、克数和营养数据后保存。"
+                        : "已补充本地食物库未匹配内容，请确认食物名称、克数和营养数据后保存。");
+                aiDraftViewModel.cacheDietDraft(normalized, draft);
+                binding.btnAiFoodRecord.setEnabled(true);
+                showFoodConfirmSheet(draft);
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isAdded() || binding == null) {
+                    return;
+                }
+                binding.btnAiFoodRecord.setEnabled(true);
+                showAiRecognitionError(message, true);
+            }
+        });
+    }
+
+    private void markAiItems(ImageMealDraft draft) {
+        if (draft == null || draft.getItems() == null) return;
+        for (ImageFoodItemDraft item : draft.getItems()) {
+            if (item != null) item.setSourceType(ImageFoodItemDraft.SOURCE_AI);
+        }
+    }
+
+    private void showAiRecognitionError(String message, boolean canRetry) {
+        if (!isAdded()) return;
+        String displayMessage = message == null || message.trim().isEmpty()
+                ? "AI 暂时没有返回识别结果，请稍后重试。" : message;
+        com.google.android.material.dialog.MaterialAlertDialogBuilder builder =
+                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("AI 识别失败")
+                        .setMessage(displayMessage)
+                        .setNegativeButton("返回修改", null);
+        if (canRetry) {
+            builder.setPositiveButton("重试", (dialog, which) ->
+                    analyzeDietWithAi(pendingAiRequestText, pendingAiRequestForce));
+        } else {
+            builder.setPositiveButton("知道了", null);
+        }
+        builder.show();
+    }
+
+    private void analyzeDietWithAi(String text) {
+        String normalized = text == null ? "" : text.trim();
+        if (normalized.isEmpty()) {
+            return;
+        }
+        ImageMealDraft cached = aiDraftViewModel.getCachedDietDraft(normalized);
+        if (cached != null) {
+            cached = mergePendingLibraryDraft(cached);
+            cached.setSuggestion("已复用上次文字解析结果，请确认后保存");
+            showFoodConfirmSheet(cached);
+            return;
+        }
+        binding.btnAiFoodRecord.setEnabled(false);
+        Toast.makeText(requireContext(), "正在整理饮食信息…", Toast.LENGTH_SHORT).show();
+        AiDietTextAnalyzer.analyze(normalized, new AiDietTextAnalyzer.Callback() {
+            @Override
+            public void onSuccess(ImageMealDraft draft) {
+                if (!isAdded() || binding == null) {
+                    return;
+                }
+                draft.setSourceType(ImageMealDraft.SOURCE_TEXT);
+                draft.setOriginalText(normalized);
+                binding.btnAiFoodRecord.setEnabled(true);
+                draft = mergePendingLibraryDraft(draft);
+                draft.setSuggestion("来源：文字描述。请确认数量、单位和营养数据后保存");
+                aiDraftViewModel.cacheDietDraft(normalized, draft);
+                showFoodConfirmSheet(draft);
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isAdded() || binding == null) {
+                    return;
+                }
+                pendingLibraryDraftForAi = null;
+                binding.btnAiFoodRecord.setEnabled(true);
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private ImageMealDraft mergePendingLibraryDraft(ImageMealDraft aiDraft) {
+        if (pendingLibraryDraftForAi == null) return aiDraft;
+        pendingLibraryDraftForAi.getItems().addAll(aiDraft.getItems());
+        pendingLibraryDraftForAi.setSourceType(ImageMealDraft.SOURCE_TEXT);
+        pendingLibraryDraftForAi.setUnmatchedText("");
+        pendingLibraryDraftForAi.setSuggestion("已补全本地饮食库未匹配文本，请确认后保存");
+        pendingLibraryDraftForAi.recomputeTotals();
+        ImageMealDraft merged = pendingLibraryDraftForAi;
+        pendingLibraryDraftForAi = null;
+        return merged;
+    }
+
+    private void showBarcodeDraft(OpenFoodFactsService.FoodResult food) {
+        if (!isAdded() || food == null) {
+            return;
+        }
+        double weight = Math.max(1, food.weightPerUnit);
+        double ratio = weight / 100d;
+        ImageMealDraft draft = new ImageMealDraft();
+        draft.setSourceType(ImageMealDraft.SOURCE_BARCODE);
+        draft.setMealName(food.name == null || food.name.trim().isEmpty() ? "包装食品" : food.name.trim());
+        draft.setMealType(1);
+        draft.setSuggestion("来源：条码营养数据。请确认包装份量后保存");
+        ImageFoodItemDraft item = new ImageFoodItemDraft(draft.getMealName(),
+                (int) Math.round(Math.max(0, food.caloriesPer100g) * ratio),
+                Math.max(0, food.proteinPer100g) * ratio,
+                Math.max(0, food.carbsPer100g) * ratio,
+                Math.max(0, food.fatPer100g) * ratio,
+                1d,
+                food.servingUnit == null || food.servingUnit.trim().isEmpty() ? "份" : food.servingUnit,
+                FoodCategoryUtils.CAT_OTHER);
+        item.setNutritionBasis(ImageFoodItemDraft.BASIS_TOTAL_PORTION);
+        item.setEstimatedWeightGrams(weight);
+        item.setNeedsReview(food.weightPerUnit <= 0 || food.name == null || food.name.trim().isEmpty());
+        draft.getItems().add(item);
+        draft.recomputeTotals();
+        showFoodConfirmSheet(draft);
+    }
+
     private void showImageSourcePicker() {
-        String[] options = { "拍照识别", "从相册选择" };
+        String[] options = { "拍照识别", "从相册选择", "查看服务端额度" };
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("识别食物")
                 .setItems(options, (dialog, which) -> {
@@ -880,10 +1119,38 @@ public class DietFragment extends Fragment {
                         } else {
                             requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
                         }
-                    } else {
+                    } else if (which == 1) {
                         mediaPickerLauncher.launch("image/*");
+                    } else {
+                        showFoodImageQuotaDialog();
                     }
                 })
+                .show();
+    }
+
+    private void ensureFoodImageAccess() {
+        User user = viewModel.getCurrentUser().getValue();
+        if (user == null) {
+            Toast.makeText(requireContext(), "用户信息尚未加载，请稍后再试", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        showImageSourcePicker();
+    }
+
+    private void showFoodImageQuotaDialog() {
+        User user = viewModel.getCurrentUser().getValue();
+        if (user == null) {
+            Toast.makeText(requireContext(), "用户信息尚未加载，请稍后再试", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int localUsed = foodImageQuotaStore.getUsedCount(user);
+        String message = "当前为本地私人模式，图片识别不会保存到 FitnessDiary 云端。\n"
+                + "本机已发起约 " + localUsed + " 次识别请求；清除应用数据后计数会重置。\n"
+                + "实际费用和服务限制以 MiMo 平台账号为准。";
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("图片识别额度")
+                .setMessage(message)
+                .setPositiveButton("知道了", null)
                 .show();
     }
 
@@ -951,7 +1218,7 @@ public class DietFragment extends Fragment {
     private void retryAnalyzeLastImage() {
         if (lastScanBitmap != null) {
             binding.viewFoodScanFlow.show();
-            viewModel.analyzeMealImage(lastScanBitmap);
+            viewModel.forceAnalyzeMealImage(lastScanBitmap);
             return;
         }
         if (lastImageUri != null) {

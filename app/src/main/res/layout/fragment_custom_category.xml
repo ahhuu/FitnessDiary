@@ -36,7 +36,7 @@
             android:background="@android:color/transparent"
             android:src="@drawable/ic_add"
             android:contentDescription="新增"
-            android:tint="@color/fitnessdiary_primary" />
+            app:tint="@color/fitnessdiary_primary" />
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView

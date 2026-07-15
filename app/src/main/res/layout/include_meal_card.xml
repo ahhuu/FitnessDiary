@@ -40,7 +40,7 @@
             android:layout_height="32dp"
             android:background="@drawable/date_circle_background_diet"
             android:src="@android:drawable/ic_input_add"
-            android:tint="@color/diet_primary"
+            app:tint="@color/diet_primary"
             android:padding="6dp"
             android:scaleType="fitCenter"
             android:contentDescription="添加食物"

@@ -59,6 +59,7 @@ import com.cz.fitnessdiary.utils.ExerciseMetTable;
 import com.cz.fitnessdiary.utils.ReminderManager;
 import com.cz.fitnessdiary.utils.ShareUtils;
 import com.cz.fitnessdiary.utils.UnitUtils;
+import com.cz.fitnessdiary.utils.AiDisplayPreferences;
 import com.cz.fitnessdiary.viewmodel.AchievementCenterViewModel;
 import com.cz.fitnessdiary.viewmodel.ProfileViewModel;
 import com.cz.fitnessdiary.database.ReminderPresetDataLoader;
@@ -368,59 +369,77 @@ public class ProfileFragment extends Fragment {
             currentThemeText = "深色模式";
         }
 
-        String[] settings = {"重量单位 (当前: " + UnitUtils.getWeightUnitDisplay(UnitUtils.getWeightUnit(requireContext())) + ")",
-                "热量单位 (当前: " + UnitUtils.getEnergyUnitDisplay(UnitUtils.getEnergyUnit(requireContext())) + ")",
-                "外观显示设置 (当前: " + currentThemeText + ")"};
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_unit_display_settings, null);
+        TextView weightUnit = dialogView.findViewById(R.id.btn_dialog_weight_unit);
+        TextView energyUnit = dialogView.findViewById(R.id.btn_dialog_energy_unit);
+        TextView themeSetting = dialogView.findViewById(R.id.btn_dialog_theme);
+        com.google.android.material.materialswitch.MaterialSwitch reasoningSwitch =
+                dialogView.findViewById(R.id.switch_dialog_reasoning);
 
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        weightUnit.setText("重量单位（当前："
+                + UnitUtils.getWeightUnitDisplay(UnitUtils.getWeightUnit(requireContext())) + "）");
+        energyUnit.setText("热量单位（当前："
+                + UnitUtils.getEnergyUnitDisplay(UnitUtils.getEnergyUnit(requireContext())) + "）");
+        themeSetting.setText("外观显示设置（当前：" + currentThemeText + "）");
+        reasoningSwitch.setChecked(AiDisplayPreferences.isReasoningVisible(requireContext()));
+
+        AlertDialog dialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("🌓 显示与单位设置")
-                .setItems(settings, (dialog, which) -> {
-                    if (which == 0) {
-                        String[] weights = {"千克 (kg)", "磅 (lbs)"};
-                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("选择重量单位")
-                                .setItems(weights, (d, w) -> {
-                                    String unit = (w == 0) ? "kg" : "lbs";
-                                    UnitUtils.setWeightUnit(requireContext(), unit);
-                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitDisplayChinese(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
-                                    Toast.makeText(getContext(), "重量单位已切换为 " + UnitUtils.getWeightUnitDisplay(unit), Toast.LENGTH_SHORT).show();
-                                })
-                                .show();
-                    } else if (which == 1) {
-                        String[] calories = {"kcal (千卡)", "kj (千焦)"};
-                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("选择热量单位")
-                                .setItems(calories, (d, c) -> {
-                                    String unit = (c == 0) ? "kcal" : "kj";
-                                    UnitUtils.setEnergyUnit(requireContext(), unit);
-                                    binding.tvUnitSummary.setText(UnitUtils.getWeightUnitDisplayChinese(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
-                                    Toast.makeText(getContext(), "热量单位已切换为 " + UnitUtils.getEnergyUnitDisplay(unit), Toast.LENGTH_SHORT).show();
-                                })
-                                .show();
-                    } else {
-                        String[] themes = {"浅色模式", "深色模式", "跟随系统"};
-                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("外观显示设置")
-                                .setSingleChoiceItems(themes, currentTheme, (d, t) -> {
-                                    UnitUtils.setThemeMode(requireContext(), t);
-                                    int mode;
-                                    if (t == 0) {
-                                        mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO;
-                                    } else if (t == 1) {
-                                        mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES;
-                                    } else {
-                                        mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
-                                    }
-                                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(mode);
-                                    Toast.makeText(getContext(), "外观主题已设为：" + themes[t], Toast.LENGTH_SHORT).show();
-                                    d.dismiss();
-                                    // 立即重建Activity使主题生效
-                                    requireActivity().recreate();
-                                })
-                                .show();
-                    }
-                })
-                .show();
+                .setView(dialogView)
+                .setNegativeButton("关闭", null)
+                .create();
+
+        weightUnit.setOnClickListener(v -> {
+            String[] weights = {"千克 (kg)", "磅 (lbs)"};
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("选择重量单位")
+                    .setItems(weights, (d, w) -> {
+                        String unit = (w == 0) ? "kg" : "lbs";
+                        UnitUtils.setWeightUnit(requireContext(), unit);
+                        binding.tvUnitSummary.setText(UnitUtils.getWeightUnitDisplayChinese(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+                        Toast.makeText(getContext(), "重量单位已切换为 " + UnitUtils.getWeightUnitDisplay(unit), Toast.LENGTH_SHORT).show();
+                    })
+                    .show();
+        });
+
+        energyUnit.setOnClickListener(v -> {
+            String[] calories = {"kcal (千卡)", "kj (千焦)"};
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("选择热量单位")
+                    .setItems(calories, (d, c) -> {
+                        String unit = (c == 0) ? "kcal" : "kj";
+                        UnitUtils.setEnergyUnit(requireContext(), unit);
+                        binding.tvUnitSummary.setText(UnitUtils.getWeightUnitDisplayChinese(requireContext()) + " / " + UnitUtils.getEnergyUnitSymbol(requireContext()));
+                        Toast.makeText(getContext(), "热量单位已切换为 " + UnitUtils.getEnergyUnitDisplay(unit), Toast.LENGTH_SHORT).show();
+                    })
+                    .show();
+        });
+
+        themeSetting.setOnClickListener(v -> {
+            String[] themes = {"浅色模式", "深色模式", "跟随系统"};
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("外观显示设置")
+                    .setSingleChoiceItems(themes, currentTheme, (d, t) -> {
+                        UnitUtils.setThemeMode(requireContext(), t);
+                        int mode;
+                        if (t == 0) {
+                            mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO;
+                        } else if (t == 1) {
+                            mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES;
+                        } else {
+                            mode = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
+                        }
+                        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(mode);
+                        Toast.makeText(getContext(), "外观主题已设为：" + themes[t], Toast.LENGTH_SHORT).show();
+                        d.dismiss();
+                        requireActivity().recreate();
+                    })
+                    .show();
+        });
+
+        reasoningSwitch.setOnCheckedChangeListener((buttonView, isChecked) ->
+                AiDisplayPreferences.setReasoningVisible(requireContext(), isChecked));
+        dialog.show();
     }
 
     private boolean checkNotificationPermission() {
@@ -2067,7 +2086,7 @@ public class ProfileFragment extends Fragment {
                         + "技术构型：\n"
                         + "• MVVM + Android Room 数据库\n"
                         + "• Material Design 3 风格大一统\n"
-                        + "• DeepSeek & Qwen 智能大模型助手内核\n\n"
+                        + "• DeepSeek & MiMo 智能大模型助手内核\n\n"
                         + "致敬每一个今天依然在自律训练的你！")
                 .setPositiveButton("致敬", null)
                 .show();

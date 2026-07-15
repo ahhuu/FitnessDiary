@@ -11,8 +11,8 @@ android {
         applicationId "com.cz.fitnessdiary"
         minSdk 26
         targetSdk 34
-        versionCode 16
-        versionName "2.6.2"
+        versionCode 17
+        versionName "2.7.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -22,14 +22,14 @@ android {
             }
         }
 
-        // Load API Key from local.properties
+        // Personal local-AI mode: these values are private and must never be
+        // used for a shared or public APK.
         Properties properties = new Properties()
         if (project.rootProject.file('local.properties').exists()) {
             properties.load(project.rootProject.file('local.properties').newDataInputStream())
         }
-        buildConfigField "String", "GEMINI_API_KEY", "\"${properties.getProperty('gemini.api.key', '')}\""
         buildConfigField "String", "DEEPSEEK_API_KEY", "\"${properties.getProperty('deepseek.api.key', '')}\""
-        buildConfigField "String", "QWEN_API_KEY", "\"${properties.getProperty('qwen.api.key', '')}\""
+        buildConfigField "String", "MIMO_API_KEY", "\"${properties.getProperty('mimo.api.key', '')}\""
         buildConfigField "String", "CLOUDBASE_ENV_ID", "\"${properties.getProperty('cloudbase.env-id', '')}\""
         buildConfigField "String", "PGYER_API_KEY", "\"${properties.getProperty('pgyer.api.key', '')}\""
         buildConfigField "String", "PGYER_APP_KEY", "\"${properties.getProperty('pgyer.app.key', '')}\"";
@@ -139,16 +139,13 @@ dependencies {
     // Data Visualization (MPAndroidChart)
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
-    // Gemini AI SDK (Removed - migrated to Qwen + DeepSeek)
+    // Gemini AI SDK (Removed - migrated to MiMo + DeepSeek)
     // implementation 'com.google.ai.client.generativeai:generativeai:0.9.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 
     // Networking & JSON (for DeepSeek)
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.google.code.gson:gson:2.10.1'
-
-    // Alibaba DashScope SDK (for Qwen)
-    implementation 'com.alibaba:dashscope-sdk-java:2.16.3'
 
     // Lottie (for rich scan flow animations)
     implementation 'com.airbnb.android:lottie:6.4.1'

@@ -23,16 +23,15 @@ Unit tests live in `app/src/test`, Room migration instrumentation tests live in
 - **Architecture:** MVVM (ViewModel + Repository + Room DAO)
 - **UI:** ViewBinding, Material Design 3, Navigation Component (single-activity)
 - **Min/Target SDK:** 26 / 34, `applicationId: com.cz.fitnessdiary`
-- **Current app release:** 2.6.2 (`versionCode 16`)
-- **Key libraries:** Room 2.6.1, MPAndroidChart, Glide, OkHttp 4.12, Gson, ZXing (barcode), Lottie, DashScope SDK (Qwen AI)
+- **Current app release:** 2.7.0 (`versionCode 17`)
+- **Key libraries:** Room 2.6.1, MPAndroidChart, Glide, OkHttp 4.12, Gson, ZXing (barcode), Lottie, direct personal AI clients
 - **Cloud account/social (beta):** CloudBase email-code authentication + PostgreSQL REST/RPC; optional and disabled safely when the environment id is absent
 
-API keys are loaded from `local.properties` into `BuildConfig`:
-- `gemini.api.key` → `GEMINI_API_KEY`
-- `deepseek.api.key` → `DEEPSEEK_API_KEY`
-- `qwen.api.key` → `QWEN_API_KEY`
-
-Optional CloudBase setup uses `cloudbase.env-id`. Do not put PostgreSQL passwords, CloudBase management keys, or service credentials in the Android project. Release signing values are also local-only (`signing.store.*`, `signing.key.*`).
+The current build is a private personal APK: AI requests go directly from the
+device to the provider, with provider keys read from the developer's ignored
+`local.properties`. Never share that APK. CloudBase account/social features are
+optional and remain separate from local health records. Release signing values
+are also local-only (`signing.store.*`, `signing.key.*`).
 
 ## Architecture
 
@@ -43,11 +42,11 @@ Optional CloudBase setup uses `cloudbase.env-id`. Do not put PostgreSQL password
 `MainHomeFragment` contains a customized bottom navigation bar (3D pill-style) hosting four core functional tabs:
 1. `CheckInFragment` (记录) — Home dashboard with health score ring (five-dimension breakdown), collapsible daily briefing card, and FAB quick-entry shortcut. Daily checklist for steps, water, sleep, habits, weight, mood, etc.
 2. `PlanFragment` (日历历史) — Monthly calendar with workout markers, dietary calories, and step counts per cell; date-picker bottom sheet for full daily summary across all dimensions. Training details separate plan targets from actual daily values and support date-scoped extra exercises.
-3. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/Qwen AI assistants; also serves as entry to AI smart plan creation, diet analysis, and progress assessment sub-flows.
+3. `AIChatFragment` (AI私教) — Interactive conversation with DeepSeek/MiMo AI assistants; also serves as entry to AI smart plan creation, diet analysis, and progress assessment sub-flows.
 4. `ProfileFragment` (我的) — User profile, achievement center and level system, body data dashboard, fitness toolbox, content assets, and system settings (including Pgyer auto-update check).
 
 Secondary pages accessible from home cards, toolbar actions, or navigation:
-* `DietFragment` (饮食记录) — Energy balance bar (intake vs burn), fat/carb/protein macro tracking, meal log with barcode scan and favorite-food chips.
+* `DietFragment` (饮食记录) — Energy balance bar (intake vs burn), fat/carb/protein macro tracking, favorite-food chips, and one unified AI diet entry for text, image, or barcode recognition; all AI drafts use the existing editable confirmation sheet before saving.
 * `PlanManageFragment` (训练计划管理) — Three-tab view (current plan / explore library / personal plans), official multi-device templates, and step-by-step AI plan wizard.
 * `PlanStatsFragment` (周/月数据统计) — Training statistics reports with trend charts.
 * `ExerciseLibraryFragment` (动作库) — Dual-pane muscle category sidebar with exercise grid; fuzzy search, equipment filtering, tutorial bottomsheets, and custom exercise management.
@@ -98,11 +97,12 @@ Current migration notes:
 
 ### AI Services
 
-Three AI providers, all in `service/`:
+AI integrations in `service/`:
 - **DeepSeekService.kt** — via OkHttp + Gson, calls DeepSeek chat API
-- **QwenService.kt** — via Alibaba DashScope SDK
+- **MiMoService.kt** — via MiMo's OpenAI-compatible multimodal API
 - **WebSearchService.java** — web search integration
 - **FoodImageAnalyzer.java** / **FoodParser.java** — image→nutrition pipeline
+- **FoodImageQuotaStore.java** — local-only image recognition request counter for display
 - **OpenFoodFactsService.java** — barcode lookup
 - **DailyBriefingService.java** (v2.3) — 健康日报生成服务，聚合健康数据调用 AI 生成每日简报，失败时降级到本地规则引擎
 - **LocalBriefingGenerator.java** (v2.3) — 本地规则引擎降级方案，基于当日快照生成模板化日报
@@ -138,6 +138,8 @@ The `CheckInFragment` home page has 2 main cards (sport, diet) + 10 small cards 
 - **Bottom sheets** extend `BottomSheetDialogFragment` (e.g., `AddFoodBottomSheetFragment`, `QuickAiChatBottomSheet`)
 - **Adapters** live in `ui/adapter/` and follow standard `RecyclerView.Adapter` patterns
 - **`model/`** package contains POJOs that are NOT Room entities — UI state models like `DailyMission`, `Achievement`, `HomeCardUiModel`, `TrainingTemplate`
+- AI diet drafts are held only in `viewmodel/AiRecordDraftViewModel`; local food-library matches and AI estimates are not persisted until the user confirms.
+- MiMo food-image recognition uses a local-only display counter; the same cached image result does not consume another attempt. Reasoning text is retained but hidden by default and controlled by the switch inside Profile's display-and-unit settings.
 - **Date handling** uses `DateUtils.getTodayStartTimestamp()` (millisecond epoch at 00:00) — all date comparisons use this normalized format
 - **Error handling** goes through `ErrorHandler.java` utility
 

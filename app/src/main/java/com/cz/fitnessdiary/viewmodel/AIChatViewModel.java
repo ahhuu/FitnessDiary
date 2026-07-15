@@ -195,7 +195,7 @@ public class AIChatViewModel extends AndroidViewModel {
     }
 
     /** 上下文历史消息的最大条数（控制 token 消耗） */
-    private static final int MAX_HISTORY_MESSAGES = 20;
+    private static final int MAX_HISTORY_MESSAGES = com.cz.fitnessdiary.service.AiRequestPolicy.CHAT_MAX_HISTORY_MESSAGES;
 
     public void sendMessageWithAttachment(String content, String mediaPath, android.graphics.Bitmap image) {
         if (content == null || content.trim().isEmpty())
@@ -235,16 +235,17 @@ public class AIChatViewModel extends AndroidViewModel {
 
         new Thread(() -> {
             User user = userRepository.getUserSync();
-            String searchContext = search ? com.cz.fitnessdiary.service.WebSearchService.searchSummary(content) : "";
-            String systemInstruction = buildSystemInstruction(user, search, searchContext);
+            boolean imageRequest = image != null;
+            String searchContext = !imageRequest && search ? com.cz.fitnessdiary.service.WebSearchService.searchSummary(content) : "";
+            String systemInstruction = imageRequest ? "" : buildSystemInstruction(user, search, searchContext);
 
             // 加载对话历史（取最近 N 条，不含刚发的那条，因为还未入库完成）
             List<ChatMessageEntity> allMessages = repository.getMessagesBySessionSync(finalSessionId);
             List<ChatMessageEntity> history = trimHistory(allMessages);
 
-            // 智能调度：图片走千问，纯文本走 DeepSeek-V4
+            // 智能调度：图片走 MiMo，纯文本走 DeepSeek-V4
             if (image != null) {
-                sendToQwen(content, systemInstruction, image, history);
+                sendToMiMo(content, systemInstruction, image, history);
             } else if (Boolean.TRUE.equals(isDeepThinking.getValue())) {
                 sendToDeepSeek(content, systemInstruction, true, history);
             } else {
@@ -263,10 +264,23 @@ public class AIChatViewModel extends AndroidViewModel {
         }
         int size = allMessages.size();
         if (size <= MAX_HISTORY_MESSAGES) {
-            return new ArrayList<>(allMessages);
+            return trimHistoryChars(new ArrayList<>(allMessages));
         }
         // 只保留最近的 N 条
-        return new ArrayList<>(allMessages.subList(size - MAX_HISTORY_MESSAGES, size));
+        return trimHistoryChars(new ArrayList<>(allMessages.subList(size - MAX_HISTORY_MESSAGES, size)));
+    }
+
+    private List<ChatMessageEntity> trimHistoryChars(List<ChatMessageEntity> source) {
+        List<ChatMessageEntity> result = new ArrayList<>();
+        int chars = 0;
+        for (int i = source.size() - 1; i >= 0; i--) {
+            ChatMessageEntity item = source.get(i);
+            int itemChars = item.getContent() == null ? 0 : item.getContent().length();
+            if (chars + itemChars > com.cz.fitnessdiary.service.AiRequestPolicy.CHAT_MAX_HISTORY_CHARS) break;
+            result.add(0, item);
+            chars += itemChars;
+        }
+        return result;
     }
 
     private String buildSystemInstruction(User user, boolean searchEnabled, String searchContext) {
@@ -275,6 +289,7 @@ public class AIChatViewModel extends AndroidViewModel {
         sb.append("输出规则：正文最多120个中文字符、最多4行；最多使用1个 emoji；避免使用“灵魂所在/太诱人/拉满”等表达。\n");
         sb.append("饮食场景固定结构：1句结论 + 热量区间 + 1条可执行建议；禁止表格、长编号列表和大段科普。\n");
         sb.append("重点：正文只保留用户决策需要的信息，不重复罗列会写入 <action> 的字段。\n");
+        sb.append("记录动作只表示待用户确认，不能声称已记录、已添加或已完成；只有用户点击记录按钮后才算保存。\n");
         if (searchEnabled) {
             sb.append("【联网搜索模式已开启】你已拿到实时检索摘要，请优先基于摘要回答，并在结尾用“来源：”给出 1-2 个链接。\n");
             if (searchContext != null && !searchContext.trim().isEmpty()) {
@@ -293,7 +308,7 @@ public class AIChatViewModel extends AndroidViewModel {
         }
         sb.append("\n【重要：智能功能识别】\n");
         sb.append(
-                "1. 当用户询问具体的食物、想知道热量、或者提到要记录餐饮时，务必在回复末尾附加标签：<action>{\"type\":\"FOOD\",\"items\":[{\"name\":\"食物名\",\"calories\":数值,\"protein\":数值,\"carbs\":数值,\"unit\":\"克\",\"category\":\"类别\"}, ...]}</action>\n");
+                "1. 当用户询问具体的食物、想知道热量、或者提到要记录餐饮时，务必在回复末尾附加标签：<action>{\"type\":\"FOOD\",\"items\":[{\"name\":\"食物名\",\"amount\":1,\"unit\":\"个/份\",\"basis\":\"TOTAL_PORTION\",\"calories\":数值,\"protein\":数值,\"carbs\":数值,\"fat\":数值,\"estimated_weight_g\":0,\"needs_review\":false,\"category\":\"类别\"}, ...]}</action>\n");
         sb.append("   注意：哪怕是单一食物，也请放入 items 数组中。\n");
         sb.append("   分类必须严格匹配数据库已有分类（选最接近的）：\n");
         sb.append("   - 可选分类：")
@@ -323,6 +338,10 @@ public class AIChatViewModel extends AndroidViewModel {
                             handleError("本次未返回有效内容，请重试");
                             return;
                         }
+                        if (safeResponse.isEmpty() && !safeReasoning.isEmpty()) {
+                            addAiMessage("思考过程已生成，但最终回答被截断，请重试。", reasoning);
+                            return;
+                        }
                         addAiMessage(response, reasoning);
                     }
 
@@ -337,16 +356,17 @@ public class AIChatViewModel extends AndroidViewModel {
                 });
     }
 
-    private void sendToQwen(String content, String systemInstruction, android.graphics.Bitmap image,
+    private void sendToMiMo(String content, String systemInstruction, android.graphics.Bitmap image,
             List<ChatMessageEntity> history) {
-        currentThinkingModel.postValue("Qwen3.6-Plus");
+        currentThinkingModel.postValue("MiMo-V2.5");
 
-        // 使用针对千问图像识别定制的极简系统提示词，进一步缩减文本 Token 消耗
+        // 使用针对 MiMo 图像识别定制的极简系统提示词，进一步缩减文本 Token 消耗
         User user = userRepository.getUserSync();
-        String qwenSystemInstruction = buildQwenSystemInstruction(user);
+        String mimoSystemInstruction = buildMiMoSystemInstruction(user);
 
         // 识图是独立的功能，无需携带历史对话，传入 null 可极大节省上下文的 Token 消耗
-        com.cz.fitnessdiary.service.QwenService.sendMessage(content, qwenSystemInstruction, image, null,
+        com.cz.fitnessdiary.service.MiMoService.sendMessage(content, mimoSystemInstruction, image, null,
+                com.cz.fitnessdiary.service.AiRequestPolicy.IMAGE_CHAT_MAX_COMPLETION_TOKENS, true,
                 new AICallback() {
                     @Override
                     public void onSuccess(String response, String reasoning) {
@@ -359,15 +379,15 @@ public class AIChatViewModel extends AndroidViewModel {
 
                     @Override
                     public void onError(String error) {
-                        handleError("千问私教连线失败: " + error);
+                        handleError("MiMo 私教连线失败: " + error);
                     }
                 });
     }
 
     /**
-     * 构建专门用于千问多模态识图的精简系统提示词，精简不必要的功能描述，节省 Token 消耗
+     * 构建专门用于 MiMo 多模态识图的精简系统提示词，精简不必要的功能描述，节省 Token 消耗
      */
-    private String buildQwenSystemInstruction(User user) {
+    private String buildMiMoSystemInstruction(User user) {
         StringBuilder sb = new StringBuilder();
         sb.append("你是 FitnessDiary 的 AI 助手。请优先识别用户上传图片中的所有食物，并评估其热量和营养素。\n");
         sb.append("语气亲和、专业、克制。正文最多 100 字。\n");
@@ -377,16 +397,101 @@ public class AIChatViewModel extends AndroidViewModel {
         }
         sb.append("\n【重要：智能功能识别】\n");
         sb.append(
-                "必须在回复末尾附加标签：<action>{\"type\":\"FOOD\",\"items\":[{\"name\":\"食物名\",\"calories\":数值,\"protein\":数值,\"carbs\":数值,\"unit\":\"克\",\"category\":\"类别\"}, ...]}</action>\n");
+                "只输出紧凑 JSON：{\"type\":\"FOOD\",\"items\":[{\"name\":\"食物名\",\"amount\":1,\"unit\":\"个/份\",\"basis\":\"TOTAL_PORTION\",\"calories\":数值,\"protein\":数值,\"carbs\":数值,\"fat\":数值,\"estimated_weight_g\":0,\"needs_review\":false,\"category\":\"类别\"}]}。固体质量用 g/kg，液体用 ml/L，个体食物用 个/只/片，米饭面条用 碗/盘/份，包装食品用 包/袋/盒；无法判断数量时用 1 份并 needs_review=true。只描述待确认的识别结果，不要声称已记录、已添加或已完成。\n");
         sb.append("分类限选：").append(String.join("、", FoodCategoryUtils.getCanonicalCategories())).append("。\n");
         return sb.toString();
     }
 
     private void addAiMessage(String response, String reasoning) {
-        repository.insert(new ChatMessageEntity(response, reasoning, false, System.currentTimeMillis(),
+        String display = normalizeStructuredResponse(response);
+        repository.insert(new ChatMessageEntity(display, reasoning, false, System.currentTimeMillis(),
                 currentSessionId.getValue()));
         currentThinkingModel.setValue(null);
         isLoading.setValue(false);
+    }
+
+    /** Converts MiMo/DeepSeek JSON mode back to the legacy action envelope consumed by the chat adapter. */
+    private String normalizeStructuredResponse(String response) {
+        if (response == null || response.trim().isEmpty()) return "未生成最终回答，请重试";
+        try {
+            org.json.JSONObject root = new org.json.JSONObject(response.trim());
+            org.json.JSONObject action = root.optJSONObject("action");
+            if (action == null && root.has("type")) action = root;
+            if (action != null) {
+                String reply = root.optString("reply", "");
+                if (reply.trim().isEmpty() && "FOOD".equalsIgnoreCase(action.optString("type"))) {
+                    reply = buildFoodActionReply(action);
+                }
+                return sanitizeUncommittedLanguage(reply) + "\n<action>" + action.toString() + "</action>";
+            }
+        } catch (Exception ignored) {
+            // Legacy natural-language responses remain untouched; no second AI request is made.
+        }
+        return sanitizeUncommittedLanguage(response);
+    }
+
+    /** Builds a concrete preview; persistence still happens only after the chat action is tapped. */
+    private String buildFoodActionReply(org.json.JSONObject action) {
+        org.json.JSONArray items = action.optJSONArray("items");
+        if (items == null || items.length() == 0) {
+            return "识别到一项食物，请确认数量和单位后点击记录按钮。";
+        }
+        StringBuilder foods = new StringBuilder();
+        int calories = 0;
+        double protein = 0d;
+        double carbs = 0d;
+        double fat = 0d;
+        int validItems = 0;
+        for (int i = 0; i < items.length(); i++) {
+            org.json.JSONObject item = items.optJSONObject(i);
+            if (item == null) continue;
+            String name = item.optString("name", "未命名食物").trim();
+            if (name.isEmpty()) continue;
+            double amount = item.optDouble("amount", 1d);
+            String unit = item.optString("unit", "份").trim();
+            if (amount <= 0) amount = 1d;
+            if (unit.isEmpty()) unit = "份";
+            if (foods.length() > 0) foods.append("、");
+            foods.append(name).append(" ").append(formatAmount(amount)).append(unit);
+            calories += Math.max(0, item.optInt("calories", 0));
+            protein += Math.max(0d, item.optDouble("protein", 0d));
+            carbs += Math.max(0d, item.optDouble("carbs", 0d));
+            fat += Math.max(0d, item.optDouble("fat", 0d));
+            validItems++;
+        }
+        if (validItems == 0) {
+            return "识别到食物，请确认数量和单位后点击记录按钮。";
+        }
+        StringBuilder reply = new StringBuilder("识别到：").append(foods).append("。\n");
+        if (calories > 0) {
+            reply.append("AI估算本餐约 ").append(calories).append(" 千卡");
+            if (protein > 0 || carbs > 0 || fat > 0) {
+                reply.append("，蛋白质 ").append(formatNutrition(protein)).append("g");
+                reply.append("，碳水 ").append(formatNutrition(carbs)).append("g");
+                reply.append("，脂肪 ").append(formatNutrition(fat)).append("g");
+            }
+            reply.append("。\n");
+        }
+        reply.append("请确认食物数量和单位后，点击“一键记录整餐”或“记录该餐”。");
+        return reply.toString();
+    }
+
+    private String formatAmount(double amount) {
+        if (Math.abs(amount - Math.rint(amount)) < 0.001d) {
+            return String.valueOf((int) Math.rint(amount));
+        }
+        return String.format(java.util.Locale.CHINA, "%.1f", amount);
+    }
+
+    private String formatNutrition(double value) {
+        return String.format(java.util.Locale.CHINA, "%.1f", value);
+    }
+
+    private String sanitizeUncommittedLanguage(String text) {
+        if (text == null) return "";
+        return text.replace("已记录", "待记录")
+                .replace("已经记录", "待记录")
+                .replace("记录完成", "等待确认记录");
     }
 
     private void handleError(String error) {

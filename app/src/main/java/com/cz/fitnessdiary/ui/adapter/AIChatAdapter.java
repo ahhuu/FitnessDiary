@@ -36,6 +36,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     private OnMessageLongClickListener longClickListener;
     private OnActionClickListener actionClickListener;
     private final Set<Long> expandedMessageKeys = new HashSet<>();
+    private boolean showReasoning = false;
 
     // 多选相关
     private boolean isSelectionMode = false;
@@ -64,6 +65,14 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
     public void setOnSelectionChangeListener(OnSelectionChangeListener listener) {
         this.selectionChangeListener = listener;
+    }
+
+    public void setShowReasoning(boolean showReasoning) {
+        if (this.showReasoning == showReasoning) {
+            return;
+        }
+        this.showReasoning = showReasoning;
+        notifyDataSetChanged();
     }
 
     // --- 多选方法 ---
@@ -290,7 +299,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             long messageKey = getStableMessageKey(message);
 
             // 思考过程默认收起，仅在有内容时展示
-            if (reasoning != null && !reasoning.trim().isEmpty()) {
+            if (showReasoning && reasoning != null && !reasoning.trim().isEmpty()) {
                 aiHolder.layoutReasoning.setVisibility(View.VISIBLE);
                 aiHolder.tvReasoning.setText(reasoning);
                 boolean reasoningOnly = safeRawContent.trim().isEmpty();
@@ -387,12 +396,16 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             // 轻清洗：移除 action、Markdown 表格/标题噪音，并做长度折叠
             String cleanContent = sanitizeAiDisplayContent(safeRawContent);
             boolean hasReasoning = reasoning != null && !reasoning.trim().isEmpty();
-            boolean reasoningOnly = cleanContent.isEmpty() && hasReasoning;
+            boolean reasoningOnly = cleanContent.isEmpty() && hasReasoning && showReasoning;
+            String displayContent = cleanContent;
+            if (displayContent.isEmpty() && !reasoningOnly) {
+                displayContent = "AI 暂未返回内容";
+            }
             aiHolder.tvContent.setVisibility(reasoningOnly ? View.GONE : View.VISIBLE);
-            boolean canCollapse = cleanContent.length() > COLLAPSE_LIMIT;
+            boolean canCollapse = displayContent.length() > COLLAPSE_LIMIT;
             boolean isExpanded = expandedMessageKeys.contains(messageKey);
             if (!reasoningOnly && canCollapse) {
-                aiHolder.tvContent.setText(isExpanded ? cleanContent + "\n收起" : buildCollapsedText(cleanContent));
+                aiHolder.tvContent.setText(isExpanded ? displayContent + "\n收起" : buildCollapsedText(displayContent));
                 aiHolder.tvContent.setOnClickListener(v -> {
                     if (isSelectionMode) {
                         return;
@@ -408,7 +421,7 @@ public class AIChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                     }
                 });
             } else if (!reasoningOnly) {
-                aiHolder.tvContent.setText(cleanContent);
+                aiHolder.tvContent.setText(displayContent);
                 aiHolder.tvContent.setOnClickListener(null);
             }
 

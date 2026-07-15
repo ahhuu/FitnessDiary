@@ -31,6 +31,7 @@ import com.cz.fitnessdiary.ui.adapter.AIChatAdapter;
 import com.cz.fitnessdiary.ui.adapter.ChatSessionAdapter;
 import com.cz.fitnessdiary.utils.ErrorHandler;
 import com.cz.fitnessdiary.utils.FoodCategoryUtils;
+import com.cz.fitnessdiary.utils.AiDisplayPreferences;
 import com.cz.fitnessdiary.viewmodel.AIChatViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -121,6 +122,7 @@ public class AIChatFragment extends Fragment {
 
     private void setupRecyclerView() {
         adapter = new AIChatAdapter();
+        adapter.setShowReasoning(AiDisplayPreferences.isReasoningVisible(requireContext()));
         adapter.setOnActionClickListener(this::handleSmartAction);
         adapter.setOnMessageLongClickListener(this::handleMessageLongClick);
         adapter.setOnSelectionChangeListener(count -> {
@@ -137,6 +139,14 @@ public class AIChatFragment extends Fragment {
 
         binding.recyclerViewMessages.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerViewMessages.setAdapter(adapter);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (adapter != null && isAdded()) {
+            adapter.setShowReasoning(AiDisplayPreferences.isReasoningVisible(requireContext()));
+        }
     }
 
     private void setupHistorySidebar() {

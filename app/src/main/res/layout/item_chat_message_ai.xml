@@ -41,7 +41,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/bg_chat_bubble_ai_premium"
-            android:backgroundTint="?attr/colorSurfaceVariant"
+            android:backgroundTint="@color/ai_container"
             android:padding="8dp"
             android:layout_marginBottom="6dp"
             android:visibility="gone">
@@ -62,13 +62,13 @@
                     android:layout_width="14dp"
                     android:layout_height="14dp"
                     android:src="@drawable/ic_expand_more"
-                    app:tint="@color/text_secondary" />
+                    app:tint="@color/ai_primary" />
                 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="思考过程"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="@color/ai_primary"
                     android:textSize="12sp"
                     android:layout_marginStart="4dp"
                     android:textStyle="bold" />
@@ -81,7 +81,7 @@
                 android:maxWidth="300dp"
                 android:padding="8dp"
                 android:text="Reasoning..."
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/ai_primary"
                 android:textSize="13sp"
                 android:fontFamily="sans-serif-light"
                 android:visibility="gone" />

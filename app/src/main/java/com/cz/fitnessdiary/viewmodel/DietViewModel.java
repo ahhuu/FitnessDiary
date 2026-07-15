@@ -23,10 +23,14 @@ import com.cz.fitnessdiary.repository.FoodLibraryRepository;
 import com.cz.fitnessdiary.repository.FoodRecordRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.service.FoodImageAnalyzer;
+import com.cz.fitnessdiary.service.FoodImageQuotaStore;
 import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
 import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.FoodUnitUtils;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -61,7 +65,10 @@ public class DietViewModel extends AndroidViewModel {
             new FoodScanFlowState(FoodScanFlowState.Stage.IDLE, 0, "", ""));
     private final MutableLiveData<ImageMealDraft> foodScanDraft = new MutableLiveData<>();
     private final FoodImageAnalyzer foodImageAnalyzer = new FoodImageAnalyzer();
+    private final FoodImageQuotaStore foodImageQuotaStore;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Set<String> savingDraftIds = new HashSet<>();
+    private final Set<String> savedDraftIds = new HashSet<>();
     private int foodAnalyzeToken = 0;
 
     public DietViewModel(@NonNull Application application) {
@@ -70,6 +77,7 @@ public class DietViewModel extends AndroidViewModel {
         foodLibraryRepository = new FoodLibraryRepository(application);
         userRepository = new UserRepository(application);
         executorService = Executors.newSingleThreadExecutor();
+        foodImageQuotaStore = new FoodImageQuotaStore(application);
 
         // 初始化为今天
         selectedDate.setValue(DateUtils.getTodayStartTimestamp());
@@ -321,8 +329,30 @@ public class DietViewModel extends AndroidViewModel {
         foodScanDraft.setValue(null);
     }
 
+    public void forceAnalyzeMealImage(Bitmap image) {
+        foodImageAnalyzer.clearCache();
+        analyzeMealImage(image);
+    }
+
     public void analyzeMealImage(Bitmap image) {
         int token = ++foodAnalyzeToken;
+        if (image == null) {
+            foodScanState.setValue(FoodScanFlowState.error("图片为空，请重试", false));
+            return;
+        }
+        User user = currentUser.getValue();
+        if (user == null) {
+            foodScanDraft.setValue(null);
+            foodScanState.setValue(FoodScanFlowState.error("用户信息尚未加载，暂不能识别图片", false));
+            return;
+        }
+        // Personal local mode: this counter is display-only and never leaves the device.
+        if (!foodImageAnalyzer.hasCachedResult(image)) {
+            foodImageQuotaStore.recordAttempt(user);
+        }
+        if (token != foodAnalyzeToken) {
+            return;
+        }
         foodScanDraft.setValue(null);
         postStage(token, new FoodScanFlowState(FoodScanFlowState.Stage.UPLOAD, 15, "上传图片中", "正在准备识别图片，请稍候..."), 260);
         postStage(token, new FoodScanFlowState(FoodScanFlowState.Stage.RECOGNIZE, 42, "AI识别食物中", "正在识别食物名称与分量..."), 900);
@@ -340,7 +370,6 @@ public class DietViewModel extends AndroidViewModel {
                     ImageMealDraft finalDraft = draft;
                     if (finalDraft == null) {
                         finalDraft = new ImageMealDraft();
-                        finalDraft.getItems().add(new ImageFoodItemDraft("请手动补充食物", 0, 0, 0, "份", "其他"));
                         finalDraft.setSuggestion("未能可靠识别，请手动编辑后保存。");
                     }
                     finalDraft.recomputeTotals();
@@ -403,55 +432,93 @@ public class DietViewModel extends AndroidViewModel {
         }, delayMs);
     }
 
+    /** Saves every confirmed item as its own FoodRecord with the user-visible amount and unit. */
     public void saveImageMealDraft(ImageMealDraft draft, boolean syncToLibrary) {
-        if (draft == null) {
-            return;
-        }
+        if (!beginDraftSave(draft)) return;
         executorService.execute(() -> {
-            draft.recomputeTotals();
-            long baseDate = selectedDate.getValue() != null ? selectedDate.getValue() : DateUtils.getTodayStartTimestamp();
-            long finalRecordDate = DateUtils.isToday(baseDate) ? System.currentTimeMillis() : baseDate;
-
-            String mealName = draft.getMealName();
-            if (mealName == null || mealName.trim().isEmpty()) {
-                mealName = "识别餐";
-            }
-
-            FoodRecord record = new FoodRecord(mealName.trim(), Math.max(0, draft.getTotalCalories()), finalRecordDate);
-            record.setProtein(Math.max(0d, draft.getTotalProtein()));
-            record.setCarbs(Math.max(0d, draft.getTotalCarbs()));
-            record.setFat(Math.max(0d, draft.getTotalFat()));
-            record.setMealType(Math.max(0, Math.min(3, draft.getMealType())));
-            record.setServings(draft.getServings() <= 0 ? 1f : draft.getServings());
-            String unit = draft.getServingUnit();
-            record.setServingUnit((unit == null || unit.trim().isEmpty()) ? "份" : unit.trim());
-            foodRecordRepository.insert(record);
-
-            if (!syncToLibrary || draft.getItems() == null) {
-                return;
-            }
-            for (ImageFoodItemDraft item : draft.getItems()) {
-                if (item == null || item.getName() == null || item.getName().trim().isEmpty()) {
-                    continue;
+            boolean success = false;
+            try {
+                long baseDate = selectedDate.getValue() != null ? selectedDate.getValue() : DateUtils.getTodayStartTimestamp();
+                long recordDate = DateUtils.isToday(baseDate) ? System.currentTimeMillis() : baseDate;
+                for (ImageFoodItemDraft item : draft.getItems()) {
+                    if (!isSavableItem(item) || !item.recalculateNutrition()) return;
                 }
-                String itemName = item.getName().trim();
-                FoodLibrary existing = foodLibraryRepository.getFoodByName(itemName);
-                if (existing != null) {
-                    continue;
+                for (ImageFoodItemDraft item : draft.getItems()) {
+                    String name = item.getName().trim();
+                    String unit = FoodUnitUtils.normalize(item.getRawUnit());
+                    double amount = item.getAmount();
+                    FoodLibrary local = foodLibraryRepository.getFoodByName(name);
+                    double weight = resolveWeightGrams(local, unit, amount);
+                    int calories = item.getCalories();
+                    double protein = item.getProtein();
+                    double carbs = item.getCarbs();
+                    double fat = item.getFat();
+                    if (local != null && weight > 0) {
+                        double ratio = weight / 100d;
+                        calories = (int) Math.round(local.getCaloriesPer100g() * ratio);
+                        protein = local.getProteinPer100g() * ratio;
+                        carbs = local.getCarbsPer100g() * ratio;
+                        fat = local.getFatPer100g() * ratio;
+                    }
+                    FoodRecord record = new FoodRecord(name, Math.max(0, calories), recordDate);
+                    record.setProtein(Math.max(0d, protein));
+                    record.setCarbs(Math.max(0d, carbs));
+                    record.setFat(Math.max(0d, fat));
+                    record.setMealType(Math.max(0, Math.min(3, draft.getMealType())));
+                    record.setServings((float) amount);
+                    record.setServingUnit(unit);
+                    foodRecordRepository.insert(record);
+
+                    if (syncToLibrary && local == null) {
+                        double estimatedWeight = item.getEstimatedWeightGrams();
+                        if (estimatedWeight <= 0 && FoodUnitUtils.isMass(unit)) {
+                            estimatedWeight = "kg".equalsIgnoreCase(unit) ? amount * 1000d : amount;
+                        }
+                        if (estimatedWeight > 0 && FoodUnitUtils.isReliableLibraryUnit(unit, estimatedWeight,
+                                item.isUnitConversionConfirmed())) {
+                            double per100 = 100d / estimatedWeight;
+                            FoodLibrary library = new FoodLibrary(name,
+                                    (int) Math.round(Math.max(0, calories) * per100), protein * per100,
+                                    carbs * per100, fat * per100, unit,
+                                    Math.max(1, (int) Math.round(estimatedWeight / amount)),
+                                    item.getCategory() == null || item.getCategory().trim().isEmpty() ? "其他" : item.getCategory().trim());
+                            foodLibraryRepository.insert(library);
+                        }
+                    }
                 }
-                int caloriesPer100g = item.getCalories() > 0 ? item.getCalories() : 100;
-                FoodLibrary food = new FoodLibrary(
-                        itemName,
-                        caloriesPer100g,
-                        Math.max(0d, item.getProtein()),
-                        Math.max(0d, item.getCarbs()),
-                        Math.max(0d, item.getFat()),
-                        (item.getUnit() == null || item.getUnit().trim().isEmpty()) ? "份" : item.getUnit().trim(),
-                        100,
-                        (item.getCategory() == null || item.getCategory().trim().isEmpty()) ? "其他" : item.getCategory().trim());
-                foodLibraryRepository.insert(food);
+                success = true;
+            } finally {
+                finishDraftSave(draft.getDraftId(), success);
             }
         });
+    }
+
+    private boolean isSavableItem(ImageFoodItemDraft item) {
+        return item != null && item.getName() != null && !item.getName().trim().isEmpty()
+                && !"请手动补充食物".equals(item.getName().trim())
+                && item.getAmount() > 0d && FoodUnitUtils.isSupported(item.getRawUnit())
+                && !item.isNeedsReview();
+    }
+
+    private synchronized boolean beginDraftSave(ImageMealDraft draft) {
+        if (draft == null || draft.getItems() == null || draft.getItems().isEmpty()) return false;
+        String draftId = draft.getDraftId();
+        if (savedDraftIds.contains(draftId) || !savingDraftIds.add(draftId)) return false;
+        return true;
+    }
+
+    private synchronized void finishDraftSave(String draftId, boolean success) {
+        savingDraftIds.remove(draftId);
+        if (success) savedDraftIds.add(draftId);
+    }
+
+    private double resolveWeightGrams(FoodLibrary local, String unit, double amount) {
+        if (local == null || amount <= 0) return 0d;
+        if (FoodUnitUtils.isMass(unit)) return "kg".equalsIgnoreCase(unit) ? amount * 1000d : amount;
+        if (unit.equals(FoodUnitUtils.normalize(local.getServingUnit())) && local.getWeightPerUnit() > 0) {
+            return amount * local.getWeightPerUnit();
+        }
+        return 0d;
     }
 
     /**

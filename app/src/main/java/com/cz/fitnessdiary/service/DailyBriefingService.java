@@ -135,7 +135,7 @@ public class DailyBriefingService {
                 snapshot.healthScore = breakdown.totalScore;
 
                 // 2. 尝试 AI 生成
-                if (isApiKeyConfigured()) {
+                if (isDirectAiConfigured()) {
                     callAiForBriefing(snapshot, breakdown, callback);
                 } else {
                     // 3. 降级为本地生成
@@ -155,12 +155,9 @@ public class DailyBriefingService {
     // 内部方法
     // ================================================================
 
-    /**
-     * 判断是否有可用的 API 密钥
-     */
-    private boolean isApiKeyConfigured() {
-        String deepseekKey = BuildConfig.DEEPSEEK_API_KEY;
-        return deepseekKey != null && !deepseekKey.isEmpty() && !deepseekKey.contains("YOUR_");
+    /** Direct personal AI is optional; local generation remains the safe fallback. */
+    private boolean isDirectAiConfigured() {
+        return !BuildConfig.DEEPSEEK_API_KEY.trim().isEmpty();
     }
 
     /**

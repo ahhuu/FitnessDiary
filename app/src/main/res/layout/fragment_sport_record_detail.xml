@@ -306,7 +306,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_quick_checkin_all"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.App.Button.Filled.Plan"
             android:layout_width="wrap_content"
             android:layout_height="34dp"
             android:minHeight="0dp"
@@ -317,7 +317,8 @@
             app:cornerRadius="17dp"
             app:icon="@drawable/ic_select_all"
             app:iconPadding="4dp"
-            app:iconSize="14dp" />
+            app:iconSize="14dp"
+            app:iconTint="@color/white" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -350,19 +351,20 @@
                 android:textSize="19sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_add_extra_exercise"
-                style="@style/Widget.Material3.Button.TonalButton"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_add_extra_exercise"
+            style="@style/Widget.App.Button.Outlined.Plan"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:minHeight="48dp"
                 android:text="添加动作"
                 android:textAllCaps="false"
                 android:textSize="12sp"
-                app:cornerRadius="20dp"
-                app:icon="@drawable/ic_add"
-                app:iconPadding="4dp"
-                app:iconSize="16dp" />
+            app:cornerRadius="20dp"
+            app:icon="@drawable/ic_add"
+            app:iconPadding="4dp"
+            app:iconSize="16dp"
+            app:iconTint="@color/plan_blue_primary" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView

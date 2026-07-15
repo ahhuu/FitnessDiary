@@ -28,9 +28,11 @@ public class PinyinUtils {
      * Supports: exact Chinese match, pinyin full match, pinyin initial match.
      */
     public static boolean matches(String foodName, String query) {
-        if (foodName == null || query == null) return true;
+        if (foodName == null || query == null)
+            return true;
         String q = query.trim().toLowerCase();
-        if (q.isEmpty()) return true;
+        if (q.isEmpty())
+            return true;
 
         String lowerName = foodName.toLowerCase();
 
@@ -38,7 +40,8 @@ public class PinyinUtils {
         if (lowerName.contains(q))
             return true;
 
-        // On API < 29, transliterator is not available, so we just fall back to direct match
+        // On API < 29, transliterator is not available, so we just fall back to direct
+        // match
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // 2. Full pinyin match (e.g. "jirou" matches "鸡肉")
             String fullPinyin = toPinyin(lowerName);
