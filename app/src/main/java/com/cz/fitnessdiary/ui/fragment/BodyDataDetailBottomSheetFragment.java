@@ -21,6 +21,9 @@ import androidx.annotation.Nullable;
 import com.cz.fitnessdiary.R;
 import com.cz.fitnessdiary.database.AppDatabase;
 import com.cz.fitnessdiary.database.entity.BodyMeasurement;
+import com.cz.fitnessdiary.database.entity.DailyLog;
+import com.cz.fitnessdiary.database.entity.ExtraExerciseLog;
+import com.cz.fitnessdiary.database.entity.TrainingPlan;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.database.entity.WeightRecord;
 import com.github.mikephil.charting.charts.LineChart;
@@ -42,7 +45,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.cz.fitnessdiary.utils.DateUtils;
+import com.cz.fitnessdiary.utils.MuscleFatigueCalculator;
 import com.cz.fitnessdiary.utils.UnitUtils;
+import com.cz.fitnessdiary.ui.widget.MuscleHeatmapView;
 
 public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment {
 
@@ -68,6 +74,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
     private User currentUser;
     private OnDataUpdatedListener listener;
     private SharedPreferences sharedPrefs;
+    private MuscleHeatmapView heatmapView;
 
     // 当前选中的图表指标 (默认为 "体重")
     private String selectedIndicator = "体重";
@@ -127,6 +134,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
         chartBodyMetric = view.findViewById(R.id.chart_body_metric);
         tvChartEmpty = view.findViewById(R.id.tv_chart_empty);
         btnQuickAddRecord = view.findViewById(R.id.btn_quick_add_record);
+        heatmapView = view.findViewById(R.id.iv_silhouette);
 
         setupTabs();
         loadBaseUserData();
@@ -245,6 +253,34 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
                     tvValTdee.setText(String.format(Locale.getDefault(), "%.0f kcal", tdeeVal));
                 });
             }
+
+            // 加载肌肉疲劳热力图数据
+            long today = DateUtils.getTodayStartTimestamp();
+            long startDate = today - 2 * 24 * 60 * 60 * 1000L;
+            long endDate = today + 24 * 60 * 60 * 1000L;
+
+            List<DailyLog> logs = db.dailyLogDao().getLogsByDateRangeSync(startDate, endDate);
+            List<ExtraExerciseLog> extraLogs = db.extraExerciseLogDao().getLogsByDateRangeSync(startDate, endDate);
+
+            Map<Integer, TrainingPlan> planMap = new HashMap<>();
+            for (DailyLog log : logs) {
+                if (log.isCompleted() && !planMap.containsKey(log.getPlanId())) {
+                    TrainingPlan p = db.trainingPlanDao().getPlanById(log.getPlanId());
+                    if (p != null) {
+                        planMap.put(log.getPlanId(), p);
+                    }
+                }
+            }
+
+            Map<String, Float> fatigueMap = MuscleFatigueCalculator.calculateFatigueMap(logs, planMap, extraLogs, today);
+
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    if (heatmapView != null) {
+                        heatmapView.setFatigueMap(fatigueMap);
+                    }
+                });
+            }
         }).start();
     }
 
@@ -305,7 +341,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
-        
+
         et.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -414,14 +450,14 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
             tv.setPadding((int)(16 * density), (int)(8 * density), (int)(16 * density), (int)(8 * density));
             tv.setClickable(true);
             tv.setFocusable(true);
-            
+
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
             lp.setMargins((int)(6 * density), (int)(4 * density), (int)(6 * density), (int)(4 * density));
             tv.setLayoutParams(lp);
-            
+
             // 背景高亮
             updateIndicatorSelectionBg(tv, key.equals(selectedIndicator));
 
@@ -584,7 +620,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
                     dataSet.setDrawCircleHole(true);
                     dataSet.setCircleHoleColor(android.graphics.Color.WHITE);
                     dataSet.setCircleHoleRadius(2.2f);
-                    
+
                     // 面积渐变填充 (20% 不透明度淡绿自然过渡到全透明)
                     dataSet.setDrawFilled(true);
                     android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable(
@@ -595,7 +631,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
                         }
                     );
                     dataSet.setFillDrawable(gd);
-                    
+
                     dataSet.setValueTextSize(9f);
                     dataSet.setValueTextColor(getResources().getColor(R.color.text_secondary, null));
                     dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
@@ -644,7 +680,7 @@ public class BodyDataDetailBottomSheetFragment extends BottomSheetDialogFragment
         if ("臂围".equals(uiType) || "ARM".equals(dbType)) {
             m3 = db.bodyMeasurementDao().getLatestByTypeSync("手臂围");
         }
-        
+
         BodyMeasurement latest = m1;
         if (m2 != null) {
             if (latest == null || m2.getTimestamp() > latest.getTimestamp()) {

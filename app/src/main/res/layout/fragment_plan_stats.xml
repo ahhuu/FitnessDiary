@@ -116,7 +116,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="0"
                                 android:textColor="#FFFFFF"
-                                android:textSize="32sp"
+                                android:textSize="24sp"
                                 android:textStyle="bold" />
                             <TextView
                                 android:layout_width="wrap_content"
@@ -147,7 +147,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="0"
                                 android:textColor="#FFFFFF"
-                                android:textSize="32sp"
+                                android:textSize="24sp"
                                 android:textStyle="bold" />
                             <TextView
                                 android:id="@+id/tv_period_label"
@@ -179,12 +179,43 @@
                                 android:layout_height="wrap_content"
                                 android:text="0"
                                 android:textColor="#FFFFFF"
-                                android:textSize="32sp"
+                                android:textSize="24sp"
                                 android:textStyle="bold" />
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="最长连续🔥"
+                                android:textColor="#CCFFFFFF"
+                                android:textSize="11sp"
+                                android:layout_marginTop="2dp" />
+                        </LinearLayout>
+
+                        <!-- 分割线 -->
+                        <View
+                            android:layout_width="1dp"
+                            android:layout_height="48dp"
+                            android:layout_gravity="center_vertical"
+                            android:background="#33FFFFFF" />
+
+                        <!-- 训练容量 -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical">
+                            <TextView
+                                android:id="@+id/tv_total_volume"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0"
+                                android:textColor="#FFFFFF"
+                                android:textSize="24sp"
+                                android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="训练容量"
                                 android:textColor="#CCFFFFFF"
                                 android:textSize="11sp"
                                 android:layout_marginTop="2dp" />
@@ -235,6 +266,54 @@
 
                         <com.github.mikephil.charting.charts.BarChart
                             android:id="@+id/chart_daily_sessions"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- ===== 卡片1.5：每日训练容量柱状图 ===== -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@color/fitnessdiary_surface"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/divider">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="12dp">
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="🏋️ 每日训练总容量"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                            <TextView
+                                android:id="@+id/tv_avg_volume_label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="均 0"
+                                android:textColor="@color/fitnessdiary_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <com.github.mikephil.charting.charts.BarChart
+                            android:id="@+id/chart_daily_volume"
                             android:layout_width="match_parent"
                             android:layout_height="200dp" />
                     </LinearLayout>

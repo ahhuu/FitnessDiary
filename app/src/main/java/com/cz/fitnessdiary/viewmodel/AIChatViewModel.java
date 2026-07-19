@@ -6,6 +6,10 @@ import com.cz.fitnessdiary.model.ChatMessage;
 import com.cz.fitnessdiary.repository.ChatRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.service.AICallback;
+import com.cz.fitnessdiary.service.FoodActionParser;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.cz.fitnessdiary.database.entity.User;
 import com.cz.fitnessdiary.utils.FoodCategoryUtils;
 
@@ -194,9 +198,6 @@ public class AIChatViewModel extends AndroidViewModel {
         sendMessageWithAttachment(content, null, null);
     }
 
-    /** 上下文历史消息的最大条数（控制 token 消耗） */
-    private static final int MAX_HISTORY_MESSAGES = com.cz.fitnessdiary.service.AiRequestPolicy.CHAT_MAX_HISTORY_MESSAGES;
-
     public void sendMessageWithAttachment(String content, String mediaPath, android.graphics.Bitmap image) {
         if (content == null || content.trim().isEmpty())
             return;
@@ -239,9 +240,10 @@ public class AIChatViewModel extends AndroidViewModel {
             String searchContext = !imageRequest && search ? com.cz.fitnessdiary.service.WebSearchService.searchSummary(content) : "";
             String systemInstruction = imageRequest ? "" : buildSystemInstruction(user, search, searchContext);
 
-            // 加载对话历史（取最近 N 条，不含刚发的那条，因为还未入库完成）
+            // 加载完整对话历史，不因 token 节省而丢失上下文
             List<ChatMessageEntity> allMessages = repository.getMessagesBySessionSync(finalSessionId);
-            List<ChatMessageEntity> history = trimHistory(allMessages);
+            List<ChatMessageEntity> history = allMessages == null
+                    ? new ArrayList<>() : new ArrayList<>(allMessages);
 
             // 智能调度：图片走 MiMo，纯文本走 DeepSeek-V4
             if (image != null) {
@@ -252,35 +254,6 @@ public class AIChatViewModel extends AndroidViewModel {
                 sendToDeepSeek(content, systemInstruction, false, history);
             }
         }).start();
-    }
-
-    /**
-     * 裁剪历史消息，控制上下文窗口大小以节省 token 消耗。
-     * 策略：取最近 MAX_HISTORY_MESSAGES 条消息（不含本次用户消息，因为会单独发送）。
-     */
-    private List<ChatMessageEntity> trimHistory(List<ChatMessageEntity> allMessages) {
-        if (allMessages == null || allMessages.isEmpty()) {
-            return new ArrayList<>();
-        }
-        int size = allMessages.size();
-        if (size <= MAX_HISTORY_MESSAGES) {
-            return trimHistoryChars(new ArrayList<>(allMessages));
-        }
-        // 只保留最近的 N 条
-        return trimHistoryChars(new ArrayList<>(allMessages.subList(size - MAX_HISTORY_MESSAGES, size)));
-    }
-
-    private List<ChatMessageEntity> trimHistoryChars(List<ChatMessageEntity> source) {
-        List<ChatMessageEntity> result = new ArrayList<>();
-        int chars = 0;
-        for (int i = source.size() - 1; i >= 0; i--) {
-            ChatMessageEntity item = source.get(i);
-            int itemChars = item.getContent() == null ? 0 : item.getContent().length();
-            if (chars + itemChars > com.cz.fitnessdiary.service.AiRequestPolicy.CHAT_MAX_HISTORY_CHARS) break;
-            result.add(0, item);
-            chars += itemChars;
-        }
-        return result;
     }
 
     private String buildSystemInstruction(User user, boolean searchEnabled, String searchContext) {
@@ -364,9 +337,8 @@ public class AIChatViewModel extends AndroidViewModel {
         User user = userRepository.getUserSync();
         String mimoSystemInstruction = buildMiMoSystemInstruction(user);
 
-        // 识图是独立的功能，无需携带历史对话，传入 null 可极大节省上下文的 Token 消耗
+        // 识图是独立功能，不携带历史对话，避免旧对话干扰当前图片识别
         com.cz.fitnessdiary.service.MiMoService.sendMessage(content, mimoSystemInstruction, image, null,
-                com.cz.fitnessdiary.service.AiRequestPolicy.IMAGE_CHAT_MAX_COMPLETION_TOKENS, true,
                 new AICallback() {
                     @Override
                     public void onSuccess(String response, String reasoning) {
@@ -410,30 +382,53 @@ public class AIChatViewModel extends AndroidViewModel {
         isLoading.setValue(false);
     }
 
-    /** Converts MiMo/DeepSeek JSON mode back to the legacy action envelope consumed by the chat adapter. */
+    /** Converts structured model output into readable chat text plus a hidden action envelope. */
     private String normalizeStructuredResponse(String response) {
         if (response == null || response.trim().isEmpty()) return "未生成最终回答，请重试";
-        try {
-            org.json.JSONObject root = new org.json.JSONObject(response.trim());
-            org.json.JSONObject action = root.optJSONObject("action");
-            if (action == null && root.has("type")) action = root;
-            if (action != null) {
-                String reply = root.optString("reply", "");
-                if (reply.trim().isEmpty() && "FOOD".equalsIgnoreCase(action.optString("type"))) {
-                    reply = buildFoodActionReply(action);
-                }
-                return sanitizeUncommittedLanguage(reply) + "\n<action>" + action.toString() + "</action>";
-            }
-        } catch (Exception ignored) {
+        JsonObject action = FoodActionParser.parseAction(response);
+        if (action == null) {
             // Legacy natural-language responses remain untouched; no second AI request is made.
+            if (looksLikeStructuredResponse(response)) {
+                return "AI 返回的识别结果不完整，请重试；这不代表图片模糊。";
+            }
+            return sanitizeUncommittedLanguage(response);
         }
-        return sanitizeUncommittedLanguage(response);
+
+        String reply = FoodActionParser.extractReply(response);
+        if (reply.trim().isEmpty()) {
+            reply = extractVisiblePrefix(response);
+        }
+        String type = stringValue(action, "type", "");
+        if (reply.trim().isEmpty() && "FOOD".equalsIgnoreCase(type)) {
+            reply = buildFoodActionReply(action);
+        }
+        if (reply.trim().isEmpty()) {
+            reply = "我已整理好这条建议，请确认后再执行。";
+        }
+        return sanitizeUncommittedLanguage(reply) + "\n<action>" + action.toString() + "</action>";
+    }
+
+    /** Keeps a normal sentence written before a legacy <action> tag visible to the user. */
+    private String extractVisiblePrefix(String response) {
+        int actionStart = response.indexOf("<action>");
+        if (actionStart <= 0) {
+            return "";
+        }
+        return response.substring(0, actionStart).trim();
+    }
+
+    private boolean looksLikeStructuredResponse(String response) {
+        String value = response == null ? "" : response.trim();
+        return (value.startsWith("{") || value.startsWith("[") || value.startsWith("```")
+                || value.contains("<action>"))
+                && (value.contains("\"type\"") || value.contains("\"items\"")
+                || value.contains("\\\"type\\\"") || value.contains("\\\"items\\\""));
     }
 
     /** Builds a concrete preview; persistence still happens only after the chat action is tapped. */
-    private String buildFoodActionReply(org.json.JSONObject action) {
-        org.json.JSONArray items = action.optJSONArray("items");
-        if (items == null || items.length() == 0) {
+    private String buildFoodActionReply(JsonObject action) {
+        JsonArray items = arrayValue(action, "items");
+        if (items == null || items.size() == 0) {
             return "识别到一项食物，请确认数量和单位后点击记录按钮。";
         }
         StringBuilder foods = new StringBuilder();
@@ -442,21 +437,22 @@ public class AIChatViewModel extends AndroidViewModel {
         double carbs = 0d;
         double fat = 0d;
         int validItems = 0;
-        for (int i = 0; i < items.length(); i++) {
-            org.json.JSONObject item = items.optJSONObject(i);
+        for (int i = 0; i < items.size(); i++) {
+            JsonElement raw = items.get(i);
+            JsonObject item = raw != null && raw.isJsonObject() ? raw.getAsJsonObject() : null;
             if (item == null) continue;
-            String name = item.optString("name", "未命名食物").trim();
+            String name = stringValue(item, "name", "未命名食物").trim();
             if (name.isEmpty()) continue;
-            double amount = item.optDouble("amount", 1d);
-            String unit = item.optString("unit", "份").trim();
+            double amount = numberValue(item, "amount", 1d);
+            String unit = stringValue(item, "unit", "份").trim();
             if (amount <= 0) amount = 1d;
             if (unit.isEmpty()) unit = "份";
             if (foods.length() > 0) foods.append("、");
             foods.append(name).append(" ").append(formatAmount(amount)).append(unit);
-            calories += Math.max(0, item.optInt("calories", 0));
-            protein += Math.max(0d, item.optDouble("protein", 0d));
-            carbs += Math.max(0d, item.optDouble("carbs", 0d));
-            fat += Math.max(0d, item.optDouble("fat", 0d));
+            calories += Math.max(0, (int) Math.round(numberValue(item, "calories", 0d)));
+            protein += Math.max(0d, numberValue(item, "protein", 0d));
+            carbs += Math.max(0d, numberValue(item, "carbs", 0d));
+            fat += Math.max(0d, numberValue(item, "fat", 0d));
             validItems++;
         }
         if (validItems == 0) {
@@ -474,6 +470,35 @@ public class AIChatViewModel extends AndroidViewModel {
         }
         reply.append("请确认食物数量和单位后，点击“一键记录整餐”或“记录该餐”。");
         return reply.toString();
+    }
+
+    private String stringValue(JsonObject object, String key, String fallback) {
+        if (object == null || !object.has(key) || object.get(key).isJsonNull()) {
+            return fallback == null ? "" : fallback;
+        }
+        try {
+            return object.get(key).getAsString();
+        } catch (Exception ignored) {
+            return fallback == null ? "" : fallback;
+        }
+    }
+
+    private double numberValue(JsonObject object, String key, double fallback) {
+        if (object == null || !object.has(key) || object.get(key).isJsonNull()) {
+            return fallback;
+        }
+        try {
+            return object.get(key).getAsDouble();
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
+    private JsonArray arrayValue(JsonObject object, String key) {
+        if (object == null || !object.has(key) || !object.get(key).isJsonArray()) {
+            return null;
+        }
+        return object.getAsJsonArray(key);
     }
 
     private String formatAmount(double amount) {

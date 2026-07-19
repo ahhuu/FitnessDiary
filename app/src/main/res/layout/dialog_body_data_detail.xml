@@ -246,24 +246,23 @@
                         android:layout_height="320dp"
                         android:layout_marginTop="8dp">
 
-                        <!-- 人体模型 (中心视觉分量增强) -->
-                        <ImageView
+                        <!-- 人体模型 (替换为热力图组件) -->
+                        <com.cz.fitnessdiary.ui.widget.MuscleHeatmapView
                             android:id="@+id/iv_silhouette"
                             android:layout_width="160dp"
                             android:layout_height="match_parent"
-                            android:src="@drawable/ic_human_silhouette"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
                             android:contentDescription="人体剪影" />
 
-                        <!-- 左侧磨砂背景板 View (拓宽占比至32%以防文字折行) -->
+                        <!-- 左侧测量项容器占位 (背景已去除以融合主底色) -->
                         <View
                             android:id="@+id/view_left_panel"
                             android:layout_width="0dp"
                             android:layout_height="0dp"
-                            android:background="@drawable/shape_panel_translucent"
+                            android:background="@android:color/transparent"
                             android:layout_marginEnd="6dp"
                             android:layout_marginTop="8dp"
                             android:layout_marginBottom="8dp"
@@ -274,12 +273,12 @@
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent" />
 
-                        <!-- 右侧磨砂背景板 View (拓宽占比至32%以防文字折行) -->
+                        <!-- 右侧测量项容器占位 (背景已去除以融合主底色) -->
                         <View
                             android:id="@+id/view_right_panel"
                             android:layout_width="0dp"
                             android:layout_height="0dp"
-                            android:background="@drawable/shape_panel_translucent"
+                            android:background="@android:color/transparent"
                             android:layout_marginStart="6dp"
                             android:layout_marginTop="8dp"
                             android:layout_marginBottom="8dp"
@@ -309,7 +308,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.25" />
+                            app:layout_constraintVertical_bias="0.13" />
 
                         <!-- 胸围 - bias: 0.36 -->
                         <TextView
@@ -329,7 +328,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.31" />
+                            app:layout_constraintVertical_bias="0.23" />
 
                         <!-- 臂围 - bias: 0.50 -->
                         <TextView
@@ -349,7 +348,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.37" />
+                            app:layout_constraintVertical_bias="0.32" />
 
                         <!-- 臀围 - bias: 0.66 -->
                         <TextView
@@ -369,7 +368,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_left_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.49" />
+                            app:layout_constraintVertical_bias="0.48" />
 
 
                         <!-- 右侧测量项 (肩、腰、大腿、小腿 - 精准身体部位高度 bias 锚定) -->
@@ -391,7 +390,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.27" />
+                            app:layout_constraintVertical_bias="0.17" />
 
                         <!-- 腰围 - bias: 0.46 -->
                         <TextView
@@ -411,7 +410,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.42" />
+                            app:layout_constraintVertical_bias="0.40" />
 
                         <!-- 大腿围 - bias: 0.68 -->
                         <TextView
@@ -431,7 +430,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.61" />
+                            app:layout_constraintVertical_bias="0.60" />
 
                         <!-- 小腿围 - bias: 0.86 -->
                         <TextView
@@ -451,7 +450,7 @@
                             app:layout_constraintEnd_toEndOf="@id/view_right_panel"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
-                            app:layout_constraintVertical_bias="0.79" />
+                            app:layout_constraintVertical_bias="0.82" />
 
 
                         <!-- 人体图上的圆点定位锚点 (dot - 垂直高度对齐各自 TextView，使引线绝不拉伸) -->
@@ -643,12 +642,29 @@
                             android:layout_width="0dp"
                             android:layout_height="3dp"
                             android:background="@drawable/dashed_line"
-                            android:layerType="software"
-                            app:layout_constraintStart_toEndOf="@id/dot_calf"
-                            app:layout_constraintEnd_toStartOf="@id/tv_measure_calf"
+                            app:layout_constraintEnd_toStartOf="@id/dot_calf"
                             app:layout_constraintTop_toTopOf="@id/tv_measure_calf"
                             app:layout_constraintBottom_toBottomOf="@id/tv_measure_calf" />
                     </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    <!-- 疲劳图例 (根据用户要求保留) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="肌肉疲劳度：" android:textSize="11sp" android:textColor="@color/text_secondary" android:textStyle="bold" android:layout_marginEnd="8dp" />
+                        <View android:layout_width="8dp" android:layout_height="8dp" android:background="#E0E0E0" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="已恢复" android:textSize="10sp" android:layout_marginStart="4dp" android:layout_marginEnd="12dp" />
+                        <View android:layout_width="8dp" android:layout_height="8dp" android:background="#FFF59D" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="轻度" android:textSize="10sp" android:layout_marginStart="4dp" android:layout_marginEnd="12dp" />
+                        <View android:layout_width="8dp" android:layout_height="8dp" android:background="#FFB74D" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="中度" android:textSize="10sp" android:layout_marginStart="4dp" android:layout_marginEnd="12dp" />
+                        <View android:layout_width="8dp" android:layout_height="8dp" android:background="#E53935" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="重度" android:textSize="10sp" android:layout_marginStart="4dp" />
+                    </LinearLayout>
 
                     <!-- 3. 健康透视看板 -->
                     <TextView

@@ -46,7 +46,7 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
     public static final String REQUEST_KEY = "food_image_confirm_request";
     public static final String RESULT_ACTION = "result_action";
     public static final String RESULT_DRAFT = "result_draft";
-    public static final String RESULT_SYNC_LIBRARY = "result_sync_library";
+    public static final String RESULT_SYNC_MODE = "result_sync_mode";
     public static final String RESULT_UNMATCHED_TEXT = "result_unmatched_text";
     public static final String RESULT_AI_MODE = "result_ai_mode";
 
@@ -67,8 +67,8 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
     private TextView tvSummaryProtein;
     private TextView tvSummaryCarbs;
     private TextView tvSummaryFat;
+    private RadioGroup rgSyncOptions;
     private TextView tvSuggestion;
-    private MaterialSwitch swSyncLibrary;
     private ExecutorService foodLibraryExecutor;
 
     public static FoodImageConfirmBottomSheet newInstance(ImageMealDraft draft) {
@@ -110,8 +110,8 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
         tvSummaryProtein = view.findViewById(R.id.tv_summary_protein);
         tvSummaryCarbs = view.findViewById(R.id.tv_summary_carbs);
         tvSummaryFat = view.findViewById(R.id.tv_summary_fat);
+        rgSyncOptions = view.findViewById(R.id.rg_sync_options);
         tvSuggestion = view.findViewById(R.id.tv_suggestion);
-        swSyncLibrary = view.findViewById(R.id.sw_sync_library);
 
         MaterialButton btnAddItem = view.findViewById(R.id.btn_add_item);
         MaterialButton btnConfirm = view.findViewById(R.id.btn_confirm);
@@ -395,15 +395,6 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
         dismissAllowingStateLoss();
     }
 
-    private void normalizeDraftItemsToGrams() {
-        if (draft.getItems() == null) return;
-        for (ImageFoodItemDraft item : draft.getItems()) {
-            if (item != null) {
-                item.normalizeToGramsForEditing();
-            }
-        }
-    }
-
     private void bindMealType(int mealType) {
         switch (mealType) {
             case 0:
@@ -460,7 +451,6 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
             boolean amountChanged = Math.abs(item.getAmount() - Math.max(1d, amount)) > 0.0001d;
             item.setName(name);
             item.setAmount(Math.max(1d, amount));
-            item.setUnit("g");
             if (amountChanged) item.recalculateNutrition();
         }
     }
@@ -480,10 +470,12 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
             TextView tvProtein = itemView.findViewById(R.id.tv_item_protein);
             TextView tvCarbs = itemView.findViewById(R.id.tv_item_carbs);
             TextView tvFat = itemView.findViewById(R.id.tv_item_fat);
+            TextView tvUnit = itemView.findViewById(R.id.tv_item_unit);
             ImageButton btnDelete = itemView.findViewById(R.id.btn_delete_item);
 
             etName.setText(item.getName());
             etAmount.setText(formatDouble(item.getAmount()));
+            if (tvUnit != null) tvUnit.setText(item.getDisplayUnit());
             String sourceLabel = draft.getSuggestion() != null && draft.getSuggestion().contains("条码")
                     ? "条码数据"
                     : (draft.getSuggestion() != null && (draft.getSuggestion().contains("本地饮食库")
@@ -519,7 +511,6 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
                     double previousAmount = current.getAmount();
                     current.setName(safeText(etName));
                     current.setAmount(parseDouble(safeText(etAmount)));
-                    current.setUnit("g");
                     if (Math.abs(previousAmount - current.getAmount()) > 0.0001d) {
                         current.recalculateNutrition();
                     }
@@ -612,7 +603,16 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
         Bundle result = new Bundle();
         result.putString(RESULT_ACTION, ACTION_CONFIRM);
         result.putSerializable(RESULT_DRAFT, draft);
-        result.putBoolean(RESULT_SYNC_LIBRARY, swSyncLibrary.isChecked());
+
+        int syncMode = 0;
+        int checkedId = rgSyncOptions.getCheckedRadioButtonId();
+        if (checkedId == R.id.rb_sync_recipe) {
+            syncMode = 1;
+        } else if (checkedId == R.id.rb_sync_items) {
+            syncMode = 2;
+        }
+        result.putInt(RESULT_SYNC_MODE, syncMode);
+
         getParentFragmentManager().setFragmentResult(REQUEST_KEY, result);
         dismissAllowingStateLoss();
     }
@@ -634,6 +634,15 @@ public class FoodImageConfirmBottomSheet extends BottomSheetDialogFragment {
             }
         }
         return false;
+    }
+
+    private void normalizeDraftItemsToGrams() {
+        if (draft == null || draft.getItems() == null) return;
+        for (ImageFoodItemDraft item : draft.getItems()) {
+            if (item != null) {
+                item.normalizeToGramsForEditing();
+            }
+        }
     }
 
     private void markUnitConversionsConfirmed() {

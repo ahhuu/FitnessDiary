@@ -6,13 +6,13 @@
             <solid android:color="#1AFFFFFF"/>
         </shape>
     </item>
-    <item android:left="0dp" android:top="0dp" android:right="1.5dp" android:bottom="1.5dp">
+    <item android:left="0dp" android:top="0dp" android:right="1dp" android:bottom="1dp">
         <shape android:shape="rectangle">
             <corners android:radius="100dp"/>
             <solid android:color="#40000000"/>
         </shape>
     </item>
-    <item android:left="1.5dp" android:top="1.5dp" android:right="1.5dp" android:bottom="1.5dp">
+    <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="1dp">
         <shape android:shape="rectangle">
             <corners android:radius="100dp"/>
             <solid android:color="#2A2A2A"/>

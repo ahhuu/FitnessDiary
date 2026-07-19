@@ -27,6 +27,10 @@ public class RecipeRepository {
         });
     }
 
+    public long insertSync(Recipe recipe) {
+        return recipeDao.insert(recipe);
+    }
+
     public void update(Recipe recipe) {
         executor.execute(() -> recipeDao.update(recipe));
     }

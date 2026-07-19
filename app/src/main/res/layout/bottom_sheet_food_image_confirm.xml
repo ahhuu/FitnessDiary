@@ -190,13 +190,43 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/sw_sync_library"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="复用选项 (以便下次快捷录入)"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <RadioGroup
+                android:id="@+id/rg_sync_options"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="同步到食物库（可在食物百科里复用）"
-                android:textSize="12sp" />
+                android:layout_marginTop="4dp"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/rb_sync_none"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="不同步 (仅记录本次)"
+                    android:textSize="13sp"
+                    android:checked="true" />
+
+                <RadioButton
+                    android:id="@+id/rb_sync_recipe"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="存为「常用食谱」(推荐整餐)"
+                    android:textSize="13sp" />
+
+                <RadioButton
+                    android:id="@+id/rb_sync_items"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="将各单项材料拆分存入「食物库」"
+                    android:textSize="13sp" />
+            </RadioGroup>
 
             <TextView
                 android:id="@+id/tv_suggestion"

@@ -270,7 +270,7 @@ public class RecipeListFragment extends Fragment {
                 .setItems(meals, (dialog, which) -> {
                     recordRecipeToMeal(recipe, which);
                     recipe.setUpdatedAt(System.currentTimeMillis());
-                    viewModel.saveRecipe(recipe);
+                    viewModel.updateRecipe(recipe);
                     Toast.makeText(getContext(), "✅ 已记录 " + recipe.getName(), Toast.LENGTH_SHORT).show();
                 })
                 .show();
@@ -292,20 +292,30 @@ public class RecipeListFragment extends Fragment {
         JsonArray foods = gson.fromJson(recipe.getFoodsJson(), JsonArray.class);
         FoodRecordRepository foodRepo = new FoodRecordRepository(requireActivity().getApplication());
 
+        int totalCalories = 0;
+        float totalProtein = 0;
+        float totalCarbs = 0;
+        float totalFat = 0;
+
         for (int i = 0; i < foods.size(); i++) {
             JsonObject item = foods.get(i).getAsJsonObject();
-            FoodRecord record = new FoodRecord();
-            record.setFoodName(item.get("foodName").getAsString());
-            record.setCalories((int) item.get("calories").getAsFloat());
-            record.setProtein(item.get("protein").getAsFloat());
-            record.setCarbs(item.get("carbs").getAsFloat());
-            record.setFat(item.has("fat") ? item.get("fat").getAsFloat() : 0f);
-            record.setRecordDate(System.currentTimeMillis());
-            record.setMealType(mealType);
-            record.setServings(item.has("servings") ? item.get("servings").getAsFloat() : 1.0f);
-            record.setServingUnit(item.has("servingUnit") ? item.get("servingUnit").getAsString() : "份");
-            foodRepo.insert(record);
+            totalCalories += (int) item.get("calories").getAsFloat();
+            if (item.has("protein")) totalProtein += item.get("protein").getAsFloat();
+            if (item.has("carbs")) totalCarbs += item.get("carbs").getAsFloat();
+            if (item.has("fat")) totalFat += item.get("fat").getAsFloat();
         }
+
+        FoodRecord record = new FoodRecord();
+        record.setFoodName(recipe.getName() != null && !recipe.getName().isEmpty() ? recipe.getName() : "自定义食谱");
+        record.setCalories(totalCalories);
+        record.setProtein(totalProtein);
+        record.setCarbs(totalCarbs);
+        record.setFat(totalFat);
+        record.setRecordDate(System.currentTimeMillis());
+        record.setMealType(mealType);
+        record.setServings(1.0f);
+        record.setServingUnit("份");
+        foodRepo.insert(record);
     }
 
     private void recordFoodToMeal(FavoriteFood food, int mealType) {

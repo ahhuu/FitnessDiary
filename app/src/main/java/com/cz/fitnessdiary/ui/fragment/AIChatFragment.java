@@ -1,7 +1,6 @@
 package com.cz.fitnessdiary.ui.fragment;
 
 import android.os.Bundle;
-import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,7 +36,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import org.json.JSONObject;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -523,7 +521,7 @@ public class AIChatFragment extends Fragment {
         String uriStr = viewModel.getAttachedFileUri().getValue();
         if (uriStr != null) {
             try {
-                android.graphics.Bitmap bitmap = decodeScaledBitmap(android.net.Uri.parse(uriStr), 1280);
+                android.graphics.Bitmap bitmap = decodeBitmap(android.net.Uri.parse(uriStr));
                 viewModel.sendMessageWithAttachment(text, uriStr, bitmap);
             } catch (Exception e) {
                 ErrorHandler.showError(AIChatFragment.this, "图片读取失败，已按文本发送", null);
@@ -932,35 +930,14 @@ public class AIChatFragment extends Fragment {
         }
         return names.get(0) + "等";
     }
-    private android.graphics.Bitmap decodeScaledBitmap(android.net.Uri uri, int maxSide) throws Exception {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+    private android.graphics.Bitmap decodeBitmap(android.net.Uri uri) throws Exception {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             android.graphics.ImageDecoder.Source source = android.graphics.ImageDecoder
                     .createSource(requireContext().getContentResolver(), uri);
-            return android.graphics.ImageDecoder.decodeBitmap(source, (decoder, info, src) -> {
-                int width = info.getSize().getWidth();
-                int height = info.getSize().getHeight();
-                int maxDim = Math.max(width, height);
-                if (maxDim > maxSide) {
-                    float scale = (float) maxSide / (float) maxDim;
-                    decoder.setTargetSize(Math.max(1, (int) (width * scale)), Math.max(1, (int) (height * scale)));
-                }
-            });
+            return android.graphics.ImageDecoder.decodeBitmap(source);
         }
-
-        android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
-        bounds.inJustDecodeBounds = true;
-        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
-            android.graphics.BitmapFactory.decodeStream(is, null, bounds);
-        }
-        int inSampleSize = 1;
-        int maxDim = Math.max(bounds.outWidth, bounds.outHeight);
-        while (maxDim / inSampleSize > maxSide) {
-            inSampleSize *= 2;
-        }
-        android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
-        opts.inSampleSize = Math.max(1, inSampleSize);
-        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
-            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is, null, opts);
+        try (java.io.InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
             if (bitmap == null) {
                 throw new IllegalStateException("无法解析图片");
             }

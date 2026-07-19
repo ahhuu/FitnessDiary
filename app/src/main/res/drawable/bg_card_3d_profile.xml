@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 最底层：右下角漏出 1.5dp 阴影线 -->
-    <item 
-        android:left="1.5dp" 
-        android:top="1.5dp" 
-        android:right="0dp" 
+    <!-- 最底层：右下角漏出 1dp 阴影线 -->
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="0dp"
         android:bottom="0dp">
         <shape android:shape="rectangle">
             <corners android:radius="24dp"/>
@@ -12,12 +12,12 @@
         </shape>
     </item>
 
-    <!-- 中间层：左上角漏出 1.5dp 纯白色高光线 -->
-    <item 
-        android:left="0dp" 
-        android:top="0dp" 
-        android:right="1.5dp" 
-        android:bottom="1.5dp">
+    <!-- 中间层：左上角漏出 1dp 纯白色高光线 -->
+    <item
+        android:left="0dp"
+        android:top="0dp"
+        android:right="1dp"
+        android:bottom="1dp">
         <shape android:shape="rectangle">
             <corners android:radius="24dp"/>
             <solid android:color="#FFFFFF"/>
@@ -25,11 +25,11 @@
     </item>
 
     <!-- 最表层：卡片主体，自带温润燕麦奶油渐变 -->
-    <item 
-        android:left="1.5dp" 
-        android:top="1.5dp" 
-        android:right="1.5dp" 
-        android:bottom="1.5dp">
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
         <shape android:shape="rectangle">
             <corners android:radius="22.5dp"/>
             <gradient

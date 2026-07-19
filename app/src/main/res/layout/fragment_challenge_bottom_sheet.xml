@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@color/fitnessdiary_background"
-    android:fillViewport="true">
+    android:layout_height="match_parent"
+    android:background="@color/fitnessdiary_background">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -30,188 +38,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
-
-            <!-- 顶部信息卡 -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_active_info"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="4dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="@color/panel_translucent_bg"
-                app:strokeWidth="1dp"
-                app:strokeColor="#10000000">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="18dp"
-                    android:gravity="center_vertical">
-
-                    <!-- Emoji 圆形底座 -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_active_emoji_bg"
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
-                        app:cardCornerRadius="32dp"
-                        app:cardElevation="4dp"
-                        app:strokeWidth="0dp"
-                        app:cardBackgroundColor="#FFF9C4"
-                        android:layout_marginEnd="16dp">
-                        <TextView
-                            android:id="@+id/tv_active_emoji"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:layout_gravity="center"
-                            android:gravity="center"
-                            android:text="🔥"
-                            android:textSize="30sp" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tv_active_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="减脂冲刺"
-                            android:textColor="@color/text_primary"
-                            android:textSize="17sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_active_desc"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="21天热量不超标"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp"
-                            android:layout_marginTop="3dp"
-                            android:maxLines="2" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 进度条区域 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingHorizontal="16dp"
-                android:paddingTop="14dp"
-                android:paddingBottom="10dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:id="@+id/tv_active_progress_txt"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="第 1 / 21 天"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_active_fail_summary"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="失败 0 / 3 次"
-                        android:textColor="#EF5350"
-                        android:textSize="12sp"
-                        android:background="@drawable/bg_circle_red"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="3dp" />
-                </LinearLayout>
-
-                <ProgressBar
-                    android:id="@+id/progress_active_challenge"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="10dp"
-                    android:max="21"
-                    android:progress="1"
-                    android:progressDrawable="@drawable/progress_rounded_success" />
-            </LinearLayout>
-
-            <!-- 打卡轨迹标题 -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginBottom="8dp"
-                android:text="21天打卡轨迹"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <!-- 21天打卡方格网格 -->
-            <androidx.gridlayout.widget.GridLayout
-                android:id="@+id/grid_active_tracking"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginBottom="20dp"
-                app:columnCount="7"
-                app:rowCount="3" />
-
-            <!-- 手动打卡按钮 / 自动联动提示 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_active_checkin"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginBottom="10dp"
-                android:text="今日打卡"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white"
-                android:visibility="gone"
-                app:backgroundTint="#43A047"
-                app:cornerRadius="26dp"
-                app:icon="@drawable/ic_nav_checkin_filled"
-                app:iconGravity="textStart"
-                app:iconTint="@android:color/white" />
-
-            <TextView
-                android:id="@+id/tv_active_auto_hint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_rounded_gray"
-                android:gravity="center"
-                android:padding="12dp"
-                android:text="💡 已绑定数据卡片，完成当日目标后自动计入"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:visibility="visible" />
-
-            <!-- 放弃挑战 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_active_abandon"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="8dp"
-                android:text="放弃挑战"
-                android:textColor="#B0BEC5"
-                android:textSize="12sp" />
 
         </LinearLayout>
 
@@ -297,6 +123,13 @@
                         android:text="🌙 作息" />
 
                     <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_cat_mind"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="😌 身心" />
+
+                    <com.google.android.material.chip.Chip
                         android:id="@+id/chip_cat_custom"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
@@ -378,7 +211,57 @@
                     android:maxLength="50" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- 容错天数 -->
+            <!-- 所属分类 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="所属分类"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_category"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_cat_diet_create"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🥑 饮食" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_cat_sport_create"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏃 运动" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_cat_sleep_create"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌙 作息" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_cat_mind_create"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="😌 身心" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_cat_my_create"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✏️ 综合"
+                    android:checked="true" />
+            </com.google.android.material.chip.ChipGroup>
+
+            <!-- 挑战周期 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -389,25 +272,154 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="最多允许失败"
+                    android:text="挑战总天数"
                     android:textColor="@color/text_primary"
                     android:textSize="14sp"
                     android:textStyle="bold" />
                 <TextView
-                    android:id="@+id/tv_create_fails_indicator"
+                    android:id="@+id/tv_create_duration_indicator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="3 天"
+                    android:text="21 天"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
             </LinearLayout>
             <SeekBar
-                android:id="@+id/seek_create_fails"
+                android:id="@+id/seek_create_duration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="93"
+                android:progress="14"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 目标打卡次数 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="目标打卡次数"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tv_create_target_indicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="21 次"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+            <SeekBar
+                android:id="@+id/seek_create_target"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="21"
+                android:progress="21"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 请假条数量 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="可用请假条"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tv_create_freeze_indicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2 张"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+            <SeekBar
+                android:id="@+id/seek_create_freeze"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:max="5"
+                android:progress="2"
+                android:layout_marginBottom="18dp" />
+
+            <!-- 最大允许无故断卡 (Max Fails) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="最大允许无故断卡"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tv_create_max_fails_indicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3 次"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+            <SeekBar
+                android:id="@+id/seek_create_max_fails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="10"
                 android:progress="3"
                 android:layout_marginBottom="18dp" />
+
+            <!-- 定时提醒 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="18dp"
+                android:background="@drawable/bg_rounded_gray"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="打卡提醒"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/tv_create_reminder_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="未开启"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_create_reminder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
 
             <!-- 打卡校验机制 -->
             <TextView
@@ -469,6 +481,34 @@
                     android:layout_height="wrap_content"
                     android:text="🏃 每日万步" />
 
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_bind_mood"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="😌 情绪" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_bind_weight"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚖️ 称重" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_bind_muscle_diet"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🥩 增肌饮食" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_bind_medication"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💊 规律服药" />
+
             </com.google.android.material.chip.ChipGroup>
 
             <!-- 选择图标 -->
@@ -519,4 +559,20 @@
         </LinearLayout>
 
     </LinearLayout>
+    </FrameLayout>
 </androidx.core.widget.NestedScrollView>
+
+<!-- Lottie confetti overlay for manual check-in -->
+<com.airbnb.lottie.LottieAnimationView
+    android:id="@+id/lottie_confetti"
+    android:layout_width="match_parent"
+    android:layout_height="250dp"
+    android:layout_gravity="center|bottom"
+    android:layout_marginBottom="100dp"
+    android:elevation="10dp"
+    app:lottie_rawRes="@raw/confetti"
+    app:lottie_autoPlay="false"
+    app:lottie_loop="false"
+    android:visibility="gone" />
+
+</FrameLayout>

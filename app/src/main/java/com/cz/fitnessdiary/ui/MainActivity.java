@@ -42,34 +42,21 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Theme must be set before super.onCreate()
-        int themeMode = UnitUtils.getThemeMode(this);
-        if (themeMode == UnitUtils.THEME_LIGHT) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-        } else if (themeMode == UnitUtils.THEME_DARK) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-        } else {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-        }
+        androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         captureReminderRoute(getIntent());
         if (getIntent() != null) pendingShortcutId = getIntent().getStringExtra("shortcut_id");
-        setupDynamicNavigation();
+
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+        if (navHostFragment != null) {
+            navController = navHostFragment.getNavController();
+        }
 
         // 静默检查更新
         UpdateManager.checkUpdate(this, false);
-
-        Executors.newSingleThreadExecutor().execute(() -> {
-            FoodLibraryDataLoader.loadIfNeeded(getApplicationContext());
-            ExerciseLibraryDataLoader.loadIfNeeded(getApplicationContext());
-            ReminderPresetDataLoader.loadIfNeeded(getApplicationContext());
-            // Schedule all enabled reminders from DB after presets are loaded
-            ReminderManager.restoreAllReminders(getApplicationContext());
-
-        });
     }
 
     @Override
@@ -118,6 +105,11 @@ public class MainActivity extends AppCompatActivity {
         }
         pendingReminderModuleType = null;
         pendingReminderTargetId = 0L;
+    }
+
+    public void processPendingIntents() {
+        routeToReminderTargetIfNeeded();
+        routeShortcut();
     }
 
     private void routeShortcut() {
@@ -174,32 +166,11 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    private void setupDynamicNavigation() {
-        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
-        if (navHostFragment == null) {
-            return;
-        }
-        navController = navHostFragment.getNavController();
-
-        Executors.newSingleThreadExecutor().execute(() -> {
-            AppDatabase database = AppDatabase.getInstance(getApplicationContext());
-            int registeredCount = database.userDao().getRegisteredUserCount();
-            runOnUiThread(() -> {
-                androidx.navigation.NavGraph graph = navController.getNavInflater().inflate(R.navigation.nav_graph);
-                graph.setStartDestination(registeredCount == 0 ? R.id.welcomeFragment : R.id.mainHomeFragment);
-                navController.setGraph(graph);
-                routeToReminderTargetIfNeeded();
-                routeShortcut();
-            });
-        });
-    }
+    // Removed setupDynamicNavigation()
 
     public void onRegistrationComplete() {
-        androidx.navigation.NavGraph graph = navController.getNavInflater().inflate(R.navigation.nav_graph);
-        graph.setStartDestination(R.id.mainHomeFragment);
-        navController.setGraph(graph);
-        routeToReminderTargetIfNeeded();
-        routeShortcut();
+        navController.navigate(R.id.mainHomeFragment);
+        processPendingIntents();
     }
 
     public void showAutoStartGuidance() {

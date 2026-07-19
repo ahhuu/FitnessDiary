@@ -4,12 +4,11 @@
     android:id="@+id/card_challenge_item"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
-    app:cardCornerRadius="18dp"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="20dp"
     app:cardElevation="0dp"
     app:cardBackgroundColor="#FFF8F8"
-    app:strokeWidth="1dp"
-    app:strokeColor="#10000000"
+    app:strokeWidth="0dp"
     android:clickable="true"
     android:focusable="true">
 
@@ -23,13 +22,13 @@
         <!-- Emoji 圆底座 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_item_emoji_bg"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            app:cardCornerRadius="26dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:cardCornerRadius="28dp"
             app:cardElevation="2dp"
             app:strokeWidth="0dp"
             app:cardBackgroundColor="#FFFFFF"
-            android:layout_marginEnd="14dp">
+            android:layout_marginEnd="16dp">
 
             <TextView
                 android:id="@+id/tv_item_emoji"
@@ -55,7 +54,7 @@
                 android:layout_height="wrap_content"
                 android:text="减脂冲刺"
                 android:textColor="@color/text_primary"
-                android:textSize="15sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -63,13 +62,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="21天每日热量不超标 · 累计3天超标则失败"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:layout_marginTop="3dp"
+                android:textColor="#883C3730"
+                android:textSize="12sp"
+                android:layout_marginTop="4dp"
+                android:lineSpacingExtra="2dp"
                 android:maxLines="2"
                 android:ellipsize="end" />
 
         </LinearLayout>
+
+        <!-- 编辑按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_edit_challenge"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            app:icon="@drawable/ic_edit"
+            app:iconSize="18dp"
+            app:iconTint="#B0BEC5"
+            android:layout_marginStart="4dp"
+            android:visibility="gone" />
 
         <!-- 删除按钮（自定义专用） -->
         <com.google.android.material.button.MaterialButton

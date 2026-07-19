@@ -148,6 +148,12 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // Hide content initially to prevent data loading flash
+        if (binding.nestedScroll != null) {
+            binding.nestedScroll.setAlpha(0f);
+        }
+
         checkInViewModel = new ViewModelProvider(this).get(CheckInViewModel.class);
         homeDashboardViewModel = new ViewModelProvider(this).get(HomeDashboardViewModel.class);
         dietViewModel = new ViewModelProvider(this).get(DietViewModel.class);
@@ -176,6 +182,15 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
         updateDateHeader();
         updateSummaryCard();
         achievementCenterViewModel.refreshAll();
+
+        // Fade in smoothly after data has a chance to load
+        if (binding.nestedScroll != null) {
+            binding.nestedScroll.postDelayed(() -> {
+                if (isAdded() && binding != null && binding.nestedScroll != null) {
+                    binding.nestedScroll.animate().alpha(1f).setDuration(250).start();
+                }
+            }, 250); // 250ms allows local DB queries and Threads to finish
+        }
     }
 
     public void showPageGuide(GuideStateManager guideManager) {
@@ -757,7 +772,7 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
                         + tf.format(new java.util.Date(latest.getEndTime()));
                 setTextIfExists(R.id.tv_sleep_update, window);
                 setTextIfExists(R.id.tv_sleep_value, String.format(java.util.Locale.getDefault(), "%.1f", totalHours));
-                
+
                 final float finalDeepSleep = deepSleepHours;
                 if (finalDeepSleep > 0) {
                     setTextIfExists(R.id.tv_sleep_summary,
@@ -819,7 +834,7 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
                             float duration = (latest.getEndTime() - latest.getStartTime()) / (1000f * 60 * 60);
                             float ratio = 0.15f + (Math.max(1, Math.min(5, latest.getQuality())) / 5.0f) * 0.20f;
                             float deep = duration * ratio;
-                            
+
                             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                                 if (isAdded() && binding != null) {
                                     setTextIfExists(R.id.tv_sleep_value, String.format(java.util.Locale.getDefault(), "%.1f", duration));
@@ -1450,7 +1465,7 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
                 String calFlag = totalCal > calThreshold ? "✅" : "⚠️";
                 String exStatus = snapshot.completedPlans > 0
                         ? snapshot.completedPlans + "/" + snapshot.totalPlans + "项 · 消耗" + totalCal + "kcal " + calFlag
-                        : "无训练";
+                        : (snapshot.totalPlans == 0 ? "休息日" : "无训练");
                 detail.append("🏋️ 训练  ").append(bar(exRatio)).append(" ").append(breakdown.exerciseScore).append("/25  ").append(exStatus).append("\n");
 
                 // ── 饮食 ──
@@ -1711,34 +1726,13 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
     }
 
     private void refreshChallengeCard() {
-        new Thread(() -> {
-            com.cz.fitnessdiary.utils.ChallengeManager.checkToday(getContext());
-            requireActivity().runOnUiThread(() -> {
-        String status = com.cz.fitnessdiary.utils.ChallengeManager.getStatus(getContext());
-        String type = com.cz.fitnessdiary.utils.ChallengeManager.getActiveType(getContext());
         View card = binding.getRoot().findViewById(R.id.card_challenge);
-        if (card == null) return;
+        if (card != null) card.setVisibility(View.GONE);
 
-        // 首页中的挑战卡片已永久隐藏，所有状态都在FAB弹窗内展示
-        card.setVisibility(View.GONE);
-        if (type == null || !"ACTIVE".equals(status)) {
-            return;
-        }
-        int days = com.cz.fitnessdiary.utils.ChallengeManager.getProgressDays(getContext());
-        int fails = com.cz.fitnessdiary.utils.ChallengeManager.getFailDays(getContext());
-
-        TextView tvEmoji = card.findViewById(R.id.tv_challenge_emoji);
-        if (tvEmoji != null) tvEmoji.setText(com.cz.fitnessdiary.utils.ChallengeManager.getTypeEmoji(type));
-        TextView tvTitle = card.findViewById(R.id.tv_challenge_title);
-        if (tvTitle != null) tvTitle.setText(com.cz.fitnessdiary.utils.ChallengeManager.getTypeName(type));
-        TextView tvProgress = card.findViewById(R.id.tv_challenge_progress);
-        if (tvProgress != null) tvProgress.setText("第 " + Math.min(days, 21) + "/21 天");
-        TextView tvFails = card.findViewById(R.id.tv_challenge_fails);
-        if (tvFails != null) {
-            int max = "MUSCLE_GAIN".equals(type) ? 2 : 3;
-            tvFails.setText("失败" + fails + "/" + max);
-        }
-            });
+        new Thread(() -> {
+            try {
+                com.cz.fitnessdiary.utils.ChallengeManager.checkTodaySync(getContext());
+            } catch (Exception ignored) {}
         }).start();
     }
 
@@ -1864,9 +1858,9 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
         boolean defaultVal = def;
         if (KEY_SHOW_SLEEP.equals(key) || KEY_SHOW_WEIGHT.equals(key)) {
             defaultVal = true;
-        } else if (KEY_SHOW_WATER.equals(key) || KEY_SHOW_HABIT.equals(key) || 
-                   KEY_SHOW_MEDICATION.equals(key) || KEY_SHOW_MEASUREMENT.equals(key) || 
-                   KEY_SHOW_BOWEL.equals(key) || KEY_SHOW_MENSTRUAL.equals(key) || 
+        } else if (KEY_SHOW_WATER.equals(key) || KEY_SHOW_HABIT.equals(key) ||
+                   KEY_SHOW_MEDICATION.equals(key) || KEY_SHOW_MEASUREMENT.equals(key) ||
+                   KEY_SHOW_BOWEL.equals(key) || KEY_SHOW_MENSTRUAL.equals(key) ||
                    KEY_SHOW_STEP.equals(key) || KEY_SHOW_MOOD.equals(key)) {
             defaultVal = false;
         }
@@ -2080,7 +2074,7 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
             }
 
             exerciseCalories = totalCal; // 赋值给成员变量以同步更新外露消耗标签
-            
+
             final int finalTotal = totalCal;
             final int finalWorkout = workoutCal;
             final int finalStepCal = stepCal;
@@ -2206,13 +2200,13 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
         if (binding == null || getContext() == null) return;
 
         SharedPreferences sp = requireContext().getSharedPreferences("home_cards_prefs", Context.MODE_PRIVATE);
-        
+
         boolean showMissions = sp.getBoolean("show_card_missions", true);
         // [Removed v2.4] top tags permanently hidden
         // binding.layoutTopTags.setVisibility(showMissions ? View.VISIBLE : View.GONE);
 
         String orderStr = sp.getString("home_cards_order", "missions,sport,diet,water,sleep,habit,medication,weight,measurement,bowel,menstrual,step,mood");
-        
+
         // 自动补齐缺失的卡片ID
         if (orderStr != null) {
             List<String> list = new ArrayList<>(Arrays.asList(orderStr.split(",")));
@@ -2339,8 +2333,8 @@ public class CheckInFragment extends Fragment implements com.cz.fitnessdiary.ui.
     }
 
     private boolean isSmallCard(String id) {
-        return "water".equals(id) || "sleep".equals(id) || "habit".equals(id) || 
-               "medication".equals(id) || "weight".equals(id) || "measurement".equals(id) || 
+        return "water".equals(id) || "sleep".equals(id) || "habit".equals(id) ||
+               "medication".equals(id) || "weight".equals(id) || "measurement".equals(id) ||
                "bowel".equals(id) || "menstrual".equals(id) || "step".equals(id) || "mood".equals(id);
     }
 

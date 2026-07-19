@@ -3,7 +3,6 @@ package com.cz.fitnessdiary.ui.fragment;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageDecoder;
 import android.net.Uri;
 import android.os.Build;
@@ -12,7 +11,6 @@ import com.cz.fitnessdiary.model.FoodScanFlowState;
 import com.cz.fitnessdiary.model.ImageFoodItemDraft;
 import com.cz.fitnessdiary.model.ImageMealDraft;
 import java.io.File;
-import java.io.InputStream;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -850,8 +848,8 @@ public class DietFragment extends Fragment {
                     if (FoodImageConfirmBottomSheet.ACTION_CONFIRM.equals(action)) {
                         Object raw = bundle.getSerializable(FoodImageConfirmBottomSheet.RESULT_DRAFT);
                         if (raw instanceof ImageMealDraft) {
-                            boolean syncLibrary = bundle.getBoolean(FoodImageConfirmBottomSheet.RESULT_SYNC_LIBRARY, false);
-                            viewModel.saveImageMealDraft((ImageMealDraft) raw, syncLibrary);
+                            int syncMode = bundle.getInt(FoodImageConfirmBottomSheet.RESULT_SYNC_MODE, 0);
+                            viewModel.saveImageMealDraft((ImageMealDraft) raw, syncMode);
                             aiDraftViewModel.clearDietDraft();
                             Toast.makeText(requireContext(), "饮食已保存", Toast.LENGTH_SHORT).show();
                         }
@@ -1184,7 +1182,7 @@ public class DietFragment extends Fragment {
         }
         imageExecutorService.execute(() -> {
             try {
-                Bitmap bitmap = decodeScaledBitmap(uri, 1280);
+                Bitmap bitmap = decodeBitmap(uri);
                 if (!isAdded()) {
                     return;
                 }
@@ -1256,35 +1254,13 @@ public class DietFragment extends Fragment {
                 .show(getChildFragmentManager(), FoodImageConfirmBottomSheet.TAG);
     }
 
-    private Bitmap decodeScaledBitmap(Uri uri, int maxSide) throws Exception {
+    private Bitmap decodeBitmap(Uri uri) throws Exception {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             ImageDecoder.Source source = ImageDecoder.createSource(requireContext().getContentResolver(), uri);
-            return ImageDecoder.decodeBitmap(source, (decoder, info, src) -> {
-                int width = info.getSize().getWidth();
-                int height = info.getSize().getHeight();
-                int maxDim = Math.max(width, height);
-                if (maxDim > maxSide) {
-                    float scale = (float) maxSide / (float) maxDim;
-                    decoder.setTargetSize(Math.max(1, (int) (width * scale)), Math.max(1, (int) (height * scale)));
-                }
-            });
+            return ImageDecoder.decodeBitmap(source);
         }
-
-        BitmapFactory.Options bounds = new BitmapFactory.Options();
-        bounds.inJustDecodeBounds = true;
-        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
-            BitmapFactory.decodeStream(is, null, bounds);
-        }
-        int inSampleSize = 1;
-        int maxDim = Math.max(bounds.outWidth, bounds.outHeight);
-        while (maxDim / inSampleSize > maxSide) {
-            inSampleSize *= 2;
-        }
-
-        BitmapFactory.Options opts = new BitmapFactory.Options();
-        opts.inSampleSize = Math.max(1, inSampleSize);
-        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
-            Bitmap bitmap = BitmapFactory.decodeStream(is, null, opts);
+        try (java.io.InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+            Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is);
             if (bitmap == null) {
                 throw new IllegalStateException("无法解析图片");
             }

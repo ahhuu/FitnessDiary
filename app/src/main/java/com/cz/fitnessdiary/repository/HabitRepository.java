@@ -35,9 +35,18 @@ public class HabitRepository {
     private void ensureDefaultHabits() {
         executorService.execute(() -> {
             if (habitItemDao.getCountSync() == 0) {
-                habitItemDao.insert(new HabitItem("每日打卡", true, true, 0, RULE_DAILY_CHECKIN));
-                habitItemDao.insert(new HabitItem("早餐", true, true, 1, RULE_BREAKFAST));
-                habitItemDao.insert(new HabitItem("早睡", true, true, 2, RULE_EARLY_SLEEP));
+                long now = System.currentTimeMillis();
+                HabitItem item1 = new HabitItem("每日打卡", true, true, 0, RULE_DAILY_CHECKIN);
+                item1.setCreateTime(now);
+                habitItemDao.insert(item1);
+
+                HabitItem item2 = new HabitItem("早餐", true, true, 1, RULE_BREAKFAST);
+                item2.setCreateTime(now);
+                habitItemDao.insert(item2);
+
+                HabitItem item3 = new HabitItem("早睡", true, true, 2, RULE_EARLY_SLEEP);
+                item3.setCreateTime(now);
+                habitItemDao.insert(item3);
             }
         });
     }
@@ -64,6 +73,10 @@ public class HabitRepository {
 
     public void upsertRecord(HabitRecord record) {
         executorService.execute(() -> habitRecordDao.upsert(record));
+    }
+
+    public void upsertRecordSync(HabitRecord record) {
+        habitRecordDao.upsert(record);
     }
 
     public void updateItem(HabitItem item) {

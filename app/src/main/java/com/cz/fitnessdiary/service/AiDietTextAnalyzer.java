@@ -16,12 +16,10 @@ public final class AiDietTextAnalyzer {
     private static final String SYSTEM_PROMPT =
             "你是 FitnessDiary 饮食记录解析器。只返回 JSON，不要 Markdown。"
                     + "JSON 格式为 {\"meal_name\":\"\",\"items\":[{"
-                    + "\"name\":\"\",\"amount\":1,\"unit\":\"\","
-                    + "\"basis\":\"TOTAL_PORTION\",\"calories\":0,"
-                    + "\"protein\":0,\"carbs\":0,\"fat\":0,"
-                    + "\"estimated_weight_g\":0,\"needs_review\":false}]}。"
-                    + "固体优先使用 g/kg/个/只/片/块，液体使用 ml/L，米饭面条使用碗/盘/份，"
-                    + "包装食品使用包/袋/盒。营养值必须对应用户实际摄入量；不确定数量时使用 1 份并 needs_review=true。";
+                    + "\"name\":\"苹果\",\"amount\":1,\"unit\":\"个\",\"calories\":52,\"protein\":0.2,\"carbs\":14,\"fat\":0.2,"
+                    + "\"estimated_weight_g\":150,\"basis\":\"TOTAL_PORTION\",\"category\":\"水果: 时令水果\",\"needs_review\":false}],"
+                    + "\"reply\":\"简短友善评价\"}"
+                    + "注意：固体重量必须用 g/kg，液体必须用 ml/L，个体食物用 个/片/只 等合理单位。如果给出的是每100g的营养，必须设置 basis 字段为 PER_100G 且给出预估总重量 estimated_weight_g。category 必须从标准分类中选择（如 主食: 基础米面, 菜肴: 精选荤菜, 蛋白: 蛋奶豆制品, 水果: 时令水果, 蔬菜: 新鲜时蔬, 零食: 包装小吃, 饮料: 咖啡奶茶, 调料/油脂 等）。";
 
     public interface Callback {
         void onSuccess(ImageMealDraft draft);
@@ -39,7 +37,7 @@ public final class AiDietTextAnalyzer {
         }
         String prompt = "请解析以下饮食描述，只输出紧凑 JSON：\n" + text.trim();
         DeepSeekService.sendMessageWithPolicy(prompt, SYSTEM_PROMPT, false, null,
-                AiRequestPolicy.DIET_MAX_COMPLETION_TOKENS, true, new AICallback() {
+                true, new AICallback() {
                     @Override
                     public void onSuccess(String response, String reasoning) {
                         try {

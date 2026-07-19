@@ -77,9 +77,7 @@
         android:id="@+id/layout_media_container"
         android:layout_width="match_parent"
         android:layout_height="160dp"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/shape_circle_plan_blue"
-        android:backgroundTint="@color/plan_blue_container">
+        android:layout_marginBottom="16dp">
 
         <!-- 默认离线首字艺术占位，100% 保证离线视觉效果 -->
         <TextView

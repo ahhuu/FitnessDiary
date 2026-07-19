@@ -43,4 +43,10 @@ public interface MedicationRecordDao {
 
     @Query("SELECT * FROM medication_record WHERE timestamp >= :startTs AND timestamp < :endTs ORDER BY timestamp DESC")
     List<MedicationRecord> getRecordsByDateRangeSync(long startTs, long endTs);
+
+    @Query("SELECT COUNT(*) FROM medication_record WHERE timestamp >= :startTs AND timestamp < :endTs AND is_taken = 1")
+    int getTakenCountByDateRangeSync(long startTs, long endTs);
+
+    @Query("SELECT COUNT(*) FROM medication_record WHERE timestamp >= :startTs AND timestamp < :endTs AND is_taken = 0")
+    int getUntakenCountByDateRangeSync(long startTs, long endTs);
 }

@@ -1,37 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme using Material 3 -->
     <style name="Theme.FitnessDiary" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_variant</item>
         <item name="colorOnPrimary">@color/white</item>
-        
+
         <!-- Secondary brand color -->
         <item name="colorSecondary">@color/secondary</item>
         <item name="colorSecondaryVariant">@color/secondary_variant</item>
         <item name="colorOnSecondary">@color/white</item>
-        
+
         <!-- Background colors -->
+        <item name="android:windowBackground">@color/background</item>
         <item name="android:colorBackground">@color/background</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnBackground">@color/text_primary</item>
         <item name="colorOnSurface">@color/text_primary</item>
-        
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+
         <!-- Error color -->
         <item name="colorError">@color/error</item>
-        
+
         <!-- Status bar color - align with warm cream background -->
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">true</item>
-        
+
         <!-- Material card style -->
         <item name="materialCardViewStyle">@style/Widget.App.Card</item>
-        
+
         <!-- Material 3 Dialog Theme -->
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.MaterialAlertDialog</item>
     </style>
-    
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#F7F5F0</item>
+        <item name="android:windowBackground">#F7F5F0</item>
+        <item name="android:colorBackground">#F7F5F0</item>
+        <item name="android:statusBarColor">#F7F5F0</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_bg</item>
+        <item name="postSplashScreenTheme">@style/Theme.FitnessDiary</item>
+    </style>
+
     <!-- Custom Card Style with premium soft shadows and 28dp corners -->
     <style name="Widget.App.Card.Base" parent="Widget.Material3.CardView.Elevated">
         <item name="cardCornerRadius">28dp</item>
@@ -43,20 +57,20 @@
     </style>
 
     <style name="Widget.App.Card" parent="Widget.App.Card.Base" />
-    
+
     <!-- Title Text Style -->
     <style name="TextAppearance.App.Title" parent="TextAppearance.Material3.HeadlineMedium">
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textSize">26sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
-    
+
     <!-- Subtitle Text Style -->
     <style name="TextAppearance.App.Subtitle" parent="TextAppearance.Material3.BodyLarge">
         <item name="android:textColor">@color/text_secondary</item>
         <item name="android:textSize">14sp</item>
     </style>
-    
+
     <!-- FAB Style -->
     <style name="Widget.App.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
         <item name="backgroundTint">@color/primary</item>

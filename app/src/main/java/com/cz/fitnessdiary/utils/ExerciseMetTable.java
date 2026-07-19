@@ -21,43 +21,41 @@ public class ExerciseMetTable {
 
     // ── 器械动作关键词 ──
     private static final java.util.Set<String> EQUIPMENT_KEYWORDS = new java.util.HashSet<>(
-        java.util.Arrays.asList("哑铃", "杠铃", "器械", "壶铃", "拉力器", "负重", "绳索", "史密斯")
-    );
+            java.util.Arrays.asList("哑铃", "杠铃", "器械", "壶铃", "拉力器", "负重", "绳索", "史密斯"));
 
     // ── 明确使用器械但名称中无关键词的动作（来自 exercise_library.json）──
     private static final java.util.Set<String> EQUIPMENT_EXERCISE_NAMES = new java.util.HashSet<>(
-        java.util.Arrays.asList(
-            // 手臂 — 哑铃
-            "锤式弯举", "集中弯举",
-            // 手臂 — 杠铃
-            "窄距卧推",
-            // 肩部 — 哑铃
-            "阿诺德推举",
-            // 肩部 — 器械
-            "跪姿面拉",
-            // 背部 — 器械
-            "面拉", "直臂下压", "坐姿划船",
-            // 胸部 — 器械
-            "龙门架夹胸",
-            // 腿部 — 杠铃
-            "保加利亚分腿蹲",
-            // 腿部 — 器械
-            "倒蹬机", "坐姿腿屈伸", "俯卧腿弯举",
-            "坐姿提踵", "站姿提踵", "髋外展机", "髋内收机",
-            // 腹部 — 器械
-            "悬垂举腿", "健腹轮", "罗马椅侧屈"
-        )
-    );
+            java.util.Arrays.asList(
+                    // 手臂 — 哑铃
+                    "锤式弯举", "集中弯举",
+                    // 手臂 — 杠铃
+                    "窄距卧推",
+                    // 肩部 — 哑铃
+                    "阿诺德推举",
+                    // 肩部 — 器械
+                    "跪姿面拉",
+                    // 背部 — 器械
+                    "面拉", "直臂下压", "坐姿划船",
+                    // 胸部 — 器械
+                    "龙门架夹胸",
+                    // 腿部 — 杠铃
+                    "保加利亚分腿蹲",
+                    // 腿部 — 器械
+                    "倒蹬机", "坐姿腿屈伸", "俯卧腿弯举",
+                    "坐姿提踵", "站姿提踵", "髋外展机", "髋内收机",
+                    // 腹部 — 器械
+                    "悬垂举腿", "健腹轮", "罗马椅侧屈"));
 
     // ── 静力动作关键词 ──
     private static final java.util.Set<String> STATIC_KEYWORDS = new java.util.HashSet<>(
-        java.util.Arrays.asList("支撑", "静蹲", "平板", "靠墙")
-    );
+            java.util.Arrays.asList("支撑", "静蹲", "平板", "靠墙"));
 
     private static boolean isStaticExercise(String name) {
-        if (name == null) return false;
+        if (name == null)
+            return false;
         for (String kw : STATIC_KEYWORDS) {
-            if (name.contains(kw)) return true;
+            if (name.contains(kw))
+                return true;
         }
         return false;
     }
@@ -181,9 +179,12 @@ public class ExerciseMetTable {
             String cat = category.toLowerCase();
             if (cat.contains("有氧") || cat.contains("cardio") || cat.contains("跑步") || cat.contains("骑行"))
                 return 7.0;
-            if (cat.contains("hiit")) return 8.0;
-            if (cat.contains("瑜伽") || cat.contains("拉伸") || cat.contains("yoga")) return 2.5;
-            if (cat.contains("力量") || cat.contains("strength")) return 3.5;
+            if (cat.contains("hiit"))
+                return 8.0;
+            if (cat.contains("瑜伽") || cat.contains("拉伸") || cat.contains("yoga"))
+                return 2.5;
+            if (cat.contains("力量") || cat.contains("strength"))
+                return 3.5;
         }
         return 4.0;
     }
@@ -197,22 +198,26 @@ public class ExerciseMetTable {
 
     /**
      * 判断动作是否需要器械 (通过名称或分类关键词匹配)
-     * @param name 动作名
+     *
+     * @param name     动作名
      * @param category 分类 (如 "胸部: 哑铃", "腿部: 器械")
      * @return 是否需要器械
      */
     public static boolean isEquipmentExercise(String name, String category) {
         if (category != null) {
             for (String kw : EQUIPMENT_KEYWORDS) {
-                if (category.contains(kw)) return true;
+                if (category.contains(kw))
+                    return true;
             }
         }
         if (name != null) {
             // 精确匹配已知器械动作名
-            if (EQUIPMENT_EXERCISE_NAMES.contains(name)) return true;
+            if (EQUIPMENT_EXERCISE_NAMES.contains(name))
+                return true;
             // 关键词模糊匹配
             for (String kw : EQUIPMENT_KEYWORDS) {
-                if (name.contains(kw)) return true;
+                if (name.contains(kw))
+                    return true;
             }
         }
         return false;
@@ -220,16 +225,17 @@ public class ExerciseMetTable {
 
     /**
      * 三模式容量计算（内部使用，含生物力学系数）
-     * @param name 动作名（用于查自重系数）
-     * @param sets 组数
-     * @param reps 次数 (静力动作 reps=1)
-     * @param weight 负重 (kg, 用户手动设定, 0=自重)
+     *
+     * @param name         动作名（用于查自重系数）
+     * @param sets         组数
+     * @param reps         次数 (静力动作 reps=1)
+     * @param weight       负重 (kg, 用户手动设定, 0=自重)
      * @param planDuration 计划预设时长 (秒, 用于静力动作)
-     * @param userWeight 用户体重 (kg, 自重动作需要)
+     * @param userWeight   用户体重 (kg, 自重动作需要)
      * @return 容量值
      */
     public static int calculateVolume(String name, int sets, int reps, float weight,
-                                       int planDuration, float userWeight) {
+            int planDuration, float userWeight) {
         if (weight > 0) {
             // 负重动作: 组 × 次 × 用户输入的重量(kg)
             return (int) (sets * reps * weight);
@@ -261,9 +267,12 @@ public class ExerciseMetTable {
      * 获取容量单位字符串
      */
     public static String getVolumeUnit(int sets, int reps, float weight, int planDuration, String name) {
-        if (weight > 0) return "kg";
-        if ((reps == 1 || isStaticExercise(name)) && planDuration > 0) return "秒";
-        if (isEquipmentExercise(name, null)) return "";  // 未设重量的器械动作
+        if (weight > 0)
+            return "kg";
+        if ((reps == 1 || isStaticExercise(name)) && planDuration > 0)
+            return "秒";
+        if (isEquipmentExercise(name, null))
+            return ""; // 未设重量的器械动作
         return "次";
     }
 
@@ -272,12 +281,15 @@ public class ExerciseMetTable {
      */
     /**
      * 解析单动作时长: log > plan > 智能估算(组数×次数×3秒 + 组间休息) > 120秒
+     *
      * @param sets 组数 (估算用)
      * @param reps 次数 (估算用)
      */
     public static int resolveDuration(int logDuration, int planDuration, int sets, int reps, Context context) {
-        if (logDuration > 0) return logDuration;
-        if (planDuration > 0) return planDuration;
+        if (logDuration > 0)
+            return logDuration;
+        if (planDuration > 0)
+            return planDuration;
         // 智能估算: 每组每动作3秒 + 组间休息60秒
         if (sets > 0 && reps > 0) {
             int estimated = sets * reps * 3 + (sets - 1) * 60;
@@ -301,7 +313,8 @@ public class ExerciseMetTable {
         String dateKey = "target_minutes_" + dateTs;
         int targetMin = context.getSharedPreferences("fitness_diary_prefs", Context.MODE_PRIVATE)
                 .getInt(dateKey, 0);
-        if (targetMin > 0) return targetMin * 60;
+        if (targetMin > 0)
+            return targetMin * 60;
         return accumulatedSec;
     }
 
@@ -309,14 +322,16 @@ public class ExerciseMetTable {
      * 格式化容量显示 (不暴露自重kg数，避免误解)
      */
     public static String formatVolume(int volume, String unit, float weight,
-                                       String name, int sets, int reps) {
+            String name, int sets, int reps) {
         if ("kg".equals(unit)) {
             // 负重动作：直接显示 kg
-            if (volume >= 1000) return String.format("%.1f吨", volume / 1000.0);
+            if (volume >= 1000)
+                return String.format("%.1f吨", volume / 1000.0);
             return volume + " kg";
         } else if ("秒".equals(unit)) {
             // 静力动作
-            if (volume >= 60) return (volume / 60) + "分" + (volume % 60 > 0 ? volume % 60 + "秒" : "");
+            if (volume >= 60)
+                return (volume / 60) + "分" + (volume % 60 > 0 ? volume % 60 + "秒" : "");
             return volume + "秒";
         }
         // 自重动作：显示 次数 + 等效负荷百分比

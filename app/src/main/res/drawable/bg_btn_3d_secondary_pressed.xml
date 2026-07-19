@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 最底层：左上深色内阴影 -->
-    <item 
-        android:left="0dp" 
-        android:top="0dp" 
-        android:right="1.5dp" 
-        android:bottom="1.5dp">
+    <item
+        android:left="0dp"
+        android:top="0dp"
+        android:right="1dp"
+        android:bottom="1dp">
         <shape android:shape="rectangle">
             <corners android:radius="28dp"/>
             <solid android:color="#DFD8CE"/>
@@ -13,10 +13,10 @@
     </item>
 
     <!-- 中间层：右下亮高光 -->
-    <item 
-        android:left="1.5dp" 
-        android:top="1.5dp" 
-        android:right="0dp" 
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="0dp"
         android:bottom="0dp">
         <shape android:shape="rectangle">
             <corners android:radius="28dp"/>
@@ -25,11 +25,11 @@
     </item>
 
     <!-- 最表层：按下后内凹色块 -->
-    <item 
-        android:left="1.5dp" 
-        android:top="1.5dp" 
-        android:right="1.5dp" 
-        android:bottom="1.5dp">
+    <item
+        android:left="1dp"
+        android:top="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
         <shape android:shape="rectangle">
             <corners android:radius="26.5dp"/>
             <solid android:color="#F4F1E9"/>

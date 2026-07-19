@@ -36,8 +36,6 @@ object MiMoService {
         systemInstruction: String?,
         image: Bitmap?,
         history: List<ChatMessageEntity>?,
-        maxCompletionTokens: Int,
-        structuredJson: Boolean,
         callback: AICallback
     ) {
         scope.launch {
@@ -53,10 +51,10 @@ object MiMoService {
                     addProperty("role", "system")
                     addProperty("content", systemInstruction ?: DEFAULT_SYSTEM_PROMPT)
                 })
-                history?.takeLast(AiRequestPolicy.CHAT_MAX_HISTORY_MESSAGES)?.forEach { item ->
+                history?.forEach { item ->
                     messages.add(JsonObject().apply {
                         addProperty("role", if (item.isUser) "user" else "assistant")
-                        addProperty("content", item.content?.take(700) ?: "")
+                        addProperty("content", item.content ?: "")
                     })
                 }
                 val userContent = JsonArray()
@@ -70,7 +68,7 @@ object MiMoService {
                 }
                 userContent.add(JsonObject().apply {
                     addProperty("type", "text")
-                    addProperty("text", message.take(3200))
+                    addProperty("text", message)
                 })
                 messages.add(JsonObject().apply {
                     addProperty("role", "user")
@@ -80,7 +78,6 @@ object MiMoService {
                 val requestJson = JsonObject().apply {
                     addProperty("model", "mimo-v2.5")
                     add("messages", messages)
-                    addProperty("max_completion_tokens", maxCompletionTokens)
                     addProperty("stream", false)
                     add("thinking", JsonObject().apply { addProperty("type", "disabled") })
                     // MiMo may return multimodal content as an array of text parts.
@@ -151,18 +148,10 @@ object MiMoService {
     }
 
     private fun bitmapToDataUrl(source: Bitmap): String {
-        val bitmap = scaleBitmap(source, AiRequestPolicy.IMAGE_MAX_SIDE_PX)
         val output = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, AiRequestPolicy.IMAGE_JPEG_QUALITY, output)
+        // Preserve the complete decoded image. The provider still applies its own request limits.
+        source.compress(Bitmap.CompressFormat.JPEG, 100, output)
         return "data:image/jpeg;base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
-    }
-
-    private fun scaleBitmap(source: Bitmap, maxSide: Int): Bitmap {
-        if (source.width <= maxSide && source.height <= maxSide) return source
-        val ratio = source.width.toFloat() / source.height.toFloat()
-        val width = if (source.width >= source.height) maxSide else (maxSide * ratio).toInt()
-        val height = if (source.height > source.width) maxSide else (maxSide / ratio).toInt()
-        return Bitmap.createScaledBitmap(source, width.coerceAtLeast(1), height.coerceAtLeast(1), true)
     }
 
     private const val DEFAULT_SYSTEM_PROMPT =

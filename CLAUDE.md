@@ -23,7 +23,7 @@ Unit tests live in `app/src/test`, Room migration instrumentation tests live in
 - **Architecture:** MVVM (ViewModel + Repository + Room DAO)
 - **UI:** ViewBinding, Material Design 3, Navigation Component (single-activity)
 - **Min/Target SDK:** 26 / 34, `applicationId: com.cz.fitnessdiary`
-- **Current app release:** 2.7.0 (`versionCode 17`)
+- **Current app release:** 2.8.0 (`versionCode 19`)
 - **Key libraries:** Room 2.6.1, MPAndroidChart, Glide, OkHttp 4.12, Gson, ZXing (barcode), Lottie, direct personal AI clients
 - **Cloud account/social (beta):** CloudBase email-code authentication + PostgreSQL REST/RPC; optional and disabled safely when the environment id is absent
 
@@ -37,7 +37,7 @@ are also local-only (`signing.store.*`, `signing.key.*`).
 
 ### Single Activity + Navigation
 
-`MainActivity` is the only Activity. It dynamically sets the nav graph start destination based on whether the user is registered (`WelcomeFragment` vs `MainHomeFragment`). 
+`MainActivity` is the only Activity. It dynamically sets the nav graph start destination based on whether the user is registered (`WelcomeFragment` vs `MainHomeFragment`).
 
 `MainHomeFragment` contains a customized bottom navigation bar (3D pill-style) hosting four core functional tabs:
 1. `CheckInFragment` (记录) — Home dashboard with health score ring (five-dimension breakdown), collapsible daily briefing card, and FAB quick-entry shortcut. Daily checklist for steps, water, sleep, habits, weight, mood, etc.
@@ -60,8 +60,8 @@ The launcher intent can carry a `shortcut_id` for app shortcuts or reminder rout
 Entity (@Entity table) → DAO (@Dao interface) → Repository (plain class) → ViewModel (AndroidViewModel)
 ```
 
-- **25 Room entities** in `database/entity/`, **25 DAOs** in `database/dao/`, plus local/domain repositories including the non-Room `AccountRepository` and `SocialRepository`
-- `AppDatabase` is a Room singleton (DCL pattern), current version **30**
+- **27 Room entities** in `database/entity/`, **27 DAOs** in `database/dao/`, plus local/domain repositories including the non-Room `AccountRepository` and `SocialRepository`
+- `AppDatabase` is a Room singleton (DCL pattern), current version **34**
 - Repository classes extend `AndroidViewModel` pattern — they take `Application` in constructor to get the DB instance
 - All DB operations run on `Executors.newSingleThreadExecutor()` — not on the main thread but also not via Room's built-in async support
 - **No reactive patterns** (LiveData only at the ViewModel→View boundary); Repository methods return plain lists/objects
@@ -81,6 +81,10 @@ Current migration notes:
 - `MIGRATION_27_28` adds the first nullable cloud-account binding field and `cloud_bound_at` to the local `user` table. No health record table is uploaded or assigned a cloud owner.
 - `MIGRATION_28_29` rebuilds the local `user` table to use `cloud_user_id`, preserving the binding and all local profile values. The earlier migration column remains only as an on-device schema compatibility detail.
 - `MIGRATION_29_30` adds actual per-day training values to `daily_log` and creates `extra_exercise_log` for date-scoped actions that are not long-term plans.
+- `MIGRATION_30_31` adds `create_time` to the `habit_item` table to calculate accurate completion percentages based on habit creation rather than first-interaction.
+- `MIGRATION_31_32` creates `challenge_instance` and `challenge_record` tables, transferring from old `challenge` table to support multi-instance template challenges with progress tracking.
+- `MIGRATION_32_33` adds `total_days`, `target_days`, and `freeze_tickets` to `challenge` table to support dynamic length tracking, custom check-in targets, and freeze functionality for custom habit engine.
+- `MIGRATION_33_34` completes the Room-backed challenge data migration and preserves legacy challenge progress while enabling the current challenge engine.
 
 ### CloudBase Account & Social Beta
 

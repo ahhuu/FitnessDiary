@@ -142,11 +142,15 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
             binding.etPlanDescription.setText(existingPlan.getDescription());
             binding.etSets.setText(String.valueOf(existingPlan.getSets()));
             binding.etReps.setText(String.valueOf(existingPlan.getReps()));
-            float displayWeight = com.cz.fitnessdiary.utils.UnitUtils.convertWeight(existingPlan.getWeight(), com.cz.fitnessdiary.utils.UnitUtils.getWeightUnit(requireContext()));
-            binding.etWeight.setText(displayWeight > 0 ? String.format(java.util.Locale.getDefault(), "%.1f", displayWeight).replace(".0", "") : "0");
+            float displayWeight = com.cz.fitnessdiary.utils.UnitUtils.convertWeight(existingPlan.getWeight(),
+                    com.cz.fitnessdiary.utils.UnitUtils.getWeightUnit(requireContext()));
+            binding.etWeight.setText(displayWeight > 0
+                    ? String.format(java.util.Locale.getDefault(), "%.1f", displayWeight).replace(".0", "")
+                    : "0");
         }
-        
-        binding.tilWeight.setHint("负重(" + com.cz.fitnessdiary.utils.UnitUtils.getWeightUnitSymbol(requireContext()) + ") - 哑铃单只/杠铃单边/器械配重");
+
+        binding.tilWeight.setHint("负重(" + com.cz.fitnessdiary.utils.UnitUtils.getWeightUnitSymbol(requireContext())
+                + ") - 哑铃总重/杠铃总重/器械配重");
 
         if (existingPlan != null) {
             // 显示时去掉前缀，保留最后一段（部位名）
@@ -239,12 +243,13 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                 gifFiles = requireContext().getAssets().list("gifs");
             } catch (java.io.IOException e) {
                 if (getActivity() != null) {
-                    getActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "无法读取GIF目录", Toast.LENGTH_SHORT).show());
+                    getActivity().runOnUiThread(
+                            () -> Toast.makeText(requireContext(), "无法读取GIF目录", Toast.LENGTH_SHORT).show());
                 }
                 return;
             }
-            if (gifFiles == null || gifFiles.length == 0) return;
+            if (gifFiles == null || gifFiles.length == 0)
+                return;
             final String[] finalFiles = gifFiles;
 
             if (getActivity() != null) {
@@ -269,8 +274,14 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                     // RecyclerView适配器：显示GIF文件名列表
                     class GifAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<GifAdapter.VH> {
                         List<String> items = new java.util.ArrayList<>();
-                        void setItems(List<String> list) { items = list; notifyDataSetChanged(); }
-                        @NonNull @Override
+
+                        void setItems(List<String> list) {
+                            items = list;
+                            notifyDataSetChanged();
+                        }
+
+                        @NonNull
+                        @Override
                         public VH onCreateViewHolder(@NonNull ViewGroup p, int vt) {
                             TextView tv = new TextView(p.getContext());
                             tv.setPadding(32, 24, 32, 24);
@@ -278,10 +289,11 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                             tv.setTextColor(0xFF333333);
                             return new VH(tv);
                         }
+
                         @Override
                         public void onBindViewHolder(@NonNull VH h, int pos) {
                             String name = items.get(pos);
-                            ((TextView)h.itemView).setText(name);
+                            ((TextView) h.itemView).setText(name);
                             h.itemView.setOnClickListener(v -> {
                                 // 找回原始文件名（含.gif）
                                 String gifName = name + ".gif";
@@ -291,9 +303,16 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
                                 Toast.makeText(requireContext(), "已选择: " + name, Toast.LENGTH_SHORT).show();
                             });
                         }
-                        @Override public int getItemCount() { return items.size(); }
+
+                        @Override
+                        public int getItemCount() {
+                            return items.size();
+                        }
+
                         class VH extends RecyclerView.ViewHolder {
-                            VH(View v) { super(v); }
+                            VH(View v) {
+                                super(v);
+                            }
                         }
                     }
 
@@ -303,17 +322,25 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
 
                     // 模糊搜索
                     etSearch.addTextChangedListener(new android.text.TextWatcher() {
-                        @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
+                        @Override
+                        public void onTextChanged(CharSequence s, int st, int b, int c) {
                             String q = s.toString().trim().toLowerCase();
                             java.util.List<String> filtered = new java.util.ArrayList<>();
                             for (String f : finalFiles) {
                                 String name = stripExt(f);
-                                if (q.isEmpty() || name.toLowerCase().contains(q)) filtered.add(name);
+                                if (q.isEmpty() || name.toLowerCase().contains(q))
+                                    filtered.add(name);
                             }
                             gifAdapter.setItems(filtered);
                         }
-                        @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
-                        @Override public void afterTextChanged(android.text.Editable s) {}
+
+                        @Override
+                        public void beforeTextChanged(CharSequence s, int st, int c, int a) {
+                        }
+
+                        @Override
+                        public void afterTextChanged(android.text.Editable s) {
+                        }
                     });
 
                     dialog.show();
@@ -329,7 +356,8 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
 
     private static String[] stripExtensions(String[] files) {
         String[] result = new String[files.length];
-        for (int i = 0; i < files.length; i++) result[i] = stripExt(files[i]);
+        for (int i = 0; i < files.length; i++)
+            result[i] = stripExt(files[i]);
         return result;
     }
 
@@ -400,7 +428,8 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
             } else {
                 // 新增计划归入当前活跃的个人计划模板
                 String activePlan = viewModel.getActivePersonalPlanName().getValue();
-                if (activePlan == null || activePlan.isEmpty()) activePlan = "默认自定义计划";
+                if (activePlan == null || activePlan.isEmpty())
+                    activePlan = "默认自定义计划";
                 String targetPrefix = "自定义-" + activePlan + "-";
                 finalCategory = category.isEmpty() ? "未分类" : category;
                 if (!finalCategory.startsWith("基础-") && !finalCategory.startsWith("进阶-")
@@ -444,7 +473,12 @@ public class AddPlanBottomSheetFragment extends BottomSheetDialogFragment {
     }
 
     private float parseFloat(String s) {
-        if (s == null || s.isEmpty()) return 0f;
-        try { return Float.parseFloat(s); } catch (NumberFormatException e) { return 0f; }
+        if (s == null || s.isEmpty())
+            return 0f;
+        try {
+            return Float.parseFloat(s);
+        } catch (NumberFormatException e) {
+            return 0f;
+        }
     }
 }

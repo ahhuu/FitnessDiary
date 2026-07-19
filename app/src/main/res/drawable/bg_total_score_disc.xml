@@ -2,8 +2,8 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 最底层：右下深色投影 (外盘阴影) -->
     <item
-        android:left="1.5dp"
-        android:top="1.5dp">
+        android:left="1dp"
+        android:top="1dp">
         <shape android:shape="oval">
             <solid android:color="#E0DCD2"/>
         </shape>

@@ -146,6 +146,13 @@ public class ImageFoodItemDraft implements Serializable {
         }
     }
 
+    public String getBaseUnit() { return baseUnit; }
+    public double getBaseAmount() { return baseAmount; }
+    public double getBaseCalories() { return baseCalories; }
+    public double getBaseProtein() { return baseProtein; }
+    public double getBaseCarbs() { return baseCarbs; }
+    public double getBaseFat() { return baseFat; }
+
     public boolean hasNutritionData() {
         return calories > 0 || protein > 0d || carbs > 0d || fat > 0d;
     }

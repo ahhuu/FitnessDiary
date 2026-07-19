@@ -80,18 +80,19 @@ public class HabitDetailViewModel extends AndroidViewModel {
                     continue;
                 int completed = repository.getCompletedCountByHabitAndDateRangeSync(item.getId(), rangeStart,
                         dayStart + 24L * 60L * 60L * 1000L);
-                
+
                 // 以最近 30 天为统计标准，同时对新添加习惯进行分母保护
-                Long oldestRecordDate = repository.getOldestRecordDateSync(item.getId());
+                long createTime = item.getCreateTime();
                 int expectedTotalDays = 30; // 默认以 30 天为分母
-                if (oldestRecordDate == null) {
-                    expectedTotalDays = 1; // 暂无记录，默认 1 天，配合已完成 0 计算完成率为 0%
+                if (createTime <= 0) {
+                    expectedTotalDays = 1; // 暂无创建时间记录（容错），默认 1 天
                 } else {
-                    // 自最早记录日期到当前选择日期的自然天数（含当天 +1）
-                    int daysSinceCreation = (int) ((dayStart - oldestRecordDate) / (24L * 60L * 60L * 1000L)) + 1;
+                    // 自创建日期到当前选择日期的自然天数（含当天 +1）
+                    long createDayStart = DateUtils.getDayStartTimestamp(createTime);
+                    int daysSinceCreation = (int) ((dayStart - createDayStart) / (24L * 60L * 60L * 1000L)) + 1;
                     expectedTotalDays = Math.max(1, Math.min(30, daysSinceCreation));
                 }
-                
+
                 int rate = Math.round(completed * 100f / expectedTotalDays);
 
                 List<HabitRecord> recent = repository.getRecentByHabitSync(item.getId(), 60);
@@ -115,7 +116,9 @@ public class HabitDetailViewModel extends AndroidViewModel {
     }
 
     public void upsertRecord(long habitId, long dayStart, boolean completed, String source) {
-        repository.upsertRecord(new HabitRecord(habitId, dayStart, completed, source, System.currentTimeMillis()));
+        executor.execute(() -> {
+            repository.upsertRecordSync(new HabitRecord(habitId, dayStart, completed, source, System.currentTimeMillis()));
+        });
         refreshStats();
     }
 
@@ -129,6 +132,7 @@ public class HabitDetailViewModel extends AndroidViewModel {
             int sort = repository.getAllItemsSync().size();
             HabitItem item = new HabitItem(name, false, true, sort, "MANUAL");
             item.setDescription(description);
+            item.setCreateTime(System.currentTimeMillis());
             repository.insertItem(item);
             refreshStats();
         });

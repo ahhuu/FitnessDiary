@@ -44,8 +44,6 @@ object DeepSeekService {
             systemInstruction,
             thinking,
             history,
-            if (thinking) AiRequestPolicy.DEEP_THINKING_MAX_COMPLETION_TOKENS
-            else AiRequestPolicy.ADVICE_MAX_COMPLETION_TOKENS,
             false,
             callback
         )
@@ -57,7 +55,6 @@ object DeepSeekService {
         systemInstruction: String?,
         thinking: Boolean,
         history: List<ChatMessageEntity>?,
-        maxCompletionTokens: Int,
         structuredJson: Boolean,
         callback: AICallback
     ) {
@@ -74,21 +71,20 @@ object DeepSeekService {
                     addProperty("role", "system")
                     addProperty("content", systemInstruction ?: DEFAULT_SYSTEM_PROMPT)
                 })
-                history?.takeLast(AiRequestPolicy.CHAT_MAX_HISTORY_MESSAGES)?.forEach { item ->
+                history?.forEach { item ->
                     messages.add(JsonObject().apply {
                         addProperty("role", if (item.isUser) "user" else "assistant")
-                        addProperty("content", item.content?.take(700) ?: "")
+                        addProperty("content", item.content ?: "")
                     })
                 }
                 messages.add(JsonObject().apply {
                     addProperty("role", "user")
-                    addProperty("content", message.take(AiRequestPolicy.CHAT_MAX_HISTORY_CHARS))
+                    addProperty("content", message)
                 })
 
                 val requestJson = JsonObject().apply {
                     addProperty("model", if (thinking) "deepseek-v4-pro" else "deepseek-v4-flash")
                     add("messages", messages)
-                    addProperty("max_completion_tokens", maxCompletionTokens)
                     addProperty("stream", false)
                     if (thinking) {
                         add("thinking", JsonObject().apply { addProperty("type", "enabled") })

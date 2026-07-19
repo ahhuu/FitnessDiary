@@ -47,6 +47,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Collections;
+
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import android.widget.ImageView;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 /**
  * 极致重构后的快速录入与工作台 16 宫格 BottomSheet - v4.0
@@ -339,7 +346,7 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
         etName.setThreshold(1);
         final android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
         etName.setAdapter(adapter);
-        
+
         etName.addTextChangedListener(new android.text.TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -417,7 +424,7 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
                             newPlan.setDuration(durMinutes * 60);
                             newPlan.setCategory("力量");
                             db.trainingPlanDao().insert(newPlan);
-                            
+
                             // 重新加载并拿到最新生成的 planId
                             List<TrainingPlan> updated = db.trainingPlanDao().getAllPlansList();
                             planId = 0;
@@ -461,7 +468,7 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
         etName.setThreshold(1);
         final android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
         etName.setAdapter(adapter);
-        
+
         etName.addTextChangedListener(new android.text.TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -534,7 +541,7 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
                         new Thread(() -> {
                             AppDatabase db = AppDatabase.getInstance(requireContext());
                             com.cz.fitnessdiary.database.entity.FoodLibrary food = db.foodLibraryDao().getFoodByName(name);
-                            
+
                             int cal;
                             double protein = 0;
                             double carbs = 0;
@@ -1086,79 +1093,113 @@ public class QuickEntryBottomSheet extends BottomSheetDialogFragment {
             sp.edit().putString("home_cards_order", String.join(",", items)).apply();
         }
 
-        // 用 ScrollView 包装以免列表过长在小屏上溢出
-        NestedScrollView sv = new NestedScrollView(requireContext());
-        LinearLayout container = new LinearLayout(requireContext());
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(dp(20), dp(10), dp(20), dp(10));
-        sv.addView(container);
+        RecyclerView recyclerView = new RecyclerView(requireContext());
+        recyclerView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        recyclerView.setPadding(dp(12), dp(16), dp(12), dp(16));
+        recyclerView.setClipToPadding(false);
 
-        refreshSettingsListInLayout(container, items, sp);
+        HomeCardConfigAdapter adapter = new HomeCardConfigAdapter(items, sp);
+        recyclerView.setAdapter(adapter);
+
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView,
+                                  @NonNull RecyclerView.ViewHolder viewHolder,
+                                  @NonNull RecyclerView.ViewHolder target) {
+                int fromPos = viewHolder.getAdapterPosition();
+                int toPos = target.getAdapterPosition();
+                Collections.swap(items, fromPos, toPos);
+                adapter.notifyItemMoved(fromPos, toPos);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) { }
+        });
+        itemTouchHelper.attachToRecyclerView(recyclerView);
+        adapter.setItemTouchHelper(itemTouchHelper);
 
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("配置首页卡片 (平级排序)")
-                .setView(sv)
+                .setTitle("配置首页卡片 (可拖动排序)")
+                .setView(recyclerView)
                 .setPositiveButton("保存", (dialog, which) -> {
                     sp.edit().putString("home_cards_order", String.join(",", items)).apply();
                     Toast.makeText(getContext(), "首页卡片配置已更新", Toast.LENGTH_SHORT).show();
+                    dismiss();
+                })
+                .setNeutralButton("重置", (dialog, which) -> {
+                    String defaultOrder = "sport,diet,water,sleep,habit,medication,weight,measurement,bowel,menstrual,step,mood";
+                    SharedPreferences.Editor editor = sp.edit();
+                    editor.putString("home_cards_order", defaultOrder);
+                    for (String id : defaultOrder.split(",")) {
+                        editor.putBoolean("show_card_" + id, true);
+                    }
+                    editor.apply();
+                    Toast.makeText(getContext(), "已重置为默认配置", Toast.LENGTH_SHORT).show();
                     dismiss();
                 })
                 .setNegativeButton("取消", null)
                 .show();
     }
 
-    private void refreshSettingsListInLayout(LinearLayout container, List<String> items, SharedPreferences sp) {
-        container.removeAllViews();
-        for (int i = 0; i < items.size(); i++) {
-            String id = items.get(i);
-            final int index = i;
+    private class HomeCardConfigAdapter extends RecyclerView.Adapter<HomeCardConfigAdapter.ViewHolder> {
+        private final List<String> items;
+        private final SharedPreferences sp;
+        private ItemTouchHelper itemTouchHelper;
 
-            LinearLayout row = new LinearLayout(requireContext());
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(0, dp(4), 0, dp(4));
+        public HomeCardConfigAdapter(List<String> items, SharedPreferences sp) {
+            this.items = items;
+            this.sp = sp;
+        }
 
-            CheckBox cb = new CheckBox(requireContext());
-            cb.setText(getWorkspaceCardName(id));
-            cb.setChecked(sp.getBoolean("show_card_" + id, getDefaultCardVisibility(id)));
-            cb.setOnCheckedChangeListener((buttonView, isChecked) -> {
+        public void setItemTouchHelper(ItemTouchHelper itemTouchHelper) {
+            this.itemTouchHelper = itemTouchHelper;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_home_config, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            String id = items.get(position);
+            holder.tvName.setText(getWorkspaceCardName(id));
+            holder.switchVisibility.setChecked(sp.getBoolean("show_card_" + id, getDefaultCardVisibility(id)));
+
+            holder.switchVisibility.setOnCheckedChangeListener(null);
+            holder.switchVisibility.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 sp.edit().putBoolean("show_card_" + id, isChecked).apply();
             });
 
-            LinearLayout.LayoutParams lpCb = new LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
-            cb.setLayoutParams(lpCb);
-            row.addView(cb);
-
-            // Move Up
-            ImageButton btnUp = new ImageButton(requireContext());
-            btnUp.setImageResource(android.R.drawable.arrow_up_float);
-            btnUp.setBackground(null);
-            btnUp.setPadding(dp(8), dp(8), dp(8), dp(8));
-            btnUp.setEnabled(index > 0);
-            btnUp.setOnClickListener(v -> {
-                String temp = items.get(index);
-                items.set(index, items.get(index - 1));
-                items.set(index - 1, temp);
-                refreshSettingsListInLayout(container, items, sp);
+            holder.ivDrag.setOnTouchListener((v, event) -> {
+                if (event.getAction() == android.view.MotionEvent.ACTION_DOWN && itemTouchHelper != null) {
+                    itemTouchHelper.startDrag(holder);
+                }
+                return false;
             });
-            row.addView(btnUp);
+        }
 
-            // Move Down
-            ImageButton btnDown = new ImageButton(requireContext());
-            btnDown.setImageResource(android.R.drawable.arrow_down_float);
-            btnDown.setBackground(null);
-            btnDown.setPadding(dp(8), dp(8), dp(8), dp(8));
-            btnDown.setEnabled(index < items.size() - 1);
-            btnDown.setOnClickListener(v -> {
-                String temp = items.get(index);
-                items.set(index, items.get(index + 1));
-                items.set(index + 1, temp);
-                refreshSettingsListInLayout(container, items, sp);
-            });
-            row.addView(btnDown);
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
 
-            container.addView(row);
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvName;
+            MaterialSwitch switchVisibility;
+            ImageView ivDrag;
+            ViewHolder(View itemView) {
+                super(itemView);
+                tvName = itemView.findViewById(R.id.tv_card_name);
+                switchVisibility = itemView.findViewById(R.id.switch_card_visibility);
+                ivDrag = itemView.findViewById(R.id.iv_drag_handle);
+            }
         }
     }
 

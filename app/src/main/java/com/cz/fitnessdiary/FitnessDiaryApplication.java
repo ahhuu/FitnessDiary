@@ -10,6 +10,17 @@ public class FitnessDiaryApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        // Initialize theme early to avoid flashes during splash screen
+        int themeMode = com.cz.fitnessdiary.utils.UnitUtils.getThemeMode(this);
+        if (themeMode == com.cz.fitnessdiary.utils.UnitUtils.THEME_LIGHT) {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO);
+        } else if (themeMode == com.cz.fitnessdiary.utils.UnitUtils.THEME_DARK) {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES);
+        } else {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+        }
+
         CloudApiClient.getInstance().initialize(this);
         AiUsageStore.init(this);
     }

@@ -27,6 +27,9 @@ public class HabitItem {
     @ColumnInfo(name = "description")
     private String description;
 
+    @ColumnInfo(name = "create_time")
+    private long createTime;
+
     public HabitItem(String name, boolean defaultItem, boolean enabled, int sortOrder, String autoRule) {
         this.name = name;
         this.defaultItem = defaultItem;
@@ -90,5 +93,13 @@ public class HabitItem {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
     }
 }

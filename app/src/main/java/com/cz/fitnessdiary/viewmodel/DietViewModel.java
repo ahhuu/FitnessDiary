@@ -19,10 +19,15 @@ import com.cz.fitnessdiary.model.FoodScanFlowState;
 import com.cz.fitnessdiary.model.ImageFoodItemDraft;
 import com.cz.fitnessdiary.model.ImageMealDraft;
 import com.cz.fitnessdiary.model.MealSection;
+import com.cz.fitnessdiary.database.entity.Recipe;
 import com.cz.fitnessdiary.repository.FoodLibraryRepository;
 import com.cz.fitnessdiary.repository.FoodRecordRepository;
+import com.cz.fitnessdiary.repository.RecipeRepository;
 import com.cz.fitnessdiary.repository.UserRepository;
 import com.cz.fitnessdiary.service.FoodImageAnalyzer;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.cz.fitnessdiary.service.FoodImageQuotaStore;
 import com.cz.fitnessdiary.utils.CalorieCalculatorUtils;
 import com.cz.fitnessdiary.utils.DateUtils;
@@ -43,6 +48,7 @@ public class DietViewModel extends AndroidViewModel {
     private final FoodRecordRepository foodRecordRepository;
     private final FoodLibraryRepository foodLibraryRepository;
     private final UserRepository userRepository;
+    private final RecipeRepository recipeRepository;
     private final ExecutorService executorService;
 
     // LiveData
@@ -76,6 +82,7 @@ public class DietViewModel extends AndroidViewModel {
         foodRecordRepository = new FoodRecordRepository(application);
         foodLibraryRepository = new FoodLibraryRepository(application);
         userRepository = new UserRepository(application);
+        recipeRepository = new RecipeRepository(application);
         executorService = Executors.newSingleThreadExecutor();
         foodImageQuotaStore = new FoodImageQuotaStore(application);
 
@@ -433,7 +440,7 @@ public class DietViewModel extends AndroidViewModel {
     }
 
     /** Saves every confirmed item as its own FoodRecord with the user-visible amount and unit. */
-    public void saveImageMealDraft(ImageMealDraft draft, boolean syncToLibrary) {
+    public void saveImageMealDraft(ImageMealDraft draft, int syncMode) {
         if (!beginDraftSave(draft)) return;
         executorService.execute(() -> {
             boolean success = false;
@@ -443,6 +450,11 @@ public class DietViewModel extends AndroidViewModel {
                 for (ImageFoodItemDraft item : draft.getItems()) {
                     if (!isSavableItem(item) || !item.recalculateNutrition()) return;
                 }
+                int totalCalories = 0;
+                double totalProtein = 0;
+                double totalCarbs = 0;
+                double totalFat = 0;
+
                 for (ImageFoodItemDraft item : draft.getItems()) {
                     String name = item.getName().trim();
                     String unit = FoodUnitUtils.normalize(item.getRawUnit());
@@ -460,32 +472,118 @@ public class DietViewModel extends AndroidViewModel {
                         carbs = local.getCarbsPer100g() * ratio;
                         fat = local.getFatPer100g() * ratio;
                     }
-                    FoodRecord record = new FoodRecord(name, Math.max(0, calories), recordDate);
-                    record.setProtein(Math.max(0d, protein));
-                    record.setCarbs(Math.max(0d, carbs));
-                    record.setFat(Math.max(0d, fat));
-                    record.setMealType(Math.max(0, Math.min(3, draft.getMealType())));
-                    record.setServings((float) amount);
-                    record.setServingUnit(unit);
-                    foodRecordRepository.insert(record);
 
-                    if (syncToLibrary && local == null) {
-                        double estimatedWeight = item.getEstimatedWeightGrams();
-                        if (estimatedWeight <= 0 && FoodUnitUtils.isMass(unit)) {
-                            estimatedWeight = "kg".equalsIgnoreCase(unit) ? amount * 1000d : amount;
+                    totalCalories += calories;
+                    totalProtein += protein;
+                    totalCarbs += carbs;
+                    totalFat += fat;
+
+                    if (syncMode == 2 && local == null) {
+                        String libUnit = item.getBaseUnit() != null && !item.getBaseUnit().trim().isEmpty() ? item.getBaseUnit() : unit;
+                        double weightPerUnit = item.getEstimatedWeightPerUnitGrams();
+
+                        if (FoodUnitUtils.isMass(libUnit)) {
+                            weightPerUnit = 1d;
+                            libUnit = "g";
+                        } else if (weightPerUnit <= 0) {
+                            if (item.getBaseAmount() > 0 && item.getEstimatedWeightGrams() > 0) {
+                                weightPerUnit = item.getEstimatedWeightGrams() / item.getBaseAmount();
+                            }
                         }
-                        if (estimatedWeight > 0 && FoodUnitUtils.isReliableLibraryUnit(unit, estimatedWeight,
+
+                        if (weightPerUnit > 0 && FoodUnitUtils.isReliableLibraryUnit(libUnit, weightPerUnit,
                                 item.isUnitConversionConfirmed())) {
-                            double per100 = 100d / estimatedWeight;
-                            FoodLibrary library = new FoodLibrary(name,
-                                    (int) Math.round(Math.max(0, calories) * per100), protein * per100,
-                                    carbs * per100, fat * per100, unit,
-                                    Math.max(1, (int) Math.round(estimatedWeight / amount)),
-                                    item.getCategory() == null || item.getCategory().trim().isEmpty() ? "其他" : item.getCategory().trim());
-                            foodLibraryRepository.insert(library);
+
+                            double per100Cal = 0, per100Pro = 0, per100Carb = 0, per100Fat = 0;
+                            if (ImageFoodItemDraft.BASIS_PER_100G.equals(item.getNutritionBasis())) {
+                                per100Cal = item.getBaseCalories();
+                                per100Pro = item.getBaseProtein();
+                                per100Carb = item.getBaseCarbs();
+                                per100Fat = item.getBaseFat();
+                            } else {
+                                double currentWeight = item.getEstimatedWeightGrams();
+                                if (currentWeight <= 0 && FoodUnitUtils.isMass(unit)) {
+                                    currentWeight = "kg".equalsIgnoreCase(unit) ? amount * 1000d : amount;
+                                }
+                                if (currentWeight > 0) {
+                                    double per100 = 100d / currentWeight;
+                                per100Cal = Math.max(0, calories) * per100;
+                                    per100Pro = protein * per100;
+                                    per100Carb = carbs * per100;
+                                    per100Fat = fat * per100;
+                                }
+                            }
+
+                            if (per100Cal > 0 || per100Pro > 0 || per100Carb > 0 || per100Fat > 0) {
+                                FoodLibrary library = new FoodLibrary(name,
+                                        (int) Math.round(per100Cal), per100Pro,
+                                        per100Carb, per100Fat, libUnit,
+                                        Math.max(1, (int) Math.round(weightPerUnit)),
+                                        item.getCategory() == null || item.getCategory().trim().isEmpty() ? "其他" : item.getCategory().trim());
+                                foodLibraryRepository.insert(library);
+                            }
                         }
                     }
                 }
+
+                String mealName = draft.getMealName();
+                if (mealName == null || mealName.trim().isEmpty()) {
+                    mealName = "AI识别整餐";
+                }
+
+                FoodRecord mealRecord = new FoodRecord(mealName, Math.max(0, totalCalories), recordDate);
+                mealRecord.setProtein(Math.max(0d, totalProtein));
+                mealRecord.setCarbs(Math.max(0d, totalCarbs));
+                mealRecord.setFat(Math.max(0d, totalFat));
+                mealRecord.setMealType(Math.max(0, Math.min(3, draft.getMealType())));
+                mealRecord.setServings(1f);
+                mealRecord.setServingUnit("份");
+                foodRecordRepository.insert(mealRecord);
+
+                if (syncMode == 1) {
+                    Gson gson = new Gson();
+                    JsonArray foodsArray = new JsonArray();
+                    float totalRecipeCalories = 0;
+                    for (ImageFoodItemDraft item : draft.getItems()) {
+                        String name = item.getName().trim();
+                        String unit = FoodUnitUtils.normalize(item.getRawUnit());
+                        double amount = item.getAmount();
+                        FoodLibrary local = foodLibraryRepository.getFoodByName(name);
+                        double weight = resolveWeightGrams(local, unit, amount);
+                        int calories = item.getCalories();
+                        double protein = item.getProtein();
+                        double carbs = item.getCarbs();
+                        double fat = item.getFat();
+                        if (local != null && weight > 0) {
+                            double ratio = weight / 100d;
+                            calories = (int) Math.round(local.getCaloriesPer100g() * ratio);
+                            protein = local.getProteinPer100g() * ratio;
+                            carbs = local.getCarbsPer100g() * ratio;
+                            fat = local.getFatPer100g() * ratio;
+                        }
+
+                        JsonObject itemJson = new JsonObject();
+                        itemJson.addProperty("foodName", name);
+                        itemJson.addProperty("calories", calories);
+                        itemJson.addProperty("protein", protein);
+                        itemJson.addProperty("carbs", carbs);
+                        itemJson.addProperty("fat", fat);
+                        itemJson.addProperty("servings", amount);
+                        itemJson.addProperty("servingUnit", unit);
+                        itemJson.addProperty("grams", weight > 0 ? weight : 100d);
+                        foodsArray.add(itemJson);
+
+                        totalRecipeCalories += calories;
+                    }
+                    String recipeName = draft.getMealName();
+                    if (recipeName == null || recipeName.trim().isEmpty()) {
+                        recipeName = "AI识别整餐";
+                    }
+                    long now = System.currentTimeMillis();
+                    Recipe recipe = new Recipe(recipeName, gson.toJson(foodsArray), totalRecipeCalories, draft.getMealType(), false, now, now);
+                    recipeRepository.insertSync(recipe);
+                }
+
                 success = true;
             } finally {
                 finishDraftSave(draft.getDraftId(), success);

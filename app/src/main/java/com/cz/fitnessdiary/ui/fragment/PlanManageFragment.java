@@ -50,7 +50,7 @@ public class PlanManageFragment extends Fragment {
     private FragmentPlanManageBinding binding;
     private PlanViewModel viewModel;
     private GroupedPlanAdapter adapter;
-    
+
     // 探索计划库所需的适配器与模板列表
     private com.cz.fitnessdiary.ui.adapter.TemplateListAdapter basicAdapter;
     private com.cz.fitnessdiary.ui.adapter.TemplateListAdapter advancedAdapter;
@@ -118,13 +118,12 @@ public class PlanManageFragment extends Fragment {
         observeViewModel();
 
         // 监听来自模板预览一键导入或AI生成计划完毕的通知，切回“当前计划”Tab
-        getChildFragmentManager().setFragmentResultListener("plan_imported_request", getViewLifecycleOwner(), (requestKey, bundle) -> {
-            if (binding.tabLayout.getTabAt(0) != null) {
-                binding.tabLayout.selectTab(binding.tabLayout.getTabAt(0));
-            }
-        });
-
-
+        getChildFragmentManager().setFragmentResultListener("plan_imported_request", getViewLifecycleOwner(),
+                (requestKey, bundle) -> {
+                    if (binding.tabLayout.getTabAt(0) != null) {
+                        binding.tabLayout.selectTab(binding.tabLayout.getTabAt(0));
+                    }
+                });
 
         // FAB 点击分流：Tab 2 新建模板，Tab 0 添加动作
         binding.fabAddPlan.setOnClickListener(v -> {
@@ -159,31 +158,34 @@ public class PlanManageFragment extends Fragment {
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText("探索计划库"));
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText("个人计划"));
 
-        binding.tabLayout.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                if (tab.getPosition() == 0) {
-                    binding.scrollCurrentPlan.setVisibility(View.VISIBLE);
-                    binding.scrollExploreLibrary.setVisibility(View.GONE);
-                    binding.scrollPersonalPlans.setVisibility(View.GONE);
-                } else if (tab.getPosition() == 1) {
-                    binding.scrollCurrentPlan.setVisibility(View.GONE);
-                    binding.scrollExploreLibrary.setVisibility(View.VISIBLE);
-                    binding.scrollPersonalPlans.setVisibility(View.GONE);
-                } else {
-                    binding.scrollCurrentPlan.setVisibility(View.GONE);
-                    binding.scrollExploreLibrary.setVisibility(View.GONE);
-                    binding.scrollPersonalPlans.setVisibility(View.VISIBLE);
-                }
-                updateFabVisibility();
-            }
+        binding.tabLayout
+                .addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+                    @Override
+                    public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                        if (tab.getPosition() == 0) {
+                            binding.scrollCurrentPlan.setVisibility(View.VISIBLE);
+                            binding.scrollExploreLibrary.setVisibility(View.GONE);
+                            binding.scrollPersonalPlans.setVisibility(View.GONE);
+                        } else if (tab.getPosition() == 1) {
+                            binding.scrollCurrentPlan.setVisibility(View.GONE);
+                            binding.scrollExploreLibrary.setVisibility(View.VISIBLE);
+                            binding.scrollPersonalPlans.setVisibility(View.GONE);
+                        } else {
+                            binding.scrollCurrentPlan.setVisibility(View.GONE);
+                            binding.scrollExploreLibrary.setVisibility(View.GONE);
+                            binding.scrollPersonalPlans.setVisibility(View.VISIBLE);
+                        }
+                        updateFabVisibility();
+                    }
 
-            @Override
-            public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
+                    @Override
+                    public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    }
 
-            @Override
-            public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
-        });
+                    @Override
+                    public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    }
+                });
     }
 
     /**
@@ -193,16 +195,17 @@ public class PlanManageFragment extends Fragment {
         basicAdapter = new com.cz.fitnessdiary.ui.adapter.TemplateListAdapter();
         advancedAdapter = new com.cz.fitnessdiary.ui.adapter.TemplateListAdapter();
 
-        binding.rvBasicTemplates.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
+        binding.rvBasicTemplates
+                .setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
         binding.rvBasicTemplates.setAdapter(basicAdapter);
 
-        binding.rvAdvancedTemplates.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
+        binding.rvAdvancedTemplates
+                .setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
         binding.rvAdvancedTemplates.setAdapter(advancedAdapter);
 
         // 设置卡片点击预览监听
         com.cz.fitnessdiary.ui.adapter.TemplateListAdapter.OnTemplateClickListener clickListener = template -> {
-            TemplatePreviewBottomSheetFragment preview =
-                    TemplatePreviewBottomSheetFragment.newInstance(template);
+            TemplatePreviewBottomSheetFragment preview = TemplatePreviewBottomSheetFragment.newInstance(template);
             preview.show(getChildFragmentManager(), "TemplatePreviewBottomSheet");
         };
         basicAdapter.setOnTemplateClickListener(clickListener);
@@ -233,7 +236,8 @@ public class PlanManageFragment extends Fragment {
         try {
             java.io.InputStreamReader reader = new java.io.InputStreamReader(
                     requireContext().getAssets().open("training_templates.json"), "UTF-8");
-            java.lang.reflect.Type type = new com.google.gson.reflect.TypeToken<TemplateListWrapper>() {}.getType();
+            java.lang.reflect.Type type = new com.google.gson.reflect.TypeToken<TemplateListWrapper>() {
+            }.getType();
             TemplateListWrapper wrapper = new com.google.gson.Gson().fromJson(reader, type);
             reader.close();
 
@@ -369,9 +373,12 @@ public class PlanManageFragment extends Fragment {
 
         viewModel.getFilterMode().observe(getViewLifecycleOwner(), mode -> {
             String alias = mode;
-            if ("基础".equals(mode)) alias = "初级官方";
-            else if ("进阶".equals(mode)) alias = "中高级官方";
-            else if ("自定义".equals(mode)) alias = "个人计划";
+            if ("基础".equals(mode))
+                alias = "初级官方";
+            else if ("进阶".equals(mode))
+                alias = "中高级官方";
+            else if ("自定义".equals(mode))
+                alias = "个人计划";
 
             binding.tvActivePlanLabel.setText("当前活跃计划 (" + alias + ")");
             updateEmptyStatePrompt(mode);
@@ -474,7 +481,8 @@ public class PlanManageFragment extends Fragment {
 
         int hidden = parts.length - shown;
         if (hidden > 0) {
-            com.google.android.material.chip.Chip moreChip = new com.google.android.material.chip.Chip(requireContext());
+            com.google.android.material.chip.Chip moreChip = new com.google.android.material.chip.Chip(
+                    requireContext());
             moreChip.setText("+" + hidden);
             moreChip.setEnsureMinTouchTargetSize(false);
             moreChip.setChipMinHeight(28f);
@@ -580,76 +588,80 @@ public class PlanManageFragment extends Fragment {
             binding.btnMergePlans.setVisibility(canMerge ? View.VISIBLE : View.GONE);
             binding.btnWeightManager.setVisibility(planNames.size() > 0 ? View.VISIBLE : View.GONE);
 
-            personalPlanAdapter.setData(planNames, activeName, new com.cz.fitnessdiary.ui.adapter.PersonalPlanAdapter.OnPlanActionListener() {
-                @Override
-                public void onSelect(String planName) {
-                    viewModel.setActivePersonalPlanName(planName);
-                    viewModel.setFilterMode("自定义");
-                    if (binding.tabLayout.getTabAt(0) != null) {
-                        binding.tabLayout.selectTab(binding.tabLayout.getTabAt(0));
-                    }
-                    Toast.makeText(requireContext(), "已激活个人计划: " + planName, Toast.LENGTH_SHORT).show();
-                }
+            personalPlanAdapter.setData(planNames, activeName,
+                    new com.cz.fitnessdiary.ui.adapter.PersonalPlanAdapter.OnPlanActionListener() {
+                        @Override
+                        public void onSelect(String planName) {
+                            viewModel.setActivePersonalPlanName(planName);
+                            viewModel.setFilterMode("自定义");
+                            if (binding.tabLayout.getTabAt(0) != null) {
+                                binding.tabLayout.selectTab(binding.tabLayout.getTabAt(0));
+                            }
+                            Toast.makeText(requireContext(), "已激活个人计划: " + planName, Toast.LENGTH_SHORT).show();
+                        }
 
-                @Override
-                public void onDelete(String planName) {
-                    if (planName.equals(activeName)) {
-                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("无法删除")
-                                .setMessage("个人计划“" + planName + "”当前正在执行中。\n如需删除，请先激活其它计划模板后再进行删除。")
-                                .setPositiveButton("我知道了", null)
-                                .show();
-                        return;
-                    }
+                        @Override
+                        public void onDelete(String planName) {
+                            if (planName.equals(activeName)) {
+                                new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                        .setTitle("无法删除")
+                                        .setMessage("个人计划“" + planName + "”当前正在执行中。\n如需删除，请先激活其它计划模板后再进行删除。")
+                                        .setPositiveButton("我知道了", null)
+                                        .show();
+                                return;
+                            }
 
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("删除计划")
-                            .setMessage("确定要删除个人计划“" + planName + "”及其中所有的动作吗？删除后不可恢复。")
-                            .setPositiveButton("删除", (dialog, which) -> {
-                                viewModel.deletePersonalPlan(planName);
-                                Toast.makeText(requireContext(), "计划“" + planName + "”已删除", Toast.LENGTH_SHORT).show();
-                            })
-                            .setNegativeButton("取消", null)
-                            .show();
-                }
+                            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                    .setTitle("删除计划")
+                                    .setMessage("确定要删除个人计划“" + planName + "”及其中所有的动作吗？删除后不可恢复。")
+                                    .setPositiveButton("删除", (dialog, which) -> {
+                                        viewModel.deletePersonalPlan(planName);
+                                        Toast.makeText(requireContext(), "计划“" + planName + "”已删除", Toast.LENGTH_SHORT)
+                                                .show();
+                                    })
+                                    .setNegativeButton("取消", null)
+                                    .show();
+                        }
 
-                @Override
-                public void onRename(String planName) {
-                    android.widget.EditText input = new android.widget.EditText(requireContext());
-                    input.setText(planName);
-                    input.setSelection(planName.length());
-                    input.setSingleLine(true);
-                    int padding = (int) (16 * getResources().getDisplayMetrics().density);
-                    android.widget.FrameLayout container = new android.widget.FrameLayout(requireContext());
-                    container.setPadding(padding, padding / 2, padding, 0);
-                    container.addView(input);
+                        @Override
+                        public void onRename(String planName) {
+                            android.widget.EditText input = new android.widget.EditText(requireContext());
+                            input.setText(planName);
+                            input.setSelection(planName.length());
+                            input.setSingleLine(true);
+                            int padding = (int) (16 * getResources().getDisplayMetrics().density);
+                            android.widget.FrameLayout container = new android.widget.FrameLayout(requireContext());
+                            container.setPadding(padding, padding / 2, padding, 0);
+                            container.addView(input);
 
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("修改计划名称")
-                            .setView(container)
-                            .setPositiveButton("保存", (dialog, which) -> {
-                                String newName = input.getText().toString().trim();
-                                if (newName.isEmpty()) {
-                                    Toast.makeText(requireContext(), "计划名称不能为空", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
-                                List<String> existing = viewModel.getPersonalPlanNames().getValue();
-                                if (existing != null && existing.contains(newName) && !newName.equals(planName)) {
-                                    Toast.makeText(requireContext(), "该计划名称已存在，请换一个名字", Toast.LENGTH_SHORT).show();
-                                    return;
-                                }
-                                viewModel.renamePersonalPlan(planName, newName);
-                                Toast.makeText(requireContext(), "计划重命名成功", Toast.LENGTH_SHORT).show();
-                            })
-                            .setNegativeButton("取消", null)
-                            .show();
-                }
+                            new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                                    .setTitle("修改计划名称")
+                                    .setView(container)
+                                    .setPositiveButton("保存", (dialog, which) -> {
+                                        String newName = input.getText().toString().trim();
+                                        if (newName.isEmpty()) {
+                                            Toast.makeText(requireContext(), "计划名称不能为空", Toast.LENGTH_SHORT).show();
+                                            return;
+                                        }
+                                        List<String> existing = viewModel.getPersonalPlanNames().getValue();
+                                        if (existing != null && existing.contains(newName)
+                                                && !newName.equals(planName)) {
+                                            Toast.makeText(requireContext(), "该计划名称已存在，请换一个名字", Toast.LENGTH_SHORT)
+                                                    .show();
+                                            return;
+                                        }
+                                        viewModel.renamePersonalPlan(planName, newName);
+                                        Toast.makeText(requireContext(), "计划重命名成功", Toast.LENGTH_SHORT).show();
+                                    })
+                                    .setNegativeButton("取消", null)
+                                    .show();
+                        }
 
-                @Override
-                public int getActionCount(String planName) {
-                    return viewModel.getActionCountForPersonalPlan(planName);
-                }
-            });
+                        @Override
+                        public int getActionCount(String planName) {
+                            return viewModel.getActionCountForPersonalPlan(planName);
+                        }
+                    });
         }
     }
 
@@ -658,11 +670,12 @@ public class PlanManageFragment extends Fragment {
      */
     private void showMergePlansDialog() {
         List<String> planNames = viewModel.getPersonalPlanNames().getValue();
-        if (planNames == null || planNames.size() < 2) return;
+        if (planNames == null || planNames.size() < 2)
+            return;
 
         String[] names = planNames.toArray(new String[0]);
         boolean[] checked = new boolean[names.length];
-        final int[] targetIdx = {0};
+        final int[] targetIdx = { 0 };
 
         // 构建勾选列表
         LinearLayout container = new LinearLayout(requireContext());
@@ -691,8 +704,8 @@ public class PlanManageFragment extends Fragment {
             cb.setTextSize(14);
             cbs.add(cb);
 
-            com.google.android.material.button.MaterialButton btnTarget =
-                    new com.google.android.material.button.MaterialButton(requireContext());
+            com.google.android.material.button.MaterialButton btnTarget = new com.google.android.material.button.MaterialButton(
+                    requireContext());
             btnTarget.setText("→ 目标");
             btnTarget.setTextSize(10);
             btnTarget.setPadding(0, 0, 0, 0);
@@ -737,7 +750,8 @@ public class PlanManageFragment extends Fragment {
                     String target = names[targetIdx[0]];
                     // 二次确认
                     StringBuilder msg = new StringBuilder("将以下计划合并到「" + target + "」：\n");
-                    for (String s : sources) msg.append("• ").append(s).append("\n");
+                    for (String s : sources)
+                        msg.append("• ").append(s).append("\n");
                     msg.append("\n动作部位将通过名称智能识别，合并后源计划将被清空。");
                     new MaterialAlertDialogBuilder(requireContext())
                             .setTitle("确认合并")
@@ -761,7 +775,8 @@ public class PlanManageFragment extends Fragment {
         new Thread(() -> {
             List<TrainingPlan> allPlans = AppDatabase.getInstance(requireContext().getApplicationContext())
                     .trainingPlanDao().getAllPlansList();
-            if (allPlans == null || allPlans.isEmpty()) return;
+            if (allPlans == null || allPlans.isEmpty())
+                return;
 
             // 只筛选当前激活计划的动作（按分类前缀过滤）
             String activePlan = viewModel.getActivePersonalPlanName().getValue();
@@ -774,7 +789,8 @@ public class PlanManageFragment extends Fragment {
             // 筛选需要负重的动作（含器械关键词或 weight>0 且在激活计划中）
             List<TrainingPlan> equipmentPlans = new ArrayList<>();
             for (TrainingPlan p : allPlans) {
-                if (p.getCategory() == null || !p.getCategory().startsWith(prefix)) continue;
+                if (p.getCategory() == null || !p.getCategory().startsWith(prefix))
+                    continue;
                 if (ExerciseMetTable.isEquipmentExercise(p.getName(), p.getCategory())
                         || p.getWeight() > 0) {
                     equipmentPlans.add(p);
@@ -794,7 +810,7 @@ public class PlanManageFragment extends Fragment {
                     int pad = (int) (12 * getResources().getDisplayMetrics().density);
 
                     TextView tvHint = new TextView(requireContext());
-                    tvHint.setText("设置器械动作的负重（哑铃=单只重 / 杠铃=单边重 / 器械=配重片重量）");
+                    tvHint.setText("设置器械动作的负重（哑铃=总重 / 杠铃=总重 / 器械=配重片重量）");
                     tvHint.setTextSize(12);
                     tvHint.setTextColor(0xFF888888);
                     tvHint.setPadding(0, 0, 0, pad);
@@ -818,8 +834,11 @@ public class PlanManageFragment extends Fragment {
                         EditText et = new EditText(requireContext());
                         et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                                 | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                        float displayWeight = com.cz.fitnessdiary.utils.UnitUtils.convertWeight(plan.getWeight(), com.cz.fitnessdiary.utils.UnitUtils.getWeightUnit(requireContext()));
-                        et.setText(displayWeight > 0 ? String.format(java.util.Locale.getDefault(), "%.1f", displayWeight).replace(".0", "") : "");
+                        float displayWeight = com.cz.fitnessdiary.utils.UnitUtils.convertWeight(plan.getWeight(),
+                                com.cz.fitnessdiary.utils.UnitUtils.getWeightUnit(requireContext()));
+                        et.setText(displayWeight > 0
+                                ? String.format(java.util.Locale.getDefault(), "%.1f", displayWeight).replace(".0", "")
+                                : "");
                         et.setHint(com.cz.fitnessdiary.utils.UnitUtils.getWeightUnitSymbol(requireContext()));
                         et.setTextSize(14);
                         et.setWidth((int) (80 * getResources().getDisplayMetrics().density));
@@ -838,8 +857,12 @@ public class PlanManageFragment extends Fragment {
                                     for (int i = 0; i < finalPlans.size(); i++) {
                                         String s = weightInputs.get(i).getText().toString().trim();
                                         float newWeight = 0f;
-                                        try { newWeight = Float.parseFloat(s); } catch (NumberFormatException ignored) {}
-                                        float kgWeight = com.cz.fitnessdiary.utils.UnitUtils.convertToKg(newWeight, requireContext());
+                                        try {
+                                            newWeight = Float.parseFloat(s);
+                                        } catch (NumberFormatException ignored) {
+                                        }
+                                        float kgWeight = com.cz.fitnessdiary.utils.UnitUtils.convertToKg(newWeight,
+                                                requireContext());
                                         if (Math.abs(kgWeight - finalPlans.get(i).getWeight()) > 0.05f) {
                                             finalPlans.get(i).setWeight(kgWeight);
                                             viewModel.updatePlan(finalPlans.get(i));
@@ -856,7 +879,8 @@ public class PlanManageFragment extends Fragment {
     }
 
     private void updateEmptyStatePrompt(String mode) {
-        if (binding == null) return;
+        if (binding == null)
+            return;
         if ("自定义".equals(mode)) {
             binding.tvEmptyTitle.setText("暂无当前执行计划");
             binding.tvEmptySubtitle.setText("请前往“个人计划”选择或创建一个模板执行吧！");
@@ -925,7 +949,8 @@ public class PlanManageFragment extends Fragment {
     }
 
     private void updateFabVisibility() {
-        if (viewModel == null || binding == null) return;
+        if (viewModel == null || binding == null)
+            return;
         int tabPosition = binding.tabLayout.getSelectedTabPosition();
         String mode = viewModel.getFilterMode().getValue();
         if (tabPosition == 2 || (tabPosition == 0 && "自定义".equals(mode))) {

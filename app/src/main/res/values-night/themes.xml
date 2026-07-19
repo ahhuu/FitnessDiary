@@ -19,4 +19,15 @@
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#121212</item>
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:colorBackground">#121212</item>
+        <item name="android:statusBarColor">#121212</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_bg</item>
+        <item name="postSplashScreenTheme">@style/Theme.FitnessDiary</item>
+    </style>
 </resources>

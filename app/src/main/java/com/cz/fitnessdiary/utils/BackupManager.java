@@ -28,15 +28,24 @@ public class BackupManager {
             // 1. 整理数据库
             AppDatabase.getInstance(context).close();
             File dbFile = context.getDatabasePath(DATABASE_NAME);
+            File walFile = new File(dbFile.getPath() + "-wal");
+            File shmFile = new File(dbFile.getPath() + "-shm");
             File mediaDir = MediaManager.getMediaDir(context);
+            File prefsDir = new File(context.getApplicationInfo().dataDir, "shared_prefs");
 
             // 2. 创建 ZIP 流
             try (OutputStream os = context.getContentResolver().openOutputStream(targetUri);
                     java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(os)) {
 
-                // 备份数据库文件
+                // 备份数据库文件及其日志
                 if (dbFile.exists()) {
                     addToZip(zos, dbFile, "database.db");
+                }
+                if (walFile.exists()) {
+                    addToZip(zos, walFile, "database.db-wal");
+                }
+                if (shmFile.exists()) {
+                    addToZip(zos, shmFile, "database.db-shm");
                 }
 
                 // 备份媒体文件夹
@@ -45,6 +54,18 @@ public class BackupManager {
                     if (files != null) {
                         for (File f : files) {
                             addToZip(zos, f, "media/" + f.getName());
+                        }
+                    }
+                }
+
+                // 备份 SharedPreferences
+                if (prefsDir.exists() && prefsDir.isDirectory()) {
+                    File[] prefFiles = prefsDir.listFiles();
+                    if (prefFiles != null) {
+                        for (File f : prefFiles) {
+                            if (f.isFile() && f.getName().endsWith(".xml")) {
+                                addToZip(zos, f, "shared_prefs/" + f.getName());
+                            }
                         }
                     }
                 }
@@ -81,9 +102,17 @@ public class BackupManager {
 
             // 2. 准备路径
             File dbFile = context.getDatabasePath(DATABASE_NAME);
+            File walFile = new File(dbFile.getPath() + "-wal");
+            File shmFile = new File(dbFile.getPath() + "-shm");
             File mediaDir = MediaManager.getMediaDir(context);
-            if (!mediaDir.exists())
-                mediaDir.mkdirs();
+            if (!mediaDir.exists()) mediaDir.mkdirs();
+            File prefsDir = new File(context.getApplicationInfo().dataDir, "shared_prefs");
+            if (!prefsDir.exists()) prefsDir.mkdirs();
+
+            // 恢复前先清理旧数据库和缓存文件
+            if (dbFile.exists()) dbFile.delete();
+            if (walFile.exists()) walFile.delete();
+            if (shmFile.exists()) shmFile.delete();
 
             // 3. 读取 ZIP
             try (InputStream is = context.getContentResolver().openInputStream(sourceUri);
@@ -92,25 +121,33 @@ public class BackupManager {
                 java.util.zip.ZipEntry entry;
                 while ((entry = zis.getNextEntry()) != null) {
                     if (entry.getName().equals("database.db")) {
-                        // 恢复数据库
                         try (OutputStream os = new FileOutputStream(dbFile)) {
                             copyStream(zis, os);
                         }
+                    } else if (entry.getName().equals("database.db-wal")) {
+                        try (OutputStream os = new FileOutputStream(walFile)) {
+                            copyStream(zis, os);
+                        }
+                    } else if (entry.getName().equals("database.db-shm")) {
+                        try (OutputStream os = new FileOutputStream(shmFile)) {
+                            copyStream(zis, os);
+                        }
                     } else if (entry.getName().startsWith("media/")) {
-                        // 恢复媒体文件
                         String fileName = entry.getName().substring(6); // 去掉 "media/"
                         File targetMedia = new File(mediaDir, fileName);
                         try (OutputStream os = new FileOutputStream(targetMedia)) {
+                            copyStream(zis, os);
+                        }
+                    } else if (entry.getName().startsWith("shared_prefs/")) {
+                        String fileName = entry.getName().substring(13); // 去掉 "shared_prefs/"
+                        File targetPref = new File(prefsDir, fileName);
+                        try (OutputStream os = new FileOutputStream(targetPref)) {
                             copyStream(zis, os);
                         }
                     }
                     zis.closeEntry();
                 }
             }
-
-            // 4. 清理 WAL/SHM
-            new File(dbFile.getPath() + "-wal").delete();
-            new File(dbFile.getPath() + "-shm").delete();
 
             return true;
         } catch (Exception e) {

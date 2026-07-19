@@ -58,6 +58,10 @@ import com.cz.fitnessdiary.database.entity.Recipe;
 import com.cz.fitnessdiary.database.entity.FavoriteFood;
 import com.cz.fitnessdiary.database.dao.RecipeDao;
 import com.cz.fitnessdiary.database.dao.FavoriteFoodDao;
+import com.cz.fitnessdiary.database.dao.ChallengeDao;
+import com.cz.fitnessdiary.database.dao.ChallengeRecordDao;
+import com.cz.fitnessdiary.database.entity.ChallengeEntity;
+import com.cz.fitnessdiary.database.entity.ChallengeRecordEntity;
 
 import java.util.concurrent.Executors;
 
@@ -71,7 +75,8 @@ import java.util.concurrent.Executors;
         CustomRecord.class, ReminderSchedule.class, HabitItem.class,
         HabitRecord.class, BodyMeasurement.class, BowelMovement.class,
         MenstrualCycle.class, StepRecord.class, MoodRecord.class,
-        Recipe.class, FavoriteFood.class, ExtraExerciseLog.class }, version = 30, exportSchema = true)
+        Recipe.class, FavoriteFood.class, ExtraExerciseLog.class,
+        ChallengeEntity.class, ChallengeRecordEntity.class }, version = 34, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     // 数据库名称
@@ -130,6 +135,10 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract FavoriteFoodDao favoriteFoodDao();
 
     public abstract ExtraExerciseLogDao extraExerciseLogDao();
+
+    public abstract ChallengeDao challengeDao();
+
+    public abstract ChallengeRecordDao challengeRecordDao();
 
     /**
      * 数据库迁移：Version 1 -> Version 2
@@ -642,6 +651,61 @@ public abstract class AppDatabase extends RoomDatabase {
         }
     };
 
+    public static final Migration MIGRATION_30_31 = new Migration(30, 31) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE habit_item ADD COLUMN create_time INTEGER NOT NULL DEFAULT 0");
+            database.execSQL("UPDATE habit_item SET create_time = (SELECT MIN(record_date) FROM habit_record WHERE habit_record.habit_id = habit_item.id)");
+            database.execSQL("UPDATE habit_item SET create_time = " + System.currentTimeMillis() + " WHERE create_time IS NULL OR create_time <= 0");
+        }
+    };
+
+    public static final Migration MIGRATION_31_32 = new Migration(31, 32) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS `challenge_instance` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`template_id` TEXT, " +
+                    "`name` TEXT, " +
+                    "`description` TEXT, " +
+                    "`emoji` TEXT, " +
+                    "`category` INTEGER NOT NULL, " +
+                    "`max_fails` INTEGER NOT NULL, " +
+                    "`bind_card` TEXT, " +
+                    "`start_time` INTEGER NOT NULL, " +
+                    "`status` TEXT, " +
+                    "`fails_count` INTEGER NOT NULL, " +
+                    "`last_check_date` INTEGER NOT NULL, " +
+                    "`freeze_tickets` INTEGER NOT NULL)");
+
+            database.execSQL("CREATE TABLE IF NOT EXISTS `challenge_record` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`challenge_id` INTEGER NOT NULL, " +
+                    "`record_date` INTEGER NOT NULL, " +
+                    "`is_completed` INTEGER NOT NULL, " +
+                    "`is_frozen` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`challenge_id`) REFERENCES `challenge_instance`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_challenge_record_challenge_id` ON `challenge_record` (`challenge_id`)");
+        }
+    };
+
+    public static final Migration MIGRATION_32_33 = new Migration(32, 33) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE challenge_instance ADD COLUMN total_days INTEGER NOT NULL DEFAULT 21");
+            database.execSQL("ALTER TABLE challenge_instance ADD COLUMN target_days INTEGER NOT NULL DEFAULT 21");
+        }
+    };
+
+    public static final Migration MIGRATION_33_34 = new Migration(33, 34) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE challenge_instance ADD COLUMN reminder_hour INTEGER NOT NULL DEFAULT -1");
+            database.execSQL("ALTER TABLE challenge_instance ADD COLUMN reminder_minute INTEGER NOT NULL DEFAULT -1");
+        }
+    };
+
     /**
      * 获取数据库实例（单例模式）
      */
@@ -659,7 +723,8 @@ public abstract class AppDatabase extends RoomDatabase {
                                     MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
                                     MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
                                     MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-                                    MIGRATION_28_29, MIGRATION_29_30)
+                                    MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33,
+                                    MIGRATION_33_34)
                             // 迁移
                             // [Migration Pre-reservation]
                             // 未来如果需要修改数据库结构（例如 Plan 40+），请在此添加新的 Migration 策略。

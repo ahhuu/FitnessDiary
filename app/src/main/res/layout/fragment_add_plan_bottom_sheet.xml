@@ -61,7 +61,8 @@
                 android:layout_marginBottom="12dp"
                 android:text="从运动库选择动作"
                 app:cornerRadius="16dp"
-                app:icon="@drawable/ic_hero_dumbbell" />
+                app:icon="@drawable/ic_hero_dumbbell"
+                app:iconSize="24dp" />
 
             <!-- 计划描述 -->
             <com.google.android.material.textfield.TextInputLayout
@@ -142,7 +143,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="负重(kg) - 哑铃单只/杠铃单边/器械配重"
+                    android:hint="负重(kg) - 哑铃总重/杠铃总重/器械配重"
                     app:boxCornerRadiusBottomEnd="16dp"
                     app:boxCornerRadiusBottomStart="16dp"
                     app:boxCornerRadiusTopEnd="16dp"

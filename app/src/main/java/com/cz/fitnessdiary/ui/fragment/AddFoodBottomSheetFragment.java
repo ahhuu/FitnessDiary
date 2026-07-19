@@ -417,7 +417,7 @@ public class AddFoodBottomSheetFragment extends BottomSheetDialogFragment {
             recipe.setFoodsJson(gson.toJson(foodsArr));
             recipe.setTotalCalories(recipe.getTotalCalories() + calories);
             recipe.setUpdatedAt(System.currentTimeMillis());
-            recipeViewModel.saveRecipe(recipe);
+            recipeViewModel.updateRecipe(recipe);
             Toast.makeText(getContext(), "📋 已加入食谱「" + recipe.getName() + "」", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Toast.makeText(getContext(), "加入食谱失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();

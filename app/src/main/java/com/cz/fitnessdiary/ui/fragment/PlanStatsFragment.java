@@ -121,6 +121,7 @@ public class PlanStatsFragment extends Fragment {
     // -----------------------------------------------------------------------
     private void initChartStyles() {
         styleBarChart(binding.chartDailySessions);
+        styleBarChart(binding.chartDailyVolume);
         styleLineChart(binding.chartDuration);
         stylePieChart(binding.chartCategory);
     }
@@ -136,6 +137,7 @@ public class PlanStatsFragment extends Fragment {
         c.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
         c.getXAxis().setTextColor(0xFF888888);
         c.getXAxis().setTextSize(9f);
+        c.getXAxis().setGranularity(1f);
         c.getAxisLeft().setDrawGridLines(true);
         c.getAxisLeft().setGridColor(0x20000000);
         c.getAxisLeft().setTextColor(0xFF888888);
@@ -157,6 +159,7 @@ public class PlanStatsFragment extends Fragment {
         c.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
         c.getXAxis().setTextColor(0xFF888888);
         c.getXAxis().setTextSize(9f);
+        c.getXAxis().setGranularity(1f);
         c.getAxisLeft().setDrawGridLines(true);
         c.getAxisLeft().setGridColor(0x20000000);
         c.getAxisLeft().setTextColor(0xFF888888);
@@ -207,6 +210,16 @@ public class PlanStatsFragment extends Fragment {
             List<TrainingRecordUtils.Entry> periodEntries = TrainingRecordUtils.getCompletedEntries(
                     database, startTime, endTime);
 
+            List<WeightRecord> latestWR = weightRepo.getRecentRecordsSync(1);
+            final float currentUserWeight = (latestWR != null && !latestWR.isEmpty()) ? latestWR.get(0).getWeight() : 70f;
+            int sumVol = 0;
+            for (TrainingRecordUtils.Entry entry : periodEntries) {
+                sumVol += ExerciseMetTable.calculateVolume(
+                        entry.name, entry.sets, entry.reps, entry.weight, entry.duration, currentUserWeight);
+            }
+            final String displayVolume = sumVol >= 10000 ?
+                    String.format(Locale.getDefault(), "%.1fk", sumVol / 1000f) : String.valueOf(sumVol);
+
             // —— 大数字 ——
             Set<String> allDateSet = new HashSet<>();
             if (allLogs != null) {
@@ -237,6 +250,30 @@ public class PlanStatsFragment extends Fragment {
                 xLabels[i] = sdf.format(cal.getTime());
                 barEntries.add(new BarEntry(i, cnt));
             }
+
+            // —— 每日容量柱状图 ——
+            final List<BarEntry> volumeEntries = new ArrayList<>();
+            float totalVolSum = 0;
+            int volDays = 0;
+            for (int i = 0; i < days; i++) {
+                cal.setTimeInMillis(startTime + (long) i * 24 * 3600 * 1000L);
+                long ds = dayStart(cal), de = ds + 86400000L;
+                int dayVol = 0;
+                for (TrainingRecordUtils.Entry entry : periodEntries) {
+                    if (entry.date >= ds && entry.date < de) {
+                        dayVol += ExerciseMetTable.calculateVolume(
+                                entry.name, entry.sets, entry.reps, entry.weight, entry.duration, currentUserWeight);
+                    }
+                }
+                volumeEntries.add(new BarEntry(i, dayVol));
+                if (dayVol > 0) {
+                    totalVolSum += dayVol;
+                    volDays++;
+                }
+            }
+            final float avgVol = volDays > 0 ? totalVolSum / volDays : 0;
+            final String avgVolStr = avgVol >= 10000 ?
+                    String.format(Locale.getDefault(), "均 %.1fk kg", avgVol / 1000f) : "均 " + (int)avgVol + " kg";
 
             // —— 每日时长折线图 ——
             final List<Entry> durationEntries = new ArrayList<>();
@@ -314,13 +351,16 @@ public class PlanStatsFragment extends Fragment {
                 binding.tvPeriodCount.setText(String.valueOf(periodCount));
                 binding.tvPeriodLabel.setText(isMonth ? "30天完成" : "7天完成");
                 binding.tvStreak.setText(String.valueOf(streak));
-                binding.tvTotalSessionsLabel.setText("共 " + periodCount + " 次");
+                binding.tvTotalVolume.setText(displayVolume);
+                binding.tvTotalSessionsLabel.setText(
+                        String.format(Locale.getDefault(), "均 %.1f 次", (float) periodCount / days));
                 binding.tvAvgDurationLabel.setText(
                         String.format(Locale.getDefault(), "均 %.0f 分", avgMin));
 
+                binding.tvAvgVolumeLabel.setText(avgVolStr);
 
-
-                renderBarChart(binding.chartDailySessions, barEntries, xLabels);
+                renderBarChart(binding.chartDailySessions, barEntries, xLabels, COLOR_PRIMARY);
+                renderBarChart(binding.chartDailyVolume, volumeEntries, xLabels, COLOR_WEIGHT);
                 renderLineChart(binding.chartDuration, durationEntries, xLabels, COLOR_SUCCESS);
                 if (!pieEntries.isEmpty()) renderPieChart(binding.chartCategory, pieEntries);
 
@@ -346,20 +386,16 @@ public class PlanStatsFragment extends Fragment {
     }
 
     // -----------------------------------------------------------------------
-    private void renderBarChart(BarChart chart, List<BarEntry> entries, String[] labels) {
+    private void renderBarChart(BarChart chart, List<BarEntry> entries, String[] labels, int color) {
         BarDataSet ds = new BarDataSet(entries, "");
-        ds.setColor(COLOR_PRIMARY);
+        ds.setColor(color);
         ds.setDrawValues(false);
         ds.setHighlightEnabled(true);
         ds.setHighLightColor(0x44000000);
         BarData data = new BarData(ds);
         data.setBarWidth(0.55f);
         chart.setData(data);
-        int skip = labels.length > 10 ? 5 : 1;
-        String[] dl = new String[labels.length];
-        for (int i = 0; i < labels.length; i++) dl[i] = i % skip == 0 ? labels[i] : "";
-        chart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(dl));
-        chart.getXAxis().setLabelCount(labels.length, false);
+        chart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
         chart.animateY(600, Easing.EaseOutQuart);
         chart.invalidate();
     }
@@ -378,11 +414,7 @@ public class PlanStatsFragment extends Fragment {
         ds.setHighlightEnabled(true);
         ds.setHighLightColor(0x44000000);
         chart.setData(new LineData(ds));
-        int skip = labels.length > 10 ? 5 : 1;
-        String[] dl = new String[labels.length];
-        for (int i = 0; i < labels.length; i++) dl[i] = i % skip == 0 ? labels[i] : "";
-        chart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(dl));
-        chart.getXAxis().setLabelCount(labels.length, false);
+        chart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
         chart.animateX(700, Easing.EaseInOutQuart);
         chart.invalidate();
     }

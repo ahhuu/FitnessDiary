@@ -20,10 +20,10 @@
 
     <!-- 顶层：按钮面板，深色渐变 -->
     <item
-        android:left="1.5dp"
-        android:top="1.5dp"
-        android:right="1.5dp"
-        android:bottom="1.5dp">
+        android:left="1dp"
+        android:top="1dp"
+        android:right="1dp"
+        android:bottom="1dp">
         <shape android:shape="oval">
             <gradient
                 android:startColor="#2C2C2C"
